@@ -1,0 +1,27 @@
+AEOLITH PROJECT-AUTHORED ASSET PROVENANCE
+Recorded: 2026-08-03
+
+These two assets were generated locally from deterministic Blender primitive
+scripts. They contain no downloaded marketplace mesh or texture dependency.
+They are included as project-authored game content, not as standalone assets.
+
+wind_shrine.glb
+- SHA-256: 9da826fb52f020729f080c1ac5a2ebd7917ae2626d84dc4d68085936d3d9f2d8
+- Size: 189256 bytes
+- Generator: /Users/arnav/Desktop/higgfield/prototype-lab/games/mosslight-rabbit-rescue/blender/generate_wind_shrine.py
+- Source project README states that the art, mechanics, code, and Blender-generated shrine are original and local.
+- Construction: cylinders, cones, ico spheres, deterministic radial placement, project-authored materials, and five project-authored bell animation clips.
+
+mechanical_seed_pod.glb
+- SHA-256: e885dd1db7f7d574bcd866c09e3791f2e300ef7aa2a3e8d220d6b0c7ac5b0b49
+- Size: 184832 bytes
+- Generator: /Users/arnav/Desktop/higgfield/outputs/framecrawler-loops-five-assets 2/build_five_assets.py
+- Source contract: FrameCrawler LOOPS Five-Asset Manual Proof; paid generation was explicitly out of scope.
+- Construction: ico spheres, cylinders, cubes, torus, project-authored materials, and one project-authored collar animation clip.
+- Source objective scorecard passed 40/40 checks across the five-asset generator run.
+
+Runtime handling
+- Static children are merged into vertex-colored meshes at load time.
+- Named animated nodes remain separate so their authored clips still play.
+- The interaction uses one distance proxy and no render-mesh collision.
+- The procedural fallback remains available if either GLB fails to load.

@@ -1,0 +1,40 @@
+/* Garden remains a world, with only contextual controls above the landscape. */
+.garden-page.living-garden .garden-stage{height:100svh;min-height:0;overflow:hidden}
+.garden-page.living-garden .garden-stage:after{background:linear-gradient(90deg,#07171b9c,transparent 34%,transparent 82%,#07171b38),linear-gradient(0deg,#07171bcc,transparent 29%,transparent 78%,#07171b66)}
+.garden-page.living-garden .garden-intro{left:30px;top:36px;transition:opacity .4s,transform .4s}
+.garden-page.living-garden .garden-intro h1{font-size:clamp(40px,4.4vw,68px);margin:17px 0}
+.garden-page.living-garden .garden-intro p{line-height:1.7;color:#cadaD3;font-size:12px}
+.garden-page.living-garden .garden-presence{top:98px;right:28px;padding:14px 16px;width:216px;background:#0a2026bb}
+.garden-page.living-garden .garden-presence p{font-size:11px;line-height:1.5;margin:10px 0 13px}
+.garden-page.living-garden .presence-count>span:not(.live-dot){font-size:12px}
+.garden-page.living-garden .garden-presence .text-button{font-size:11px;gap:6px;display:flex;align-items:center}
+.garden-page.living-garden .visitor-foxes{gap:11px;margin-bottom:16px}
+.garden-page.living-garden .garden-camera{left:30px;right:auto;bottom:82px;gap:1px;background:#0b2029e6;border:1px solid #bdd9d433;border-radius:18px}
+.garden-page.living-garden .garden-camera button{font-size:11px;padding:11px 12px;border-radius:13px}
+.garden-page.living-garden .garden-feed{left:30px;bottom:140px;width:235px;padding:0;background:#0a2028a8}
+.garden-page.living-garden .moments-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 15px;background:none;border:0;font-size:12px;color:#cedbd3;text-align:left}
+.garden-page.living-garden .moments-body{display:none;padding:0 15px 15px}
+.garden-page.living-garden .garden-feed.is-open .moments-body{display:block}
+.garden-page.living-garden .garden-feed.is-open .moments-toggle svg{transform:rotate(180deg)}
+.garden-page.living-garden .feed-item p{font-size:11px}
+.garden-page.living-garden .greeting select{font-size:11px;min-height:35px}
+.garden-page.living-garden .garden-walk-hint{bottom:25px;left:254px;font-size:11px;line-height:1.8;color:#cfdbd4;max-width:330px}
+.garden-page.living-garden .garden-walk-hint>span{display:block;font-size:9px;color:#98b3ad;letter-spacing:.2px}
+.guardian-controls{position:absolute;left:30px;top:300px;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.guardian-controls>button{display:flex;align-items:center;gap:8px;border:1px solid #8ccab53d;border-radius:14px;background:#0c2930c9;padding:12px 15px;color:#d7e9db;font-size:12px;backdrop-filter:blur(12px);transition:border-color .25s,box-shadow .25s}
+.guardian-controls>button.transformed{border-color:#d1bd78;box-shadow:0 0 28px #a3b7853b;color:#f1d99a}
+.guardian-controls>span{font-size:9px;color:#b5c8bd;padding-left:8px}
+.garden-page.living-garden.is-walking .garden-intro{opacity:0;transform:translateY(-15px);pointer-events:none}
+.garden-page.living-garden.is-walking .garden-intro a{pointer-events:none}
+.garden-page.living-garden.is-walking .guardian-controls{top:32px}
+.garden-move-pad{position:absolute;left:30px;bottom:183px;z-index:4;display:grid;grid-template-columns:43px 43px 43px;grid-template-rows:43px 43px;gap:5px;touch-action:none}
+.garden-move-pad>button{display:grid;place-items:center;border-radius:13px;background:#102b32dc;border:1px solid #cbe3d739;color:#e9ebd7;touch-action:none;user-select:none;backdrop-filter:blur(14px)}
+.garden-move-pad>button:active{background:#41675e}
+.move-up{grid-area:1/2}.move-left{grid-area:2/1}.move-down{grid-area:2/2}.move-right{grid-area:2/3}
+.garden-move-pad>.move-sprint{position:absolute;left:0;top:-43px;height:34px;display:flex;padding:0 12px;gap:7px;font-size:11px}
+.garden-move-pad>.move-sprint[aria-pressed=true]{color:#ffe1a8;border-color:#d7b96d}
+.garden-page.living-garden.is-walking .garden-feed{left:186px;bottom:184px;width:190px}
+.garden-page.living-garden.is-walking .garden-feed:not(.is-open){width:160px}
+@media(max-width:850px){.garden-page.living-garden .garden-intro{left:22px;top:25px}.garden-page.living-garden .garden-presence{right:20px;width:192px}.guardian-controls{left:22px;top:268px}.garden-page.living-garden .garden-camera{left:22px}.garden-page.living-garden .garden-feed{left:22px}.garden-page.living-garden .garden-walk-hint{left:142px;font-size:10px;max-width:250px}.garden-move-pad{left:22px}.garden-page.living-garden .garden-camera button{padding:10px 9px;font-size:10px}}
+@media(max-width:600px){.garden-page.living-garden .garden-intro{top:80px;left:18px}.garden-page.living-garden .garden-intro h1{font-size:38px;margin:12px 0}.garden-page.living-garden .garden-intro p,.garden-page.living-garden .garden-start{display:none}.garden-page.living-garden .garden-intro .eyebrow{font-size:7px;letter-spacing:1px}.garden-page.living-garden .garden-presence{top:119px;right:14px;width:142px;padding:10px 12px}.garden-page.living-garden .garden-presence p,.garden-page.living-garden .visitor-foxes{display:none}.garden-page.living-garden .garden-presence .text-button{font-size:9px;margin-top:8px}.garden-page.living-garden .presence-count{gap:3px}.garden-page.living-garden .presence-count strong{font-size:19px}.garden-page.living-garden .presence-count>span:not(.live-dot){font-size:9px}.garden-page.living-garden .presence-count>svg{display:none}.guardian-controls{top:206px;left:18px}.guardian-controls>button{font-size:10px;padding:10px}.guardian-controls>span{font-size:8px;max-width:130px}.garden-page.living-garden.is-walking .guardian-controls{top:81px}.garden-page.living-garden .garden-camera{left:15px;bottom:250px;gap:0;padding:4px;border-radius:15px}.garden-page.living-garden .garden-camera button{padding:9px 10px;font-size:10px}.garden-page.living-garden .garden-camera button span{display:none}.garden-page.living-garden .garden-feed{left:15px;bottom:298px;width:161px}.garden-page.living-garden .garden-feed .moments-toggle{font-size:10px;padding:10px 12px}.garden-page.living-garden .garden-feed .eyebrow{display:none}.garden-page.living-garden .garden-feed .feed-item p{font-size:10px}.garden-page.living-garden .garden-walk-hint{display:none}.garden-page.living-garden .garden-walk-hint>span{font-size:8px;margin-top:7px;line-height:1.6}.garden-move-pad{left:15px;bottom:91px;grid-template-columns:35px 35px 35px;grid-template-rows:35px 35px;gap:4px}.garden-move-pad>button{border-radius:10px}.garden-page.living-garden.is-walking .garden-feed{left:15px;bottom:298px;width:162px}.garden-page.living-garden.is-walking .garden-feed:not(.is-open){width:162px}}
+@media(prefers-reduced-motion:reduce){.garden-page.living-garden *{transition:none!important}}

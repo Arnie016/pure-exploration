@@ -1,0 +1,11 @@
+{
+  "project": "AEOLITH Meridian Clash",
+  "edition": "Local AI practice",
+  "source_directory_name": "aeolith-meridian-clash",
+  "source_revision_date": "2026-09-25",
+  "bundle_date": "2026-09-29",
+  "network": "No multiplayer authority or cloud progression configured in this bundle",
+  "relocation": "Built with /games/aeolith/ base; root-relative asset and local game links relocated",
+  "public_models": "Existing public source asset directory only",
+  "modified_bundles_for_base_path": 5
+}

@@ -1,0 +1,12 @@
+AEOLITH gameplay capture
+Recorded locally 2026-09-06 using the actual game canvas, 1280x720 VP9, 15.281 seconds.
+3v3 AI simulation; ordinary keyboard controls only. No state staging or third-party gameplay.
+Canvas capture omits the DOM HUD. Poster extracted from video at 2 seconds. Silent footage.
+field-atlas.png is a local product UI screenshot; no presentation fixture players.
+Mode-card illustrations have separate provenance in assets/matchmaking/PROVENANCE.txt.
+
+Additional captures, 6 September 2026: pairs-gameplay 2v2 Zone Wars; squads-gameplay 3v3 Lockdown; fleet-gameplay 5v5 Elimination. Recorded local AI matches via normal controls, canvas only, not online player replays. map-*.png are screenshots from staged in-engine location cameras, not match recordings.
+
+combat-five-seconds.webm: seconds 4–9 of aeolith-gameplay.webm, re-encoded VP9 without audio. General gameplay excerpt; does not certify an isolated ability or damage outcome.
+
+2026-09-09 timeline-race-sep09.png and timeline-workshop-sep09.png: actual local AEOLITH browser captures made during this task; AI race / offline workshop respectively, not public multiplayer or archival earlier builds.

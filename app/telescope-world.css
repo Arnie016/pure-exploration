@@ -1,0 +1,21 @@
+/* The midnight study stays visible beneath a small, deliberate instrument panel. */
+.telescope-world .target-detail{font-size:10px;line-height:1.55;color:#b1c3c9;margin:6px 0 18px;text-align:center}
+.telescope-world .surface-choice{display:block;font-size:11px;line-height:1.5;margin:14px 0;color:#c7d5d6}
+.telescope-world .surface-choice select{display:block;width:100%;padding:9px 8px;margin-top:7px;color:#e5e9dc;background:#112633;border:1px solid #b9d0d235;border-radius:6px;font-size:11px;outline-offset:3px}
+.telescope-world .surface-choice select:focus-visible{outline:2px solid #e8c594}
+.telescope-world .surface-lab summary{color:#d7cfb9}
+.telescope-world .throughput-meter{margin-top:15px}
+.telescope-world .throughput-meter>div{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:#b8c9cc}
+.telescope-world .throughput-meter strong{font-variant-numeric:tabular-nums;color:#ead2a5;font-size:12px}
+.telescope-world .throughput-meter meter{display:block;width:100%;height:7px;margin:9px 0 13px;background:#304046;border:0;border-radius:5px;overflow:hidden}
+.telescope-world .throughput-meter meter::-webkit-meter-bar{background:#304046;border:0}
+.telescope-world .throughput-meter meter::-webkit-meter-optimum-value{background:#c5b27e}
+.telescope-world .surface-insight{font-size:11px;line-height:1.7;color:#bccdcf;padding-left:11px;border-left:2px solid #c4ad81}
+.telescope-world .surface-insight strong{color:#ecdbb8;white-space:nowrap}
+.telescope-world .eyepiece-preview>span{letter-spacing:.75px;font-size:8px;line-height:1.5}
+.telescope-world .scene-tools button[aria-pressed=true]{background:#35494ac9;border-color:#c6d8d46b;color:#f0e2c5}
+.telescope-world .console{scrollbar-width:thin;scrollbar-color:#627773 #10222c;box-shadow:0 12px 60px #0004}
+.telescope-world .readouts{padding:12px!important;border-radius:14px;background:linear-gradient(90deg,#07131b00,#07131b55);text-shadow:0 1px 7px #000}
+@media(max-height:780px) and (min-width:601px){.telescope-world .console{top:203px;bottom:110px}.telescope-world .readouts{gap:11px}.telescope-world .throughput-readout{display:none}.telescope-world .scene-tools{bottom:54px}}
+@media(max-width:600px){.telescope-world .throughput-readout{display:none}.telescope-world .console .control-hint{font-size:11px;line-height:1.55}.telescope-world .eyepiece-preview>span{font-size:8px}.telescope-world .target-detail{font-size:11px}.telescope-world .surface-choice,.telescope-world .surface-choice select{font-size:12px}.telescope-world .readouts{padding:8px!important}}
+@media(prefers-reduced-motion:reduce){.telescope-world *{scroll-behavior:auto!important}}

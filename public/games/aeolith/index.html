@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#120c12" />
+    <meta name="description" content="Sculpt living dunes into roads and outrun a planetary sand front." />
+    <title>AEOLITH - Sand Engine</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23120c12'/><circle cx='32' cy='32' r='17' fill='none' stroke='%236df5ff' stroke-width='5'/><path d='M7 41 Q25 25 57 39' fill='none' stroke='%23f2a652' stroke-width='7' stroke-linecap='round'/></svg>" />
+    <script type="module" crossorigin src="/games/aeolith/assets/solo-fIA6jLF_.js"></script>
+    <link rel="modulepreload" crossorigin href="/games/aeolith/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/games/aeolith/assets/arrivalProgress-BaJR2jNO.js">
+    <link rel="stylesheet" crossorigin href="/games/aeolith/assets/solo-CIVSIV_p.css">
+  </head>
+  <body>
+    <canvas id="game" aria-label="AEOLITH game view"></canvas>
+
+    <section id="loading" class="arrival" aria-label="Preparing AEOLITH" aria-busy="true">
+      <div class="arrival-horizon" aria-hidden="true"><i></i><i></i><i></i></div>
+      <header class="arrival-brand">AEOLITH <span>MERIDIAN CLASH</span></header>
+      <div class="arrival-center"><span class="arrival-sector">SECTOR 07 / FLIGHT BRIEFING</span><h1>A world worth<br><em>fighting for.</em></h1>
+        <p id="load-status" role="status">Downloading the basin</p>
+        <ol class="arrival-stages" aria-label="Preparation stages"><li data-stage="download" aria-current="step">01 / Download</li><li data-stage="world">02 / Build world</li><li data-stage="frame">03 / First frame</li></ol>
+      </div>
+      <footer class="arrival-briefing"><div><span id="arrival-tip-number">FIELD NOTE 01 / 05</span><h2 id="arrival-tip-title">Own the ground.</h2><p id="arrival-tip-copy">Hold a zone for four seconds. Clear enemies from the ring to start scoring.</p></div><div class="arrival-tip-controls"><button id="arrival-previous" aria-label="Previous tip">←</button><button id="arrival-pause" aria-pressed="false">Pause tips</button><button id="arrival-next" aria-label="Next tip">→</button></div></footer>
+      <div id="arrival-error" role="alert" hidden><h2>The basin could not start.</h2><p id="arrival-error-copy"></p><button id="arrival-retry">Try again</button></div>
+      <noscript>Enable JavaScript to enter AEOLITH.</noscript>
+    </section>
+
+    <main id="intro" class="screen intro">
+      <section class="intro-card">
+        <div class="eyebrow"><span></span> EXPERIMENTAL TERRAIN UNIT 07</div>
+        <h1>AEOLITH</h1>
+        <h2>SAND ENGINE</h2>
+        <p class="pitch">The basin has 75 seconds left. Raise the road beneath you, turn the wind, harvest flux motes, disperse the dust devils, and wake the Meridian before the front arrives.</p>
+        <div class="controls" aria-label="Controls">
+          <span><kbd>WASD</kbd> steer</span>
+          <span><kbd>LMB</kbd> raise</span>
+          <span><kbd>RMB</kbd> excavate</span>
+          <span><kbd>SPACE</kbd> ridge surf</span>
+          <span><kbd>E</kbd> wind lens</span>
+          <span><kbd>F</kbd> sand surge</span>
+          <span><kbd>PAD</kbd> supported</span>
+        </div>
+        <button id="ghost-toggle" class="ghost ghost--intro">RIVAL GHOST: <b>ON</b></button>
+        <a class="ghost ghost--intro" href="/games/aeolith/index.html?mode=domination">MERIDIAN CLASH · MULTIPLAYER</a>
+        <button id="engage" class="primary">ENGAGE THE ENGINE <small>75 SECOND RUN</small></button>
+        <p class="micro">Headphones recommended - R restarts - F1 diagnostics - G graphics tier</p>
+      </section>
+    </main>
+
+    <div id="grain"></div>
+    <div id="vignette"></div>
+
+    <div id="bossbar" class="bossbar"><span>VORAXIS - BASIN LEVIATHAN</span><i><em id="boss-hp"></em></i></div>
+
+    <section id="hud" class="hud" aria-live="polite">
+      <div class="hud-top">
+        <div class="hud-cell"><span>TIME</span><strong id="time">75.0</strong></div>
+        <div class="wind-readout"><span id="wind-arrow">&#x2199;</span><b id="wind">WIND 218 / 24</b></div>
+        <div class="hud-cell hud-cell--right"><span>SCORE</span><strong id="score">000000</strong></div>
+      </div>
+      <div class="hud-left">
+        <div class="metric"><span>FLUX</span><b id="flux">100%</b><i><em id="flux-bar"></em></i></div>
+        <div class="metric"><span>STABILITY</span><b id="stability">100%</b><i><em id="stability-bar"></em></i></div>
+        <div class="metric metric--surge"><span>SURGE <small>F</small></span><b id="surge-copy">READY</b><i><em id="surge-bar"></em></i></div>
+      </div>
+      <div class="hud-right">
+        <span>PYLONS</span><strong id="pylons">0 / 3</strong>
+        <small id="surface">SUNWARD SAND</small>
+        <em id="motes">0 MOTES</em>
+      </div>
+      <div id="chain" class="chain"><span>RIDGE CHAIN</span><strong>x1.0</strong></div>
+      <div id="reticle-copy" class="reticle-copy">CREST FORGE READY</div>
+      <div id="waypoints" class="waypoints">
+        <div class="waypoint" id="wp-0"><b>&#10148;</b><span>0m</span></div>
+        <div class="waypoint" id="wp-1"><b>&#10148;</b><span>0m</span></div>
+        <div class="waypoint" id="wp-2"><b>&#10148;</b><span>0m</span></div>
+        <div class="waypoint waypoint--exit" id="wp-exit"><b>&#10148;</b><span>0m</span></div>
+      </div>
+    </section>
+
+    <section id="directive" class="directive">
+      <div><span id="directive-kicker">ENGINE LINK 01/05</span><b id="directive-time">75.0S</b></div>
+      <strong id="directive-title">DRAW A RIDGE</strong>
+      <p id="directive-copy">Hold left mouse to raise the road beneath your reticle.</p>
+      <i><em id="directive-progress"></em></i>
+    </section>
+
+    <div id="toast" class="toast"><span>MERIDIAN RESPONSE</span><strong>PYLON AWAKENED</strong><p>+1000 - +3.0S</p></div>
+
+    <div id="damage-flash"></div>
+
+    <section id="result" class="screen result">
+      <div class="result-card">
+        <div class="eyebrow"><span></span> RUN ARCHIVE</div>
+        <div id="result-record" class="record-flag">NEW MERIDIAN RECORD</div>
+        <h2 id="result-title">THE BASIN ANSWERED</h2>
+        <div id="result-medal" class="medal gold">GOLD MERIDIAN</div>
+        <p id="result-copy">The storm folds around the Meridian. Your road remains.</p>
+        <div id="result-achievements" class="achv"></div>
+        <div class="result-grid">
+          <div><span>SCORE</span><strong id="result-score">000000</strong></div>
+          <div><span>BEST</span><strong id="result-best">000000</strong></div>
+          <div><span>PYLONS</span><strong id="result-pylons">3 / 3</strong></div>
+          <div><span>PEAK SPEED</span><strong id="result-speed">000</strong></div>
+          <div><span>MOTES</span><strong id="result-motes">0</strong></div>
+          <div><span>DEVILS</span><strong id="result-devils">0</strong></div>
+          <div><span>SURGES</span><strong id="result-surges">0</strong></div>
+        </div>
+        <div class="calibration">
+          <span>ENGINE CALIBRATION</span>
+          <button data-upgrade="forge">CREST CAPACITY <b id="upgrade-forge">0/3</b></button>
+          <button data-upgrade="drive">DRIVE COOLING <b id="upgrade-drive">0/3</b></button>
+          <button data-upgrade="lens">WIND MEMORY <b id="upgrade-lens">0/3</b></button>
+          <button data-upgrade="surge">SURGE CELL <b id="upgrade-surge">0/3</b></button>
+          <button data-upgrade="magnet">MOTE ARRAY <b id="upgrade-magnet">0/3</b></button>
+          <button data-upgrade="aegis">AEGIS WEAVE <b id="upgrade-aegis">0/3</b></button>
+        </div>
+        <button id="restart" class="primary">RUN THE MERIDIAN AGAIN <small>R</small></button>
+      </div>
+    </section>
+
+    <section id="pause" class="screen pause">
+      <div class="pause-card">
+        <span>RUN PAUSED</span>
+        <button id="resume" class="primary">RESUME</button>
+        <button id="quality-toggle" class="ghost">GRAPHICS: <b id="quality-label">HIGH</b> <small>G</small></button>
+        <button id="restart-pause" class="ghost">RESTART RUN <small>R</small></button>
+      </div>
+    </section>
+
+    <aside id="diagnostics" class="diagnostics">
+      <header>FRAME GRAPH <button id="close-diag">F1</button></header>
+      <dl>
+        <div><dt>FRAME</dt><dd id="diag-frame">0.0 ms</dd></div>
+        <div><dt>1% LOW</dt><dd id="diag-low">0.0 ms</dd></div>
+        <div><dt>DRAWS</dt><dd id="diag-draws">0</dd></div>
+        <div><dt>TRIANGLES</dt><dd id="diag-tris">0k</dd></div>
+        <div><dt>BRUSHES</dt><dd id="diag-brushes">0</dd></div>
+        <div><dt>PARTICLES</dt><dd id="diag-particles">0 / 900</dd></div>
+        <div><dt>RES SCALE</dt><dd id="diag-res">100%</dd></div>
+      </dl>
+      <p>Three.js - ACES - persistent CPU heightfield - pooled VFX</p>
+    </aside>
+
+    <div class="touch-controls" aria-label="Touch controls">
+      <button data-touch="left">LEFT</button><button data-touch="right">RIGHT</button>
+      <button data-touch="raise">RAISE</button><button data-touch="surf">SURF</button>
+    </div>
+
+  </body>
+</html>

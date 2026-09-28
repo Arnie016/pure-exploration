@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#121b20"><title>AEOLITH · Multiplayer stress harness</title>  <script type="module" crossorigin src="/games/aeolith/assets/domination-YlN4HB5N.js"></script>
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/BufferGeometryUtils-BDGn0zln.js">
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/meridianCanopy-aCMlazTH.js">
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/dominationNetworkConfig-DQPZZBLq.js">
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/dominationProtocol-zG2grAok.js">
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/meridianArenaLayout-Cdc5h7T6.js">
+  <link rel="modulepreload" crossorigin href="/games/aeolith/assets/dominationClient-B1FsRs0R.js">
+  <link rel="stylesheet" crossorigin href="/games/aeolith/assets/domination-CXyVDgpq.css">
+</head>
+<body>
+<canvas id="arena" tabindex="0" aria-label="Meridian arena. WASD drives. Click captures the mouse; mouse movement turns the turret and combat camera together. Click or X fires, hold Z to scope, and Escape releases the mouse. E raises cover. While redeploying, use left and right arrow keys to watch active pilots."></canvas>
+<div class="vignette" aria-hidden="true"></div>
+<header><a href="/" class="wordmark">AEOLITH<span>MERIDIAN CLASH</span></a><div class="network"><i id="network-dot"></i><span id="network-status">STRESS HARNESS</span><span id="ping">— ms</span><button id="sound" aria-pressed="false">Sound off</button></div></header>
+<section id="lobby" class="lobby">
+  <div class="eyebrow">SECTOR 07 / MERIDIAN BASIN</div><h1>THE GROUND<br>IS YOURS.<br><em>HOLD IT.</em></h1>
+  <p>Carve cover. Break their line.<br>Three zones. Two teams. First to 100.</p>
+  <form id="join-form"><label for="room">ROOM CODE</label><div class="join-row"><input id="room" value="meridian" maxlength="32" pattern="[a-z0-9-]+" required aria-describedby="local-note"><select id="capacity" aria-label="Match size"><option value="2">1 vs 1</option><option value="10">5 vs 5 capacity</option></select></div><button class="primary" id="join" type="submit">ENTER THE BASIN <span>↗</span></button></form>
+  <p id="local-note" class="fine">Local multiplayer build. Open this room in another browser tab to connect a second pilot. No bots or cloud accounts.</p>
+  <a class="solo-link" href="/">Original solo expedition ↗</a>
+</section>
+<main id="hud" hidden>
+  <section class="scoreboard" aria-label="Match score"><div class="team cyan"><span>01 / CYAN</span><b id="score-cyan">0</b><small id="roster-cyan">0 PILOTS</small></div><div class="match-center"><span id="clock">08:00</span><strong>DOMINATION</strong><small>FIRST TO 100</small><div id="zones"></div></div><div class="team amber"><span>02 / AMBER</span><b id="score-amber">0</b><small id="roster-amber">0 PILOTS</small></div></section>
+  <div id="zone-labels" aria-hidden="true"></div><div id="crosshair" aria-hidden="true">⌖</div><div id="hitmarker" aria-hidden="true">×</div>
+  <aside class="left-rail"><span id="pilot-label">PILOT / CYAN</span><canvas id="minimap" width="210" height="210" aria-label="Tactical map showing players and zones"></canvas><span id="room-label">MERIDIAN / 1V1</span></aside>
+  <section class="telemetry"><div class="speed"><b id="speed">0</b><span>KM/H</span></div><div class="systems"><label>HULL <span id="health-value">100</span></label><meter id="health" min="0" max="100" value="100">100</meter><label>FLUX <span id="fuel-value">100</span></label><meter id="fuel" min="0" max="100" value="100">100</meter></div><div class="ability"><kbd>E</kbd><span>SAND BERM<small id="berm-status">READY · 20 FLUX</small></span></div></section>
+  <section class="controls"><span><kbd>W A S D</kbd> DRIVE</span><span><kbd>SPACE</kbd> BRAKE</span><span><kbd>SHIFT</kbd> BOOST</span><span><kbd>MOUSE</kbd> AIM + FIRE</span><span><kbd>ESC</kbd> RELEASE INPUT</span></section>
+  <div id="directive" role="status">Awaiting another pilot</div><div id="event-feed" aria-live="polite"></div>
+  <details id="diagnostics"><summary>Network proof</summary><pre id="proof">Waiting for authority</pre><button id="reconnect">Reconnect transport</button></details>
+</main>
+<section id="result" class="result" hidden><span>MERIDIAN / MATCH COMPLETE</span><h2 id="result-title">VICTORY</h2><p id="result-score"></p><button id="rematch" class="primary">READY FOR REMATCH</button><p class="fine">A new match begins when every connected pilot is ready.</p></section>
+<div id="error" role="alert" hidden></div>
+</body></html>

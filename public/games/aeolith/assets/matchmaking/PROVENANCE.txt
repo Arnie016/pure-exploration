@@ -1,0 +1,14 @@
+AEOLITH MATCHMAKING PREVIEWS
+
+Created 2026-09-01 with GPT Image 2 from project-specific original prompts.
+The five retained WebP images depict original AEOLITH skimmers and environments.
+No third-party game assets, logos, characters, or franchise names were used.
+
+Files:
+- duel-public.webp: public 1v1 / Sunfall basin
+- duel-friend.webp: private 1v1 / Moonwater falls
+- duel-2v2.webp: tactical pairs / Narrows canyon
+- duel-3v3.webp: squad domination / ruined citadel
+- duel-5v5.webp: full Meridian warfront
+
+Presentation only. These images do not claim runtime graphics parity.
