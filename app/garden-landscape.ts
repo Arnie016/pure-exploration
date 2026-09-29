@@ -59,7 +59,7 @@ export function landscape(scene:T.Scene){const motionClock={value:0};const world
  // One shared clock freezes in place for reduced motion; no animation reset or catch-up jump.
  let previous:number|null=null;
  const animate=(t:number,motion:boolean)=>{const dt=previous===null?0:Math.max(0,Math.min(.06,(t-previous)/1000));previous=t;if(motion)motionClock.value+=dt;architecture.animate(dt,motion);};
- return Object.assign(animate,{waterMaterial:water,dispose:architecture.dispose});
+ return Object.assign(animate,{waterMaterial:water,leaderboardPickables:architecture.leaderboardPickables,updateCounts:architecture.updateCounts,dispose:architecture.dispose});
 }
 
 // Collision footprints stay independent of decorative meshes and camera detail.

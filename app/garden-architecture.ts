@@ -1,10 +1,11 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {material,disposeScene} from './three-kit';
+import {kit,material,textSprite,disposeScene} from './three-kit';
 import {shrinePortals} from './garden-shrines';
 
 type Placement={p:[number,number,number];s:[number,number,number];r?:[number,number,number]};
 export const gardenPavilions=[{x:-18,z:44},{x:18,z:44}];
+export const discoveriesCourt={x:-18,z:44};
 export const gardenLotusBeds=[{x:-27,z:44},{x:27,z:44}];
 const landmark=(id:string)=>{const portal=shrinePortals.find(p=>p.id===id);if(!portal)return null;const a=Math.atan2(portal.x,portal.z);return{x:Math.sin(a)*40,z:Math.cos(a)*40};};
 const skylineLandmark=landmark('skyline'),arenaLandmark=landmark('universe-clash'),reefLandmark=landmark('coral-memory');
@@ -12,6 +13,7 @@ const skylineLandmark=landmark('skyline'),arenaLandmark=landmark('universe-clash
 export const gardenArchitectureObstacles=[
  ...gardenPavilions.flatMap(p=>[-1,1].flatMap(dx=>[-1,1].map(dz=>({x:p.x+dx*2.1,z:p.z+dz*2.1,r:.31})))),
  ...gardenLotusBeds.map(p=>({...p,r:2.7})),
+ {...discoveriesCourt,r:1.28},
  {x:-18,z:5,r:2.4},
  ...[skylineLandmark,arenaLandmark].filter((p):p is {x:number;z:number}=>!!p).map(p=>({...p,r:3.05})),
  ...(reefLandmark?[{...reefLandmark,halfX:2.4,halfZ:.7}]:[])
@@ -114,5 +116,23 @@ export function gardenArchitecture(parent:T.Group){
  load('/models/garden/wind-shrine.glb','original-wind-shrine',-18,5,4.5);
  const reef=shrinePortals.find(p=>p.id==='coral-memory');
  if(reef){const a=Math.atan2(reef.x,reef.z);load('/models/garden/modular-portal-arch.glb','original-reef-observation-arch',Math.sin(a)*40,Math.cos(a)*40,4.5);}
- return{animate(dt:number,motion:boolean){if(motion)mixers.forEach(m=>m.update(dt));},dispose(){disposed=true;mixers.forEach(m=>{m.stopAllAction();m.uncacheRoot(m.getRoot());});}};
+ const court=new T.Group();court.name='discoveries-court';court.position.set(discoveriesCourt.x,0,discoveriesCourt.z);root.add(court);
+ const trophy=kit(court),award=material(0xc6a267,.26,.78);
+ trophy.cyl(0,.12,0,1.2,.3,dark,1.2,24);trophy.cyl(0,.32,0,1.05,.1,bronze,1.05,24);
+ trophy.cyl(0,.54,0,.74,.35,stone,.82,16);trophy.cyl(0,.82,0,.5,.15,award,.6,16);
+ trophy.cyl(0,1.17,0,.16,.55,award,.2,16);
+ const cupProfile=[[.16,0],[.36,.06],[.66,.42],[.69,.68],[.63,.71],[.58,.41],[.3,.11],[.15,.08]].map(([x,y])=>new T.Vector2(x,y));
+ const cup=new T.Mesh(new T.LatheGeometry(cupProfile,32),award);cup.position.y=1.37;court.add(cup);
+ for(const sign of[-1,1]){const handle=new T.Mesh(new T.TorusGeometry(.36,.055,6,24,Math.PI*1.45),award);handle.position.set(sign*.64,1.73,0);handle.rotation.z=sign<0?Math.PI*.28:-Math.PI*.72;court.add(handle);}
+ const spark=new T.Mesh(new T.OctahedronGeometry(.18),warm);spark.position.set(0,2.14,0);court.add(spark);
+ const courtTitle=textSprite('DISCOVERIES COURT','#ecd6ac',4.9);courtTitle.position.set(0,3.05,2.86);court.add(courtTitle);
+ const courtHint=textSprite('LEADERBOARD','#cdbf9e',3.2);courtHint.position.set(0,2.55,2.87);court.add(courtHint);
+ const viewSign=textSprite('VIEWS · 30D  —','#e2cfaa',2.35),favoriteSign=textSprite('FAVORITES  —','#e2cfaa',2.35);
+ viewSign.position.set(-2.06,1.47,-.3);favoriteSign.position.set(2.06,1.47,-.3);court.add(viewSign,favoriteSign);
+ const leaderboardPickables:T.Object3D[]=[];court.traverse(o=>{o.userData.leaderboard=true;if(o instanceof T.Mesh||o instanceof T.Sprite)leaderboardPickables.push(o);});
+ let countKey='';
+ const updateCounts=(counts:{views:number|null;favorites:number|null})=>{const format=(value:number|null)=>value===null?'—':new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(value),views=`VIEWS · 30D  ${format(counts.views)}`,favorites=`FAVORITES  ${format(counts.favorites)}`,key=views+'|'+favorites;if(key===countKey)return;countKey=key;
+  for(const [sprite,label]of[[viewSign,views],[favoriteSign,favorites]] as const){const canvas=sprite.material.map!.image as HTMLCanvasElement,ctx=canvas.getContext('2d')!;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='rgba(22,30,29,.84)';ctx.beginPath();ctx.roundRect(12,18,canvas.width-24,canvas.height-36,20);ctx.fill();ctx.fillStyle='#e2cfaa';ctx.font='500 35px system-ui';ctx.textAlign='center';ctx.fillText(label,canvas.width/2,canvas.height*.62);sprite.material.map!.needsUpdate=true;}
+ };
+ return{leaderboardPickables,updateCounts,animate(dt:number,motion:boolean){if(motion){mixers.forEach(m=>m.update(dt));spark.rotation.y+=dt*.3;}},dispose(){disposed=true;mixers.forEach(m=>{m.stopAllAction();m.uncacheRoot(m.getRoot());});}};
 }

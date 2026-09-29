@@ -6,12 +6,12 @@ import {track} from '../activity';
 import {ProjectArt} from './collection';
 import './world-card-deck.css';
 
-export const TURN_MS=520;
+export const TURN_MS=420;
 export function deckPosition(index:number,offset:number,count:number){return count>0?((index-offset)%count+count)%count:0;}
 export function useDeckTurn(count:number,current:string){
  const [offset,setOffset]=useState(0),[turn,setTurn]=useState<{from:number;to:number;direction:number}|null>(null);
- const offsetRef=useRef(0),busy=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null);
- function reset(index:number){if(timer.current)clearTimeout(timer.current);timer.current=null;offsetRef.current=index;setOffset(index);setTurn(null);busy.current=false;}
+ const offsetRef=useRef(0),busy=useRef(false),timer=useRef<ReturnType<typeof setTimeout>|null>(null),bag=useRef<number[]>([]);
+ function reset(index:number){if(timer.current)clearTimeout(timer.current);timer.current=null;offsetRef.current=index;setOffset(index);setTurn(null);busy.current=false;bag.current=[];}
  useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);},[]);
  useEffect(()=>{reset(0);},[current]);
  function advance(direction:number){
@@ -22,17 +22,18 @@ export function useDeckTurn(count:number,current:string){
   busy.current=true;setTurn({from,to,direction});
   timer.current=setTimeout(()=>{setTurn(null);busy.current=false;timer.current=null;},TURN_MS);
  }
- return {offset,turn,advance,reset};
+ function random(){if(busy.current||count<2)return;if(!bag.current.length)bag.current=Array.from({length:count},(_,i)=>i).filter(i=>i!==offsetRef.current);const pick=Math.floor(Math.random()*bag.current.length),to=bag.current.splice(pick,1)[0];if(to===offsetRef.current){random();return;}advance(to-offsetRef.current);}
+ return {offset,turn,advance,random,reset};
 }
 
 export function WorldCardDeck({worlds,offset,turn,collapsed,onExpand}:{worlds:Project[];offset:number;turn:{from:number;to:number;direction:number}|null;collapsed:boolean;onExpand:()=>void}){
  const [choice,setChoice]=useState<{offset:number;id:string}|null>(null),stack=useRef<HTMLDivElement>(null);
  const selected=choice?.offset===offset?choice.id:worlds[offset]?.id;
  useEffect(()=>{stack.current?.querySelectorAll('video').forEach(video=>video.pause());},[offset,collapsed]);
- const preview=(element:HTMLElement)=>{if(!collapsed&&!matchMedia('(prefers-reduced-motion: reduce)').matches)void element.querySelector('video')?.play().catch(()=>{});};
+ const preview=(element:HTMLElement)=>{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)void element.querySelector('video')?.play().catch(()=>{});};
  return <div ref={stack} className={`world-card-stack turning-deck split-deck ${collapsed?'deck-folded':''}`} role="group" aria-label={collapsed?'Two worlds to explore':'Choose your next world'}>
   {worlds.map((project,index)=>{
-   const rank=deckPosition(index,offset,worlds.length),departing=turn?.direction===1&&index===turn.from,returning=turn?.direction===-1&&index===turn.to;
+   const rank=deckPosition(index,offset,worlds.length),departing=!!turn&&turn.direction>0&&index===turn.from,returning=!!turn&&turn.direction<0&&index===turn.to;
    const visible=rank<2,active=selected===project.id;
    return <article key={project.id} data-world={project.id} data-slot={Math.min(rank,3)}
     className={`world-ticket deck-card ${active?'is-selected':''} ${departing?'deck-departing':''} ${returning?'deck-returning':''}`}

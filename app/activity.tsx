@@ -3,7 +3,7 @@ import{entryChannel}from'./entry-source';
 import{trackOptionalAnalytics}from'./components/google-analytics';
 import{useEffect,useState}from'react';import{Activity,Eye,ArrowUpRight,Heart}from'lucide-react';
 export type Person={id:string;alias:string;color:string;link:string;x?:number;z?:number};
-export type Pulse={active:number;visits:number;shares:number;explorations:number;ranking:{project:string;visits:number;opens:number;shares:number}[];favorites:{project:string;favorites:number}[];saved:string[];journey:{project:string;visits:number;opens:number;updated:number}[];me:Person};
+export type Pulse={likes?:{project:string;likes:number}[];active:number;visits:number;shares:number;explorations:number;ranking:{project:string;visits:number;opens:number;shares:number}[];favorites:{project:string;favorites:number}[];saved:string[];journey:{project:string;visits:number;opens:number;updated:number}[];me:Person};
 let sessionReady:Promise<unknown>|null=null;
 export async function api<T=Record<string,unknown>>(route:string,data:unknown):Promise<T>{const r=await fetch('/api/'+route,{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const result=await r.json() as T&{error?:string};if(!r.ok)throw new Error(result.error||'Connection interrupted. Please try again.');return result;}
 export function track(name:string,project='telescope'){if(typeof window==='undefined')return;trackOptionalAnalytics(name,project);if(['first_interaction','project_open'].includes(name))window.dispatchEvent(new CustomEvent('pe-progress',{detail:{kind:name==='first_interaction'?'interact':'visit',worldId:project}}));void(sessionReady||Promise.resolve()).then(()=>api('event',{name,project})).catch(()=>{});}
