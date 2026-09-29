@@ -1,3 +1,3 @@
-import Spacetime from './workspace';
-export const metadata={title:'The Edge of Everything · Black Hole Lab',description:'Follow light around a black hole. Tilt an accretion disk, trace photon paths and explore the scale of spacetime.'};
-export default function SpacetimePage(){return <Spacetime/>;}
+import {redirect} from 'next/navigation';
+export const metadata={title:'Space-Time Laboratory · Light Years From Home',description:'The original Solar System Laboratory: orbital dynamics, light paths, relativity and guided physics experiments.'};
+export default function SpacetimePage(){redirect('/world/spacetime');}

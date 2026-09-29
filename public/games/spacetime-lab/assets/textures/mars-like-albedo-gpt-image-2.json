@@ -1,0 +1,9 @@
+{
+  "file": "mars-like-albedo-gpt-image-2.png",
+  "model": "gpt-image-2",
+  "createdAt": "2026-07-18",
+  "dimensions": [2048, 1024],
+  "sha256": "5852394c08cc67fa49d76cbef2ac228d99203e255c747d444e83bf95f589a9d6",
+  "promptSummary": "Seamless 2:1 equirectangular albedo for a plausible rust-red, cratered Mars-like exoplanet surface under neutral illumination.",
+  "fidelityNote": "Illustrative generated surface, not an observed map of Mars or any exoplanet. Render-only: it never changes mass, radius, gravity, collisions, orbit, or measurements."
+}

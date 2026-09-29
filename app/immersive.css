@@ -40,3 +40,21 @@ body:has(.garden-page),body:has(.telescope-world),body:has(.immersive-airport){o
 @media(max-width:600px){.telescope-world .world-control-toggle{top:215px!important}.telescope-world .aim-panel{top:293px!important}.telescope-world .intro h1{font-size:28px;line-height:1;margin:12px 0}.telescope-world .intro-tour{font-size:8px}.telescope-world .readouts{top:127px}.telescope-world .intro{max-width:235px}}
 
 @media(max-width:600px){.portal-shortcut{left:15px;bottom:70px;padding:10px 14px;font-size:11px}}
+
+/* A physical deck: stable cards trade places instead of rebuilding the stack. */
+.world-card-stack.turning-deck{perspective:850px;transition:height .38s ease,margin .38s ease,opacity .25s ease,transform .38s ease;transform-origin:bottom right}
+.turning-deck.deck-folded{height:0;margin-bottom:0;opacity:0;transform:translateY(30px) scale(.93);pointer-events:none}
+.turning-deck .deck-card{animation:none;transform-origin:75% 82%;backface-visibility:hidden;transition:transform .68s cubic-bezier(.22,.75,.23,1),filter .6s,opacity .48s,border-color .2s;will-change:transform;opacity:1}
+.turning-deck .deck-card[data-slot="0"]{transform:translate3d(0,0,0) rotate(-3deg);z-index:3;filter:none}
+.turning-deck .deck-card[data-slot="1"]{transform:translate3d(16px,-2px,-18px) rotate(4deg);z-index:2;filter:brightness(.78)}
+.turning-deck .deck-card[data-slot="2"]{transform:translate3d(30px,-6px,-36px) rotate(8deg);z-index:1;filter:brightness(.6)}
+.turning-deck .deck-card[data-slot="3"]{transform:translate3d(39px,-9px,-65px) rotate(11deg);z-index:0;opacity:0;pointer-events:none}
+.turning-deck .deck-card[data-slot="0"]:hover{transform:translate3d(-4px,-7px,8px) rotate(-4deg);border-color:#f1d5a0}
+.turning-deck .deck-departing{animation:deck-turn-away .68s cubic-bezier(.4,0,.2,1) both;pointer-events:none}
+.turning-deck .deck-returning{animation:deck-turn-back .68s cubic-bezier(.4,0,.2,1) both}
+@keyframes deck-turn-away{0%{z-index:5;opacity:1;filter:none;transform:translate3d(0,0,0) rotate(-3deg)}45%{z-index:5;opacity:1;transform:translate3d(-58px,-47px,70px) rotate(-24deg) rotateY(34deg);filter:brightness(.95)}65%{z-index:0;opacity:.85}100%{z-index:0;opacity:0;filter:brightness(.5);transform:translate3d(39px,-9px,-70px) rotate(11deg) rotateY(0)}}
+@keyframes deck-turn-back{0%{z-index:5;opacity:0;transform:translate3d(39px,-9px,-70px) rotate(11deg)}40%{z-index:5;opacity:1;transform:translate3d(-58px,-45px,70px) rotate(-24deg) rotateY(34deg)}100%{z-index:3;opacity:1;transform:translate3d(0,0,0) rotate(-3deg)}}
+.world-utilities>a{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#101d2ada;backdrop-filter:blur(16px);border:1px solid #d5e8ec26;color:#c9d9df;box-shadow:0 5px 25px #0003}
+.world-utilities>a:hover{border-color:#e4c89999;color:#efd6ae}
+@media(max-width:600px){.world-utilities>a{width:30px;height:30px}.world-utilities>a svg{width:16px}.turning-deck .deck-card[data-slot="1"]{transform:translate3d(12px,-2px,-18px) rotate(4deg)}.turning-deck .deck-card[data-slot="2"]{transform:translate3d(22px,-4px,-36px) rotate(8deg)}}
+@media(prefers-reduced-motion:reduce){.world-card-stack.turning-deck,.turning-deck .deck-card{transition:none;animation:none}}

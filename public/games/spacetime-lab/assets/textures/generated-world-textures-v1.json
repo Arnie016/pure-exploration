@@ -1,0 +1,39 @@
+{
+  "id": "generated-world-textures-v1",
+  "assetType": "illustrative fictional 2:1 equirectangular albedo textures",
+  "generatedAt": "2026-07-19",
+  "generator": "OpenAI built-in image generation",
+  "modelDisclosure": "The built-in tool did not expose a model identifier; this record does not claim a specific hidden model version.",
+  "postProcessing": "Each generated source was mechanically resampled to 2048 by 1024 for a conventional 2:1 texture ratio.",
+  "fidelityNote": "Illustrative generated surfaces, not observed maps of any planet or moon. Render-only: they never change mass, physical radius, gravity, collision geometry, orbit, or measurements.",
+  "files": [
+    {
+      "preset": "gas-giant",
+      "file": "gas-giant-albedo-generated-v1.png",
+      "dimensions": [2048, 1024],
+      "sha256": "332b345fd76216e5d80627291a38e56885b1e69a69edaade7377c7feba5014df",
+      "promptSummary": "Seamless fictional gas-giant albedo with cream, ochre, rust, muted-brown bands, turbulent eddies, ammonia-cloud filaments, and a restrained non-Jovian storm."
+    },
+    {
+      "preset": "ice-giant",
+      "file": "ice-giant-albedo-generated-v1.png",
+      "dimensions": [2048, 1024],
+      "sha256": "6c1423be2cf56d55d2de4bc9a77f44b8537fb4495f78400952f470ca0dfc54c3",
+      "promptSummary": "Seamless fictional Neptune-class atmosphere with cobalt, cyan, turquoise, methane-cloud bands, zonal turbulence, and two dark storms."
+    },
+    {
+      "preset": "super-earth",
+      "file": "super-earth-albedo-generated-v1.png",
+      "dimensions": [2048, 1024],
+      "sha256": "4112c5ed95f5430bbb33dc9613c8c17acf8c51f1ad19cc7e51decb8386e91849",
+      "promptSummary": "Seamless fictional super-Earth albedo with basalt continents, teal mineral seas, ochre highlands, polar frost, rifts, craters, and restrained cloud wisps."
+    },
+    {
+      "preset": "rocky-moon",
+      "file": "rocky-moon-albedo-generated-v1.png",
+      "dimensions": [2048, 1024],
+      "sha256": "b511ef1758486fff0e285233872779ead109445a74cb75a22881c2e366de005b",
+      "promptSummary": "Seamless fictional airless rocky-moon albedo with charcoal highlands, tan impact basins, ejecta rays, dense craters, and ancient lava plains."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "earth-analogue-generated-v1",
+  "file": "earth-analogue-albedo-generated-v1.png",
+  "assetType": "illustrative fictional 2:1 equirectangular albedo texture",
+  "generatedAt": "2026-07-19",
+  "generator": "OpenAI built-in image generation",
+  "modelDisclosure": "The built-in tool did not expose a model identifier; this record does not claim a specific hidden model version.",
+  "dimensions": {
+    "width": 2048,
+    "height": 1024
+  },
+  "sha256": "6bc101f8b4634cd365731103352282e9e16e7eba941435ff15e31a9d2ef54f87",
+  "promptSummary": "Fictional habitable rocky exoplanet albedo with non-Earth geography, blue oceans, varied continents, ice, and restrained clouds; full-bleed equirectangular map under neutral unlit exposure.",
+  "postProcessing": "Mechanically resampled from the generated 1776 by 887 output to 2048 by 1024 for a conventional 2:1 texture ratio.",
+  "fidelityNote": "Illustrative generated surface for the Earth analogue preset, not an observed map of Earth or any exoplanet. Render-only: it never changes mass, radius, gravity, collision geometry, orbit, or measurements."
+}

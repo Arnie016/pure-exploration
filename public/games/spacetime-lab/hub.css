@@ -1,0 +1,42 @@
+/* Original laboratory; only host-navigation spacing and unavailable service affordances. */
+#guide-toggle, #guide-card, #physics-ask, #lesson-path, .system-build-form, a[href="./shared.html"] { display: none !important; }
+@media (min-width: 981px) {
+ .lab-rail, .workspace-strip, .content-drawer { right: 340px; }
+ .lab-rail { grid-template-columns: minmax(150px, 1fr) auto auto minmax(150px, .8fr); overflow-x: auto; }
+ .lab-rail .content-controls { min-width: 160px; }
+ .lab-rail .warp-control { min-width: 136px; }
+ .workbench-note { max-width: calc(100vw - 375px); }
+}
+@media (max-width: 980px) {
+ :root { --rail-bottom: 22px; --rail-height: 64px; }
+ .workbench-note { bottom: 7px; }
+}
+
+/* The original flex rule overrode the browser's hidden state. */
+#move-hud[hidden], .experiment-dock button[hidden] { display: none !important; }
+/* Fit the actual embedded viewport, including compact phones. */
+.laboratory { min-height: 0; }
+@media (max-width: 700px) {
+ .quiet-lab .lab-tools { top: 70px; left: 14px; right: 14px; }
+ .quiet-lab .lab-tools > button, .quiet-lab .tool-menu > summary { padding: 0 11px; gap: 6px; }
+ .quiet-lab .scale-readout { top: 118px; left: 14px; right: 14px; }
+ .quiet-lab .scale-actions { gap: 5px; }
+ .quiet-lab .frame-picker { padding: 0 8px; }
+ .quiet-lab .frame-picker select { max-width: 160px; min-height: 34px; font-size: 11px; }
+ .quiet-lab .tool-menu-body, .quiet-lab .experiment-dock { position: fixed; top: 115px; left: 14px; right: 14px; width: auto; max-height: calc(100dvh - 230px); }
+ .quiet-lab .lab-rail { bottom: 22px; height: 64px; }
+ .quiet-lab .workspace-strip { bottom: 85px; }
+ .quiet-lab .workbench-note { bottom: 7px; max-width: calc(100vw - 28px); }
+ .quiet-lab .content-drawer { bottom: 120px; max-height: calc(100dvh - 290px); }
+ .quiet-lab .experiment-card { top: 120px; bottom: 124px; max-height: none; }
+ .quiet-lab .scientist-lesson { max-height: calc(100dvh - 110px); }
+}
+
+/* Reserve the phone footer and floating portal control inside the host. */
+@media (max-width: 700px) and (min-height: 500px) {
+ .quiet-lab .lab-rail { bottom: 184px; }
+ .quiet-lab .workspace-strip { bottom: 247px; }
+ .quiet-lab .workbench-note { bottom: 169px; }
+ .quiet-lab .content-drawer { bottom: 282px; max-height: calc(100dvh - 330px); }
+ .quiet-lab .experiment-card { bottom: 286px; }
+}

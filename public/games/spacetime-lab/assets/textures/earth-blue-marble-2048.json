@@ -1,0 +1,12 @@
+{
+  "id": "nasa-svs-blue-marble-2915",
+  "file": "earth-blue-marble-2048.png",
+  "assetType": "equirectangular Earth albedo texture",
+  "dimensions": [2048, 1024],
+  "sourcePage": "https://svs.gsfc.nasa.gov/2915/",
+  "sourceFile": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+  "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio; Blue Marble data courtesy of Reto Stockli (NASA/GSFC) and NASA Earth Observatory",
+  "usageGuidelines": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "usageNote": "Used for an educational scientific visualization with NASA acknowledged as source; no endorsement implied.",
+  "sha256": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+}

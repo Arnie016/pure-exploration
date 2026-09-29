@@ -1,0 +1,25 @@
+{
+  "id": "nasa-svs-cgi-moon-kit-4720",
+  "assetType": "equirectangular lunar color and visual elevation textures",
+  "sourcePage": "https://svs.gsfc.nasa.gov/4720/",
+  "credit": "NASA Scientific Visualization Studio; visualization by Ernie Wright (USRA); science by Noah Petro (NASA/GSFC); LROC WAC and LRO LOLA instrument teams",
+  "usageGuidelines": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+  "usageNote": "Used for educational visualization with NASA acknowledged as source; no endorsement implied.",
+  "fidelityNote": "NASA describes the color map as optimized for aesthetics rather than scientific applications. The elevation JPEG is used only as a visually exaggerated bump map and never changes simulation radius, collision geometry, gravity, or measurements.",
+  "files": [
+    {
+      "file": "moon-lroc-color-2048.jpg",
+      "role": "sRGB base color",
+      "dimensions": [2048, 1024],
+      "sourceFile": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+      "sha256": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170"
+    },
+    {
+      "file": "moon-lola-elevation-1024.jpg",
+      "role": "visual bump map",
+      "dimensions": [1024, 512],
+      "sourceFile": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_3_8bit.jpg",
+      "sha256": "6d93f887e7d8bedfe35ab89ba785e5e3ca12381bd092a5e6abe2c707dda8bb98"
+    }
+  ]
+}

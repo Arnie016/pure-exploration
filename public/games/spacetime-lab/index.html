@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#020407" />
+    <link rel="icon" href="data:," />
+    <title>Solar System Laboratory — Light Years From Home</title>
+    <link rel="stylesheet" href="./lab.css?v=35" />
+    <link rel="stylesheet" href="./hub.css" />
+    <script src="/games/capture-context.js"></script>
+    <script src="./hub.js"></script>
+  </head>
+  <body>
+    <main class="laboratory" aria-label="Interactive Solar System physics laboratory">
+      <canvas id="space-canvas" aria-hidden="true"></canvas>
+      <canvas id="lab-canvas" tabindex="0" aria-label="Interactive gravity scene. Drag an object to move it; its velocity stays unchanged. Escape cancels a move. In Move mode, click to place or use arrow keys and Enter. Drag empty space to turn the camera. F frames the selected object; 7 shows the top view."></canvas>
+
+      <header class="lab-header">
+        <a href="/?walk=1" target="_top" class="wordmark" aria-label="Return to the garden">
+          <span>Light Years From Home</span>
+          <strong>Solar System Laboratory</strong>
+        </a>
+        <a href="./shared.html" style="color:var(--warm, #e6b267);font:12px monospace;text-decoration:none;margin-left:auto;margin-right:20px">Explore together ↗</a>
+        <div class="truth-mark" title="This layer directly drives simulation state">
+          <i></i>
+          <span>COMPUTED</span>
+          <strong>NEWTONIAN N-BODY</strong>
+        </div>
+      </header>
+
+      <canvas id="orientation-gizmo" width="84" height="84" tabindex="0" aria-label="Camera orientation sphere. Drag to orbit the view; use arrow keys for precise rotation."></canvas>
+
+      <aside id="lesson-path" class="lesson-path" aria-live="polite">
+        <span>FIVE-MINUTE JOURNEY</span>
+        <strong id="lesson-path-title">0 / 6 COMPLETE · Find Sol</strong>
+        <p id="lesson-path-copy">Complete the atlas checkpoints first, then track Moon, compare force layers, and ask the grounded live guide.</p>
+        <a id="lesson-path-return" class="lesson-path-return" href="./" hidden><span id="lesson-path-return-label">Return to the atlas</span> <span aria-hidden="true">←</span></a>
+        <button id="lesson-path-restart" class="lesson-path-restart" type="button" hidden>Restart the five-minute journey</button>
+      </aside>
+
+      <div class="scale-readout" aria-live="polite">
+        <span id="scale-kicker">SOLAR FRAME</span>
+        <strong id="scale-value">64.00 AU WIDE</strong>
+        <div class="scale-actions">
+          <label class="frame-picker" for="scenario-select"><span>SYSTEM</span>
+        <select id="scenario-select" aria-label="Simulation system">
+          <option value="jpl-system" selected>JPL Solar System</option>
+          <option value="sun-earth-moon">Sun–Earth–Moon</option>
+          <option value="figure-eight">Three-star figure 8</option>
+          <option value="blank-canvas">Blank canvas</option>
+          <option value="equal-binary">Equal-mass binary</option>
+          <option value="neutron-binary">Neutron-star binary</option>
+          <option value="mini-galaxy-swarm">Mini galaxy swirl</option>
+          <option value="circumbinary">Circumbinary planet</option>
+          <option value="lagrange-triangle">Lagrange triangle</option>
+          <option value="tilted-system">Tilted orbital planes</option>
+          <option value="hot-jupiter">Hot Jupiter</option>
+          <option value="resonant-chain">1:2:4:8 resonant chain</option>
+              <option value="comet-sweep">Comet perihelion sweep</option>
+              <option value="world-collision">World collision</option>
+              <option value="compact-binary-inspiral">Compact-binary inspiral</option>
+              <option value="black-hole-lensing">Black hole light lab</option>
+            </select>
+          </label>
+          <label class="frame-picker" for="body-select"><span>OBJECT</span>
+            <select id="body-select" aria-label="Current placed objects">
+              <option value="">All placed objects</option>
+            </select>
+          </label>
+          <label class="frame-picker camera-picker" for="camera-select"><span>CAMERA</span>
+            <select id="camera-select" aria-label="Camera mode">
+              <option value="eye" selected>Eye · level horizon</option>
+              <option value="orbit">Orbit · angled</option>
+              <option value="ecliptic">Ecliptic cruise</option>
+              <option value="top">Top · plan view</option>
+              <option value="track">Track selected</option>
+              <option value="custom" disabled>Custom orientation</option>
+            </select>
+          </label>
+          <label class="frame-picker frame-reference-picker" for="frame-reference-select"><span>REFERENCE</span>
+            <select id="frame-reference-select" aria-label="Reference frame mode">
+              <option value="barycentric" selected>Barycentric · live system</option>
+              <option value="heliocentric">Heliocentric · Sun-centered</option>
+              <option value="galactocentric">Galactocentric · fixed scene</option>
+            </select>
+          </label>
+          <button id="return-system-view" class="return-system-view" type="button" hidden>← Back to system</button>
+          <details class="view-settings">
+            <summary>View</summary>
+            <label for="grid-opacity"><span>Grid</span><input id="grid-opacity" type="range" min="0" max="0.6" step="0.05" value="0.30" /></label>
+            <label for="constellation-opacity"><span>Constellations</span><input id="constellation-opacity" type="range" min="0" max="0.3" step="0.01" value="0.08" /></label>
+            <label for="render-quality"><span>GPU quality</span>
+              <select id="render-quality" aria-label="GPU render quality">
+                <option value="auto" selected>Auto</option>
+                <option value="cinematic">Cinematic</option>
+                <option value="balanced">Balanced</option>
+                <option value="efficient">Efficient</option>
+              </select>
+            </label>
+          </details>
+        </div>
+        <small id="camera-value">37° ORBIT · PERSPECTIVE · 1.00×</small>
+      </div>
+
+      <section id="simulation-diagnostics" class="diagnostics" aria-label="Simulation diagnostics">
+        <div><span>Elapsed</span><strong id="elapsed-value">0.00 days</strong></div>
+        <div><span id="energy-label">Energy drift</span><strong id="energy-value">0.00e+0</strong></div>
+        <div><span id="angular-label">Angular drift</span><strong id="angular-value">0.00e+0</strong></div>
+        <div><span>Bodies</span><strong id="body-count">3</strong></div>
+      </section>
+
+      <nav class="experiment-dock" aria-label="Choose a scientific experiment">
+        <span>EXPERIMENTS</span>
+        <button type="button" data-experiment="seasons"><i class="experiment-swatch season-swatch"></i>Seasons</button>
+        <button type="button" data-experiment="magnetic"><i class="experiment-swatch magnetic-swatch"></i>Field</button>
+        <button type="button" data-experiment="dark-matter"><i class="experiment-swatch dark-swatch"></i>Dark matter</button>
+        <button type="button" data-experiment="light"><i class="experiment-swatch light-swatch"></i>Light path</button>
+        <button type="button" data-experiment="relativity"><i class="experiment-swatch relativity-swatch"></i>Relativity</button>
+        <button id="scientist-toggle" class="scientist-toggle" type="button" aria-expanded="false" aria-controls="scientist-lesson"><i class="experiment-swatch scientist-swatch"></i>Scientist lesson</button>
+      </nav>
+
+      <div class="center-reticle" aria-hidden="true"><span></span></div>
+      <div id="move-hud" class="move-hud" role="group" aria-label="Move object" hidden>
+        <div><strong id="move-title">Move object</strong><p id="move-status" role="status">Click a new position. Escape cancels.</p></div>
+        <button id="cancel-body-move" type="button">Cancel</button>
+      </div>
+      <div id="placement-hud" class="placement-hud" role="group" aria-label="Object placement" aria-live="polite" aria-hidden="true">
+        <span>PLACE OBJECT</span>
+        <div class="placement-copy">
+          <strong id="placement-name">Sun-like star</strong>
+          <small id="placement-host">No host · remains frozen until Run</small>
+          <small>Click the 3D grid to place · Esc or Cancel</small>
+        </div>
+        <button id="cancel-placement" type="button">Cancel</button>
+      </div>
+
+      <aside id="scientist-lesson" class="scientist-lesson" aria-label="Scientist Mode guided lesson" aria-hidden="true">
+        <header>
+          <div><span id="scientist-step">ORBITAL INTUITION</span><strong id="scientist-title">One question at a time</strong></div>
+          <div class="scientist-header-tools">
+            <details id="feedback-settings" class="feedback-settings">
+              <summary aria-label="Lesson settings">Settings</summary>
+              <div class="feedback-settings-body">
+                <button id="physics-sound" type="button" aria-pressed="false">Sound off</button>
+                <label for="feedback-volume">Volume <input id="feedback-volume" type="range" min="0" max="100" value="35" disabled /></label>
+                <button id="physics-haptics" type="button" aria-pressed="false">Haptics off</button>
+              </div>
+            </details>
+            <button id="scientist-close" type="button" aria-label="Close learning mode">Close</button>
+          </div>
+        </header>
+        <p id="scientist-copy">Choose one answer. Then see why it works and test the idea in 3D.</p>
+        <p id="scientist-error" class="scientist-error" role="alert" hidden></p>
+        <section id="physics-course" class="physics-course" aria-label="Orbital intuition course" data-question-id="gravity-moon-fall">
+          <div class="physics-course-meta">
+            <span><b id="physics-progress">0 / 18</b> solved</span>
+          </div>
+          <label class="physics-topic-picker" for="physics-topic-select">
+            <span>Topic</span>
+            <select id="physics-topic-select" aria-label="Physics topic">
+              <option value="gravity">Gravity</option>
+              <option value="force">Force</option>
+              <option value="geodesics">Geodesics</option>
+              <option value="energy">Energy</option>
+              <option value="orbits">Orbits</option>
+              <option value="satellites">Satellites</option>
+            </select>
+          </label>
+          <canvas id="physics-prompt-canvas" width="760" height="440" role="img" aria-label="Animated orbital physics prompt"></canvas>
+          <h3 id="physics-prompt" tabindex="-1">Why does the Moon keep missing Earth?</h3>
+          <div id="physics-options" class="physics-options" aria-label="Answer choices"></div>
+          <div id="physics-feedback" class="physics-feedback" aria-live="polite" hidden>
+            <strong>That’s the idea.</strong>
+            <p></p>
+          </div>
+          <div id="physics-actions" class="physics-actions" hidden>
+            <button id="physics-next" type="button" hidden>Next question →</button>
+            <button id="physics-run" type="button" disabled>See it in 3D</button>
+            <button id="physics-ask" type="button" disabled>Talk it through</button>
+          </div>
+          <p class="physics-chapter-next"><span>NEXT CHAPTER</span><strong>Fable Flight</strong> Lift, drag and energy through piloting.</p>
+        </section>
+        <details id="scientist-library" class="scientist-library">
+          <summary>Guided experiments <span>11 to explore</span></summary>
+          <section id="scientist-catalog" class="scientist-catalog" aria-label="Available scientist lessons">
+          <button type="button" data-scientist-lesson="stable-orbit">
+            <span class="lesson-number">01</span>
+            <span><strong>Build an orbit</strong><small>Give a world a sideways push. Find out what keeps it circling.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="barycenter">
+            <span class="lesson-number">02</span>
+            <span><strong>Make the Moon heavier</strong><small>Move the point that Earth and the Moon balance around.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="world-collision">
+            <span class="lesson-number">03</span>
+            <span><strong>Crash two worlds</strong><small>Change their speed and compare the energy of the impact.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="solar-simultaneity">
+            <span class="lesson-number">04</span>
+            <span><strong>What does “at the same time” mean?</strong><small>Watch two flashes from a moving rocket.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="dual-explosion-simultaneity">
+            <span class="lesson-number">05</span>
+            <span><strong>Which flash came first?</strong><small>Change the observer’s speed. Compare the same two events.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="rocket-light-thought">
+            <span class="lesson-number">06</span>
+            <span><strong>Chase a light signal</strong><small>Explore how motion changes the frequency you receive.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="frame-lens-comparison">
+            <span class="lesson-number">07</span>
+            <span><strong>One signal, two viewpoints</strong><small>Change the reference point and follow a ray past a star.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="everyday-physics">
+            <span class="lesson-number">08</span>
+            <span><strong>One push in space</strong><small>Give a small object a push, then send a light pulse from it.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="dark-matter-comparison">
+            <span class="lesson-number">09</span>
+            <span><strong>An extra pull</strong><small>Compare ordinary gravity with two added-field models.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="reference-frame-comparison">
+            <span class="lesson-number">10</span>
+            <span><strong>Change your viewpoint</strong><small>Describe the same motion from different reference points.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          <button type="button" data-scientist-lesson="galactocentric-vehicle-lens">
+            <span class="lesson-number">11</span>
+            <span><strong>Motion, gravity and light</strong><small>Bring the ideas together in one longer experiment.</small></span>
+            <em data-lesson-status>START LESSON</em>
+          </button>
+          </section>
+        </details>
+        <section id="scientist-active" class="scientist-active" hidden>
+          <div class="scientist-progress" aria-hidden="true"><i id="scientist-progress-fill"></i></div>
+          <section id="scientist-variable-guide" class="scientist-variable-guide" aria-label="Interactive lesson relationship" hidden>
+            <header><span>CHANGE ONE THING</span><strong id="scientist-variable-object">Earth around a Sun-like star</strong></header>
+            <div class="scientist-equation-card">
+              <small>THE RELATIONSHIP</small>
+              <div id="scientist-equation-expression">v = √(GM / r)</div>
+              <details class="scientist-symbols">
+                <summary>Why this works</summary>
+                <p id="scientist-equation-note">Sideways speed changes the orbit.</p>
+                <p id="scientist-equation-symbols"></p>
+              </details>
+            </div>
+            <div class="scientist-property-control">
+              <div class="scientist-property-heading">
+                <label id="scientist-variable-name" for="scientist-variable-slider">Sideways launch speed</label>
+                <output id="scientist-variable-current" for="scientist-variable-slider">1.00× circular</output>
+              </div>
+              <div class="scientist-slider-row">
+                <button id="scientist-variable-decrease" type="button" aria-label="Decrease lesson variable">−</button>
+                <input id="scientist-variable-slider" type="range" min="0.65" max="1.35" step="0.01" value="1" />
+                <button id="scientist-variable-increase" type="button" aria-label="Increase lesson variable">+</button>
+              </div>
+              <div class="scientist-slider-bounds" aria-hidden="true"><span id="scientist-variable-low">Falls inward</span><span id="scientist-variable-high">Stretches outward</span></div>
+            </div>
+            <div class="scientist-observation-card">
+              <small>WATCH THE RESULT</small>
+              <div><strong id="scientist-observation-name">Shape of the orbit</strong><output id="scientist-observation-current">Place a world to begin</output></div>
+            </div>
+            <p id="scientist-variable-state">Place the star and world first. Then reshape the orbit with one control.</p>
+          </section>
+          <button id="scientist-action" type="button">Place Sun-like star</button>
+          <div id="scientist-waiting" class="scientist-waiting" hidden><i></i><span>Watch the path change…</span></div>
+        </section>
+        <section id="scientist-success" class="scientist-success" hidden>
+          <span aria-hidden="true">✓</span>
+          <div><strong id="scientist-success-title">Lesson complete</strong><small id="scientist-save-status">Progress saved on this device.</small></div>
+        </section>
+        <section id="scientist-collision-evidence" class="scientist-collision-evidence" aria-label="Computed collision evidence" hidden>
+          <header><span>Speed at impact</span><strong id="scientist-impact-speed">— km/s</strong></header>
+          <dl>
+            <div><dt>Before</dt><dd id="scientist-impact-before">2 bodies</dd></div>
+            <div><dt>After</dt><dd id="scientist-impact-after">1 body</dd></div>
+            <div><dt>Combined mass</dt><dd id="scientist-impact-mass">— M⊕</dd></div>
+            <div><dt>Collision energy</dt><dd id="scientist-impact-energy">— J</dd></div>
+          </dl>
+          <p>This simplified model combines the worlds. The debris is illustrative.</p>
+        </section>
+        <div class="scientist-actions">
+          <button id="scientist-back" type="button" hidden>← Back to questions</button>
+          <button id="scientist-reset" type="button" hidden>Start over</button>
+          <small id="scientist-record-count" class="developer-only">0 EVIDENCE RECORDS</small>
+        </div>
+        <details id="scientist-notebook" class="scientist-notebook developer-only" hidden>
+          <summary>Latest computed evidence</summary>
+          <pre id="scientist-latest-record"></pre>
+        </details>
+        <footer class="developer-only">PREDICT · RUN · EXPLAIN · LOCAL PROGRESS</footer>
+      </aside>
+
+      <aside id="inspector" class="inspector" aria-label="Selected body inspector" aria-hidden="true">
+        <div class="inspector-heading">
+          <div>
+            <span id="selected-type">PLANET</span>
+            <h1 id="selected-name">Earth</h1>
+          </div>
+          <button id="close-inspector" type="button" aria-label="Close body inspector">×</button>
+        </div>
+        <dl class="body-facts">
+          <div><dt>Mass</dt><dd id="selected-mass">5.972e24 kg</dd></div>
+          <div><dt>Physical radius</dt><dd id="selected-radius">6,371 km</dd></div>
+          <div><dt>Speed</dt><dd id="selected-speed">29.8 km/s</dd></div>
+          <div><dt>Distance from origin</dt><dd id="selected-distance">1.000 AU</dd></div>
+          <div id="barycenter-fact" hidden><dt>Earth–Moon barycenter</dt><dd id="barycenter-distance">4,671 km from Earth</dd></div>
+        </dl>
+        <section class="orbit-adjustment" aria-label="Orbit and position">
+          <p id="orbit-health">Select an object to explore its path.</p>
+          <div><button id="move-selected" type="button">Move object</button><button id="circularize-selected" type="button">Make orbit circular</button></div>
+          <p id="orbit-edit-result" role="status" hidden></p>
+        </section>
+        <details id="orbit-details" class="orbit-details" hidden>
+          <summary><span>Computed orbit</span><small id="orbit-summary">Select an orbiting body</small></summary>
+          <dl>
+            <div><dt>Host</dt><dd id="orbit-host">—</dd></div>
+            <div><dt>Orbit type</dt><dd id="orbit-type">—</dd></div>
+            <div><dt>Semi-major axis</dt><dd id="orbit-axis">—</dd></div>
+            <div><dt>Eccentricity</dt><dd id="orbit-eccentricity">—</dd></div>
+            <div><dt>Periapsis</dt><dd id="orbit-periapsis">—</dd></div>
+            <div><dt>Apoapsis</dt><dd id="orbit-apoapsis">—</dd></div>
+            <div><dt>Inclination</dt><dd id="orbit-inclination">—</dd></div>
+            <div><dt>Period</dt><dd id="orbit-period">—</dd></div>
+          </dl>
+          <p>The orbit around this host at this instant. Other objects can still change its shape.</p>
+        </details>
+        <div class="body-camera-actions">
+          <button id="focus-selected" class="approach-selected" type="button">
+            <span>Frame Earth in camera</span><small>F</small>
+          </button>
+          <button id="approach-selected" class="secondary-camera-action" type="button">Open physical-scale close-up</button>
+        </div>
+        <details id="physics-editor" class="physics-editor">
+          <summary>
+            <span id="physics-editor-label">Edit physics</span>
+            <small id="physics-summary">Mass 1.00× · tilt 23.4°</small>
+          </summary>
+          <div class="physics-editor-content">
+            <label id="mass-control" class="experiment-control" for="mass-scale">
+              <span>Gravitational mass <output id="mass-output">1.00×</output></span>
+              <div class="range-stepper">
+                <button id="mass-decrease" type="button" aria-label="Decrease gravitational mass">−</button>
+                <input id="mass-scale" type="range" min="-2" max="2" step="0.01" value="0" aria-describedby="mass-journey-guidance" />
+                <button id="mass-increase" type="button" aria-label="Increase gravitational mass">+</button>
+              </div>
+              <small id="mass-journey-guidance">Move the slider to test how mass changes gravity.</small>
+              <small>Mass changes. Physical radius stays fixed. Diagnostics rebaseline after the edit.</small>
+            </label>
+            <button id="mass-lesson-target" class="mass-lesson-target" type="button" hidden>Try exactly 2.00×</button>
+            <label class="experiment-control" for="tilt-control">
+              <span>Spin-axis tilt <output id="tilt-output">23.44°</output></span>
+              <input id="tilt-control" type="range" min="0" max="90" step="0.1" value="23.44" />
+              <small>Rotates the spin axis, not the orbital plane. Seasons derives sunlight geometry from this value.</small>
+            </label>
+            <label class="experiment-control" for="impulse-magnitude">
+              <span>Impulse Δv <output id="impulse-output">10 m/s</output></span>
+              <div class="range-stepper">
+                <button id="impulse-decrease" type="button" aria-label="Decrease impulse">−</button>
+                <input id="impulse-magnitude" type="range" min="0.1" max="2000" step="0.1" value="10" />
+                <button id="impulse-increase" type="button" aria-label="Increase impulse">+</button>
+              </div>
+              <small>Adds a one-shot velocity vector to the selected body. Velocity is retained by the live integrator.</small>
+            </label>
+            <div class="impulse-controls" aria-label="Impulse directions">
+              <button type="button" data-impulse-axis="x" data-impulse-sign="-1" aria-label="Apply negative X impulse">−X</button>
+              <button type="button" data-impulse-axis="x" data-impulse-sign="1" aria-label="Apply positive X impulse">+X</button>
+              <button type="button" data-impulse-axis="y" data-impulse-sign="-1" aria-label="Apply negative Y impulse">−Y</button>
+              <button type="button" data-impulse-axis="y" data-impulse-sign="1" aria-label="Apply positive Y impulse">+Y</button>
+              <button type="button" data-impulse-axis="z" data-impulse-sign="-1" aria-label="Apply negative Z impulse">−Z</button>
+              <button type="button" data-impulse-axis="z" data-impulse-sign="1" aria-label="Apply positive Z impulse">+Z</button>
+            </div>
+            <button id="impulse-clear-velocity" type="button" class="impulse-clear">Set selected velocity to zero</button>
+          </div>
+        </details>
+        <section id="thought-equation-notes" class="thought-equation-notes developer-only" hidden>
+          <header>THOUGHT EXPERIMENT NOTES</header>
+          <div class="thought-equation-edit">
+            <label>
+              <span>OBJECT NOTE TITLE</span>
+              <input id="thought-title-input" type="text" maxlength="90" autocomplete="off" />
+            </label>
+            <label for="thought-formula-input">
+              <span>FORMULA / OBSERVABLE (LaTeX)</span>
+              <textarea id="thought-formula-input" rows="3" spellcheck="false"></textarea>
+            </label>
+            <label for="thought-context-input">
+              <span>ASSUMPTIONS · CONTEXT</span>
+              <textarea id="thought-context-input" rows="4" spellcheck="false"></textarea>
+            </label>
+            <div class="thought-note-actions">
+              <button id="thought-note-save" type="button">Save note</button>
+              <button id="thought-note-reset" type="button" class="thought-note-reset">Revert</button>
+            </div>
+          </div>
+          <small id="thought-equation-status">Select a body to review and edit live equations.</small>
+          <small id="thought-note-source">No note source loaded yet.</small>
+        </section>
+        <p class="model-caveat developer-only">Newtonian point masses with spherical merge collisions. Visual radii are enlarged; tides, relativity, atmospheres, and deformation are omitted.</p>
+      </aside>
+
+      <aside id="experiment-card" class="experiment-card" aria-label="Active scientific experiment" aria-hidden="true">
+        <div class="experiment-heading">
+          <div>
+            <span id="experiment-fidelity">DERIVED</span>
+            <h2 id="experiment-title">Seasonal light</h2>
+          </div>
+          <button id="close-experiment" type="button" aria-label="Close experiment">×</button>
+        </div>
+
+        <section class="experiment-content" data-experiment-content="seasons">
+          <p>Change Earth’s axial tilt and compare geometric sunlight by latitude. This is incoming solar energy, not climate.</p>
+          <button id="season-globe" class="season-globe" type="button">View illumination on globe</button>
+          <small class="derived-note season-globe-note">DERIVED VISUAL · The gold day side and blue terminator show incidence geometry only.</small>
+          <div class="preset-row" aria-label="Axial tilt presets">
+            <button type="button" data-tilt-preset="0">0°</button>
+            <button type="button" data-tilt-preset="23.44">23.44°</button>
+            <button type="button" data-tilt-preset="45">45°</button>
+          </div>
+          <label class="experiment-control" for="season-tilt">
+            <span>Earth tilt <output id="season-tilt-output">23.44°</output></span>
+            <input id="season-tilt" type="range" min="0" max="90" step="0.1" value="23.44" />
+          </label>
+          <div class="preset-row phase-preset-row" aria-label="Seasonal orbit phase presets">
+            <button type="button" data-season-phase="0">March · 0°</button>
+            <button type="button" data-season-phase="90">June · 90°</button>
+            <button type="button" data-season-phase="180">September · 180°</button>
+            <button type="button" data-season-phase="270">December · 270°</button>
+          </div>
+          <small class="derived-note">Phase presets drive only this derived sunlight view; they do not teleport the n-body state.</small>
+          <div class="season-state">
+            <div><span>Subsolar latitude</span><strong id="subsolar-value">0.0°</strong></div>
+            <div><span>Orbital phase</span><strong id="orbital-phase-value">0.0°</strong></div>
+          </div>
+          <div id="insolation-bars" class="insolation-bars" aria-label="Daily mean top-of-atmosphere insolation by latitude"></div>
+          <p class="experiment-caveat">DERIVED · Top-of-atmosphere geometry only. Clouds, oceans, heat transport, albedo feedback, and climate response are omitted.</p>
+        </section>
+
+        <section class="experiment-content" data-experiment-content="magnetic" hidden>
+          <p>Inspect the acceleration used by the live solver, or compare it with an illustrative planetary dipole without adding another experiment tab.</p>
+          <label class="choice-control" for="field-layer">
+            <span>Field layer</span>
+            <select id="field-layer">
+              <option value="gravity" selected>Newtonian gravity · computed</option>
+              <option value="magnetic">Magnetic dipole · toy model</option>
+            </select>
+          </label>
+          <div id="gravity-field-panel">
+            <div class="experiment-metric"><span>Target body</span><strong id="gravity-target">Earth</strong></div>
+            <div class="experiment-metric"><span>Acceleration</span><strong id="gravity-acceleration">— m/s²</strong></div>
+            <div class="gravity-contributors">
+              <span>Acceleration by source</span>
+              <ol id="gravity-contributor-list"><li>No source data</li></ol>
+            </div>
+            <div class="equation-strip" aria-label="Newtonian acceleration equation">
+              <span>Solver equation</span>
+              <code>aᵢ = Σ Gmⱼ(rⱼ − rᵢ) / |rⱼ − rᵢ|³</code>
+            </div>
+            <p class="experiment-caveat">COMPUTED · Instantaneous acceleration from the same Newtonian point-mass state driving the orbits. Arrow lengths are normalized for visibility.</p>
+          </div>
+          <div id="magnetic-field-panel" hidden>
+            <label class="choice-control" for="magnetic-preset">
+              <span>Dipole preset</span>
+              <select id="magnetic-preset">
+                <option value="none">No global dipole</option>
+                <option value="earth-like" selected>Earth-like dipole</option>
+                <option value="hypothetical-strong">5× Earth hypothetical</option>
+              </select>
+            </label>
+            <div class="experiment-metric"><span>Dipole moment</span><strong id="magnetic-moment">7.80e22 A·m²</strong></div>
+            <p class="experiment-caveat">TOY MODEL · Static dipole geometry. No dynamo, plasma, solar wind, atmospheric escape, or force on neutral orbital bodies.</p>
+          </div>
+        </section>
+
+        <section class="experiment-content" data-experiment-content="dark-matter" hidden>
+          <p>Compare the same deterministic setup with dark matter OFF versus ON using the same live solver state.</p>
+          <label class="choice-control" for="dark-matter-preset">
+            <span>Density preset</span>
+            <select id="dark-matter-preset">
+              <option value="none">No added dark matter</option>
+              <option value="local-estimate">Local Milky Way estimate</option>
+              <option value="uniform-exaggerated">Exaggerated hypothetical</option>
+            </select>
+          </label>
+          <div class="frame-comparison">
+            <article class="frame-card">
+              <span>Dark-matter OFF</span>
+              <strong id="dark-off-mode">OFF · No added dark matter</strong>
+              <div class="experiment-metric"><span>Target body</span><strong id="dark-off-target">Earth</strong></div>
+              <div class="experiment-metric"><span>Total acceleration</span><strong id="dark-off-acceleration">— m/s²</strong></div>
+              <div class="experiment-metric"><span>Uniform density</span><strong id="dark-off-density">0 kg/m³</strong></div>
+              <div class="experiment-metric"><span>Gravity ratio at 1 AU</span><strong id="dark-off-ratio">0</strong></div>
+              <p id="dark-off-caveat" class="experiment-caveat">TOY MODEL · OFF view keeps only the Newtonian n-body acceleration from live masses.</p>
+            </article>
+            <article class="frame-card">
+              <span>Dark-matter ON</span>
+              <strong id="dark-on-mode">ON · Local Milky Way estimate</strong>
+              <div class="experiment-metric"><span>Target body</span><strong id="dark-on-target">Earth</strong></div>
+              <div class="experiment-metric"><span>Total acceleration</span><strong id="dark-on-acceleration">— m/s²</strong></div>
+              <div class="experiment-metric"><span>Uniform density</span><strong id="dark-on-density">0 kg/m³</strong></div>
+              <div class="experiment-metric"><span>Gravity ratio at 1 AU</span><strong id="dark-on-ratio">0</strong></div>
+              <div class="experiment-metric"><span>Added term</span><strong id="dark-matter-acceleration-delta">— m/s²</strong></div>
+              <div class="experiment-metric"><span>Added term / OFF</span><strong id="dark-matter-delta-ratio">n/a</strong></div>
+              <p id="dark-on-caveat" class="experiment-caveat">TOY MODEL · A controlled uniform-density field. This is not a particle simulation or galaxy-formation model, and it is not used by the light-path solver.</p>
+            </article>
+          </div>
+          <small class="derived-note">VISUAL EXAGGERATION NOTE · Halo rings are pedagogical geometry only and do not represent a physical halo map.</small>
+        </section>
+
+        <section class="experiment-content" data-experiment-content="light" hidden>
+          <p>Emit a moving light signal past the selected lens. Cyan and gold oscillations show the electromagnetic field qualitatively; the reported trajectory model is named below.</p>
+          <button id="emit-light-signal" class="experiment-action" type="button">Emit light signal</button>
+          <label class="experiment-control" for="impact-parameter">
+            <span>Impact parameter <output id="impact-output">1.0 R☉</output></span>
+            <input id="impact-parameter" type="range" min="1" max="10" step="0.1" value="1" />
+          </label>
+          <label class="choice-control" for="light-exaggeration">
+            <span>Path drawing</span>
+            <select id="light-exaggeration">
+              <option value="1">True scale</option>
+              <option value="10000" selected>10,000× visible</option>
+              <option value="100000">100,000× dramatic</option>
+            </select>
+          </label>
+          <div class="experiment-metric"><span>Lens</span><strong id="light-lens">Sun</strong></div>
+          <div class="experiment-metric"><span>Trajectory model</span><strong id="light-model">Weak-field spherical lens</strong></div>
+          <div class="experiment-metric"><span>Calculated deflection</span><strong id="light-angle">1.75 arcsec</strong></div>
+          <div class="experiment-metric"><span>Visual multiplier</span><strong id="light-visual">10,000×</strong></div>
+          <div class="experiment-metric"><span>EM source · observer</span><strong id="light-wave-body-pair">Earth → Sun</strong></div>
+          <div class="experiment-metric"><span>Rest frequency</span><strong id="light-rest-frequency">4.56e14 Hz</strong></div>
+          <div class="experiment-metric"><span>Observed frequency</span><strong id="light-observed-frequency">4.56e14 Hz</strong></div>
+          <div class="experiment-metric"><span>Radial speed (LOS)</span><strong id="light-relative-speed">0 km/s</strong></div>
+          <div class="experiment-metric"><span>Doppler factor</span><strong id="light-doppler-factor">1.000</strong></div>
+          <div class="experiment-metric"><span>Gravity factor</span><strong id="light-gravity-factor">1.000</strong></div>
+          <div class="experiment-metric"><span>Wavelength ratio</span><strong id="light-wavelength-shift">1.000</strong></div>
+          <div class="experiment-metric"><span>Gravitational redshift z</span><strong id="light-redshift">0.000</strong></div>
+          <p id="light-caveat" class="experiment-caveat">TOY PATH DRAWING · Leading-order weak-field result around one spherical, non-rotating mass. Strong-field lensing is omitted.</p>
+        </section>
+
+        <section class="experiment-content" data-experiment-content="relativity" hidden>
+          <p id="relativity-brief" class="relativity-brief">Simultaneity in Sun frame vs rocket frame.</p>
+          <button id="relativity-auto-run" class="experiment-action" type="button">Run simultaneity scenario</button>
+          <div class="relativity-frame-controls" role="group" aria-label="Relativity frame controls">
+            <button id="relativity-frame-sun" type="button">Sun frame</button>
+            <button id="relativity-frame-rocket" type="button">Rocket frame</button>
+            <label class="relativity-detail-toggle">
+              <input id="relativity-show-signal-travel" type="checkbox" />
+              Show signal travel
+            </label>
+          </div>
+          <h2 id="relativity-step-title" class="relativity-step-title">Setup</h2>
+          <p id="relativity-step-copy" class="relativity-step-copy">Event A and Event B are ready at Sun-frame t = 0. You can anchor them to any placed body or pick arbitrary points.</p>
+          <p id="relativity-step-index" class="relativity-step-index">1 / 5</p>
+          <p id="relativity-placement-status" class="relativity-placement-status" aria-live="polite">Advance through the wizard steps.</p>
+          <section data-relativity-step="setup" aria-label="Setup step">
+            <button id="relativity-step-setup-next" class="relativity-step-next" type="button">Continue to Sun frame</button>
+          </section>
+          <section data-relativity-step="sun-frame" hidden aria-label="Sun frame step">
+            <div class="relativity-event-summary">
+              <p id="relativity-event-a-status">EARTH: anchored</p>
+              <p id="relativity-event-b-status">MARS: anchored</p>
+            </div>
+            <p id="relativity-sun-frame-summary" class="relativity-step-summary">Both flashes are simultaneous at t = 0.</p>
+            <p id="relativity-rocket-order" class="relativity-step-summary">Rocket-frame order will appear after launch.</p>
+            <div class="relativity-event-controls">
+              <button id="relativity-anchor-selected-a" type="button">Use selected body for Event A</button>
+              <button id="relativity-anchor-selected-b" type="button">Use selected body for Event B</button>
+              <button id="relativity-reposition-earth" type="button">Reposition Event A point</button>
+              <button id="relativity-reposition-mars" type="button">Reposition Event B point</button>
+            </div>
+            <button id="relativity-step-sun-frame-next" class="relativity-step-next" type="button">Continue to Launch rocket</button>
+          </section>
+          <section data-relativity-step="launch" hidden aria-label="Launch step">
+            <label class="experiment-control" for="relativity-speed">
+              <span>Speed <output id="relativity-speed-output">0.10c</output></span>
+              <input id="relativity-speed" type="range" min="0.01" max="0.50" step="0.01" value="0.10" />
+            </label>
+            <div class="experiment-metric"><span>Distance</span><strong id="relativity-distance">225 million km</strong></div>
+            <div class="experiment-metric"><span>Light delay</span><strong id="relativity-light-delay">750.5 s</strong></div>
+            <button id="relativity-launch" type="button" disabled>Launch rocket</button>
+            <button id="relativity-step-launch-next" class="relativity-step-next" type="button" disabled>Continue to Rocket frame</button>
+          </section>
+          <section data-relativity-step="rocket-frame" hidden aria-label="Rocket frame step">
+            <p id="relativity-rocket-frame-summary" class="relativity-step-summary">Rocket frame order: Mars first, Earth second.</p>
+            <div class="experiment-metric"><span>Rocket order</span><strong id="relativity-order">Mars flash earlier</strong></div>
+            <div class="equation-strip relativity-equation" aria-label="Relativity of simultaneity equation">
+              <span>Time transform</span>
+              <code id="relativity-equation">t′ = γ(t − vx/c²)</code>
+            </div>
+            <button id="relativity-step-rocket-frame-next" class="relativity-step-next" type="button">Continue to Compare</button>
+          </section>
+          <section data-relativity-step="compare" hidden aria-label="Compare step">
+            <button id="relativity-reset" type="button">Reset events</button>
+          </section>
+          <p id="relativity-caveat" class="experiment-caveat">DERIVED · Special relativistic simultaneity for two spacelike-separated events. Event anchors, rocket path, and order are computed from the current coordinates. The frame overlay is a visualization-only layer, not a force or causality effect.</p>
+        </section>
+      </aside>
+
+      <button id="guide-toggle" class="guide-toggle" type="button" aria-expanded="false" aria-controls="guide-card" aria-haspopup="dialog">
+        <i></i><span>Ask</span>
+      </button>
+
+      <aside id="guide-card" class="guide-card" role="dialog" aria-labelledby="guide-heading" aria-hidden="true" inert>
+        <div class="experiment-heading">
+          <div>
+            <h2 id="guide-heading">Talk it through</h2>
+          </div>
+          <button id="close-guide" type="button" aria-label="Close guide">×</button>
+        </div>
+        <p id="guide-context" class="guide-context developer-only">No body selected · computed n-body state</p>
+        <div id="guide-log" class="guide-log" aria-live="polite"></div>
+        <form id="guide-form" class="guide-form">
+          <textarea id="guide-question" aria-label="Your question" maxlength="320" rows="3" placeholder="What feels confusing?"></textarea>
+          <button type="submit">Ask</button>
+        </form>
+        <div class="voice-control">
+          <button id="voice-preflight" class="developer-only" type="button">Check voice setup</button>
+          <button id="voice-toggle" type="button"><i></i><span>Talk</span></button>
+          <button id="voice-interrupt" type="button" disabled>Pause</button>
+          <small id="voice-status" aria-live="polite">Microphone off</small>
+        </div>
+        <small class="voice-privacy-note">Audio isn’t saved.</small>
+        <details id="voice-receipt" class="voice-receipt developer-only" data-state="not-started">
+          <summary><span>Developer diagnostics</span><strong id="voice-receipt-state">NOT RUN</strong></summary>
+          <dl>
+            <div><dt>Permission</dt><dd id="voice-receipt-permission">Not requested</dd></div>
+            <div><dt>Connection</dt><dd id="voice-receipt-connection">—</dd></div>
+            <div><dt>First response</dt><dd id="voice-receipt-response">—</dd></div>
+            <div><dt>Interruptions</dt><dd id="voice-receipt-interruptions">0</dd></div>
+            <div><dt>Final usage</dt><dd id="voice-receipt-usage">—</dd></div>
+          </dl>
+          <p>GPT-Live 1 receives this question and a validated simulation snapshot. Deeper reasoning may delegate to GPT-5.6 Terra. Audio is not recorded; transient transcript text is not included here or saved by the app.</p>
+          <button id="copy-voice-receipt" type="button" disabled>Copy receipt JSON</button>
+        </details>
+      </aside>
+
+      <aside id="content-drawer" class="content-drawer" aria-label="Space object and simulation scenario drawer" aria-hidden="true" inert>
+        <header>
+          <div>
+            <div class="drawer-tabs" role="tablist" aria-label="Workspace library">
+              <button id="drawer-objects-tab" type="button" role="tab" aria-selected="true" aria-controls="object-grid">Objects</button>
+              <button id="drawer-systems-tab" type="button" role="tab" aria-selected="false" aria-controls="systems-grid">Scenarios</button>
+            </div>
+            <span id="drawer-kicker">OBJECT LIBRARY</span><strong id="drawer-title">Drag to the grid or click to place</strong><small id="drawer-description">Placement holds time until you press Run; host velocity is computed when possible.</small>
+          </div>
+          <button id="close-content" class="drawer-close" type="button" aria-label="Close content drawer">×</button>
+        </header>
+        <div id="object-grid" class="content-grid" role="tabpanel" aria-labelledby="drawer-objects-tab">
+          <button draggable="true" type="button" data-category="STARS" data-object-preset="sun-like" data-spawn="star"><i style="--swatch:#ffd08a"></i><strong>Sun-like star</strong><small>1.00 M☉</small></button>
+          <button draggable="true" type="button" data-category="STARS" data-object-preset="red-dwarf"><i style="--swatch:#ff8065"></i><strong>Red dwarf</strong><small>0.20 M☉</small></button>
+          <button draggable="true" type="button" data-category="STARS" data-object-preset="blue-star"><i style="--swatch:#a8cfff"></i><strong>Blue star</strong><small>6.0 M☉</small></button>
+          <button draggable="true" type="button" data-category="STARS" data-object-preset="white-dwarf" title="A dense stellar remnant represented as a Newtonian point mass; no relativistic effects."><i style="--swatch:#eef5ff"></i><strong>White dwarf</strong><small>dense remnant · no GR</small></button>
+          <button draggable="true" type="button" data-category="WORLDS" data-object-preset="earth-analogue"><i style="--swatch:#6aa9ff"></i><strong>Earth analogue</strong><small>1.00 M⊕</small></button>
+          <button draggable="true" type="button" data-category="WORLDS" data-object-preset="mars-like"><i style="--swatch:#d8835f"></i><strong>Mars-like</strong><small>0.107 M⊕</small></button>
+          <button draggable="true" type="button" data-category="WORLDS" data-object-preset="gas-giant"><i style="--swatch:#e3b779"></i><strong>Gas giant</strong><small>1.00 MJ</small></button>
+          <button draggable="true" type="button" data-category="WORLDS" data-object-preset="ice-giant"><i style="--swatch:#74b9df"></i><strong>Ice giant</strong><small>Neptune class</small></button>
+          <button draggable="true" type="button" data-category="WORLDS" data-object-preset="super-earth"><i style="--swatch:#9ac7ba"></i><strong>Super-Earth</strong><small>5.0 M⊕</small></button>
+          <button draggable="true" type="button" data-category="WORLDS" data-object-preset="moon"><i style="--swatch:#d9d8d2"></i><strong>Rocky moon</strong><small>1 lunar mass</small></button>
+          <button draggable="true" type="button" data-category="THOUGHT EXPERIMENT" data-object-preset="collision-pulse"><i style="--swatch:#ffbf66"></i><strong>Collision pulse</strong><small>Explosion timing marker</small></button>
+          <button draggable="true" type="button" data-category="THOUGHT EXPERIMENT" data-object-preset="vehicle-car"><i style="--swatch:#9da7ff"></i><strong>Vehicle car</strong><small>everyday object • 1.25 t</small></button>
+          <button draggable="true" type="button" data-category="THOUGHT EXPERIMENT" data-object-preset="vehicle-satellite"><i style="--swatch:#a8ebff"></i><strong>Satellite</strong><small>low-mass everyday probe</small></button>
+          <button draggable="true" type="button" data-category="THOUGHT EXPERIMENT" data-object-preset="vehicle-asteroid"><i style="--swatch:#c2b49a"></i><strong>Asteroid fragment</strong><small>compact massed body</small></button>
+          <button draggable="true" type="button" data-category="THOUGHT EXPERIMENT" data-object-preset="vehicle-rocketcraft" title="Small experimental rocketcraft with a moderate mass profile."><i style="--swatch:#a6ddff"></i><strong>Rocketcraft</strong><small>3.2 t · maneuverable object</small></button>
+          <button draggable="true" type="button" data-category="WORLD PROTOTYPES" data-object-preset="space-station" title="Compact station proxy for inertia and orbital dynamics studies."><i style="--swatch:#f6f7bf"></i><strong>Space station</strong><small>420 t · engineering scale</small></button>
+          <button draggable="true" type="button" data-category="RESEARCH PROXY" data-object-preset="neutron-star" title="Neutron-star proxy as a compact Newtonian point mass."><i style="--swatch:#f0fbff"></i><strong>Neutron star</strong><small>compact remnant proxy</small></button>
+          <button draggable="true" type="button" data-category="PROBES" data-object-preset="rocket-probe" title="Massless marker for path and simultaneity experiments."><i style="--swatch:#8de6ff"></i><strong>Rocket probe</strong><small>massless · tracer</small></button>
+          <button draggable="true" type="button" data-category="PROBES" data-object-preset="comet" title="A massless test particle: gravity changes its path, but it does not pull on other bodies."><i style="--swatch:#bdeaff"></i><strong>Path tracer</strong><small>feels gravity · massless</small></button>
+          <button draggable="true" type="button" data-category="EXTREME OBJECTS" data-object-preset="black-hole" title="A 10-solar-mass non-rotating lens. Light uses a Schwarzschild geodesic; live body motion remains Newtonian."><i style="--swatch:#ff9d55"></i><strong>Black hole</strong><small>10 M☉ · light lab</small></button>
+          <button draggable="true" type="button" data-category="RESEARCH PROXY" data-object-preset="compact-mass" title="A dense Newtonian mass placeholder. It is not a black hole and has no horizon, lensing, or gravitational waves."><i style="--swatch:#b49cff"></i><strong>Compact mass</strong><small>placeholder · no GR</small></button>
+        </div>
+        <div id="systems-grid" class="systems-grid" role="tabpanel" aria-labelledby="drawer-systems-tab" hidden></div>
+      </aside>
+
+      <nav id="workspace-strip" class="workspace-strip" aria-label="Simulation workspaces"></nav>
+
+      <section class="lab-rail" aria-label="Laboratory controls">
+        <div class="selection-status">
+          <span id="selection-kicker">TARGET</span>
+          <strong id="selection-name">Click a body to inspect</strong>
+          <button id="radius-mode-toggle" class="radius-mode-toggle" type="button" aria-pressed="false" title="Switch between legible compressed radii and true body-to-body radius ratios">
+            <span id="radius-mode-label">READABLE RADII</span><small>Physics still uses SI radius</small>
+          </button>
+        </div>
+        <div class="transport-controls">
+          <button id="play-toggle" class="primary" type="button">Pause</button>
+          <button id="preview-paths" type="button" aria-pressed="false" title="Pause and calculate future paths from this exact arrangement">Preview paths</button>
+          <button id="step-day" type="button">+ 1 day</button>
+          <button id="undo-edit" type="button" disabled>Undo</button>
+          <button id="reset-system" type="button">Restart scenario</button>
+        </div>
+        <label class="warp-control" for="time-warp">
+          <span>TIME FLOW · [ / ]</span>
+          <div class="warp-stepper">
+            <button id="time-slower" type="button" aria-label="Evolve more slowly">−</button>
+            <select id="time-warp">
+              <option value="0.01">14 min / sec</option>
+              <option value="0.1">2.4 hr / sec</option>
+              <option value="1">1 day / sec</option>
+              <option value="10">10 days / sec</option>
+              <option value="30" selected>30 days / sec</option>
+              <option value="90">90 days / sec</option>
+              <option value="365">1 year / sec</option>
+              <option value="1825">5 years / sec · macro</option>
+            </select>
+            <button id="time-faster" type="button" aria-label="Evolve faster">+</button>
+          </div>
+        </label>
+        <div class="content-controls" aria-label="Editor content controls">
+          <button id="open-content" type="button" aria-expanded="false"><span>＋</span> Objects</button>
+          <button id="clear-canvas" type="button">Blank canvas</button>
+        </div>
+      </section>
+
+      <section id="trajectory-preview" class="trajectory-preview" aria-label="Future trajectory preview" hidden>
+        <div><strong id="preview-result" role="status">Calculating future paths…</strong><small>Dashed lines show the predicted path. Your scene stays unchanged.</small></div>
+        <button id="preview-retry" type="button" hidden>Recalculate</button>
+        <label>Look ahead <select id="preview-duration"><option value="1">1 day</option><option value="30" selected>30 days</option><option value="365">1 year</option></select></label>
+        <button id="close-preview" type="button" aria-label="Close future paths">×</button>
+      </section>
+      <p id="scenario-note" class="workbench-note">JPL DE441 INITIAL STATE · NEWTONIAN LIVE PROPAGATION · OSCULATING PATHS DERIVED · BODY RADII EXAGGERATED</p>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <audio id="guide-audio" autoplay hidden></audio>
+    </main>
+    <script type="module" src="./lab.js?v=52"></script>
+  </body>
+</html>
