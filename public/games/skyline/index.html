@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Skyline Swing: NYC Rush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css" />
+<script src="/games/capture-context.js"></script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+</script>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Gameplay HUD -->
+<div id="hud" class="hidden">
+  <div id="act-bar" class="act-bar hidden"><span id="act-name">ACT I</span><div class="act-track"><i id="act-fill"></i></div><b id="act-pct">0%</b></div>
+  <div class="hud-left">
+    <div class="score-box"><span class="label">SCORE</span><span id="score">0</span></div>
+    <div class="coin-box"><span class="coin-icon"></span><span id="coins">0</span></div>
+    <div class="mult-box">x<span id="mult">1</span></div>
+    <div id="lives" class="lives-box">❤❤❤</div>
+    <div id="powers"></div>
+  </div>
+  <div class="hud-right">
+    <button id="btn-pause" class="icon-btn" aria-label="Pause">II</button>
+  </div>
+  <div id="chase" class="hidden">
+    <div class="chase-eyes"><span></span><span></span></div>
+    <div class="chase-bar"><div id="chase-fill"></div></div>
+    <div class="chase-label">INK HOUND!</div>
+  </div>
+  <div id="objective" class="paper hidden"><b id="obj-title"></b><span id="obj-text"></span><div class="obj-bar"><i id="obj-fill"></i></div></div>
+  <div id="turn" class="hidden"><div class="turn-arrow"></div><div class="turn-text">TURN!</div></div>
+  <div id="zone-banner" class="hidden"></div>
+  <div id="gadget-bar" class="gadget-bar">
+    <button id="btn-burst" class="gadget burst"><b>✳</b><span>BURST</span><small>V</small><em id="burst-cd"></em></button>
+    <button id="btn-net" class="gadget hidden"><b>🕸</b><span>NET</span><i>0</i><small>R</small></button>
+    <button id="btn-smoke" class="gadget hidden"><b>💨</b><span>SMOKE</span><i>0</i><small>G</small></button>
+  </div>
+  <button id="btn-shock" class="shock"><div id="shock-fill"></div><span>SHOCK<br />WAVE</span><small>E</small></button>
+  <div id="hint" class="hidden"></div>
+  <div id="chain" class="paper hidden">
+    <div class="chain-head"><span class="chain-title">SKILL CHAIN</span><span id="chain-mult">x1</span></div>
+    <div id="chain-points">0</div>
+    <div class="chain-bar"><i id="chain-timer"></i></div>
+    <div id="chain-list"></div>
+  </div>
+  <div id="chain-bank" class="hidden"></div>
+</div>
+<div id="pops"></div>
+<svg id="panels" class="hidden" preserveAspectRatio="none">
+  <defs>
+    <pattern id="paperdots" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#f4e4c4"/><circle cx="3" cy="3" r="0.9" fill="rgba(120,90,60,.22)"/></pattern>
+  </defs>
+  <path id="panel-paper" fill="url(#paperdots)" fill-rule="evenodd"/>
+  <path id="panel-ink" fill="none" stroke="#1b1030" stroke-width="7" stroke-linejoin="round"/>
+</svg>
+<div id="bubbles"></div>
+
+<!-- Story intro -->
+<div id="intro" class="hidden">
+  <div class="bar top"></div>
+  <div class="bar bottom"></div>
+  <div id="captions"></div>
+  <div id="splash" class="hidden">
+    <div class="splash-name">VOLT</div>
+    <div class="logo"><span class="l1">SKYLINE</span><span class="l2">SWING</span><span class="l3">NYC RUSH</span></div>
+  </div>
+  <button id="btn-skip" class="pill">SKIP STORY ▸▸</button>
+</div>
+
+<!-- Title -->
+<div id="title" class="screen hidden">
+  <div class="logo big"><span class="l1">SKYLINE</span><span class="l2">SWING</span><span class="l3">NYC RUSH</span></div>
+  <div class="menu">
+    <button class="btn primary" data-act="play" id="t-play">SWING!</button>
+    <button class="btn" data-act="skins">HERO</button>
+    <button class="btn shop-btn" data-act="shop">SHOP</button>
+    <button class="btn" data-act="story">STORY</button>
+    <button class="btn" data-act="settings">SETTINGS</button>
+    <button class="btn" data-act="howto">HOW TO</button>
+  </div>
+  <div class="lobby-hint">🖱 CLICK = WEB · HOLD = SWING · SPACE = JUMP</div>
+  <button id="sound-chip" class="sound-chip" data-act="sound">🔊 <span>TAP FOR SOUND</span></button>
+  <div class="stats-row"><span>BEST <b id="t-best">0</b></span><span><i class="coin-icon"></i> <b id="t-bank">0</b></span></div>
+  <div class="controls">
+    <div><kbd>←</kbd><kbd>→</kbd> / swipe: switch lanes &amp; take corners</div>
+    <div><kbd>↑</kbd><kbd>Space</kbd> / tap: hop &nbsp; <kbd>↓</kbd> / swipe down: dive</div>
+    <div><kbd>E</kbd>: Shockwave &nbsp; <kbd>P</kbd>: pause</div>
+  </div>
+</div>
+
+<!-- Skins -->
+<div id="skins" class="screen hidden">
+  <h2 class="panel-title">SKINS</h2>
+  <div class="bank-line"><i class="coin-icon"></i> <b id="s-bank">0</b></div>
+  <div id="skin-grid"></div>
+  <div id="custom-row" class="hidden">
+    <label>HOODIE <input type="color" id="c-hoodie" /></label>
+    <label>PANTS <input type="color" id="c-pants" /></label>
+    <label>GLOW <input type="color" id="c-accent" /></label>
+  </div>
+  <button class="btn" data-act="back">BACK</button>
+</div>
+
+<!-- How-to comic (onboarding) -->
+<div id="howto" class="screen hidden">
+  <div class="book">
+    <div class="page paper" id="howto-page"></div>
+  </div>
+  <div class="howto-nav"><button class="pill" data-act="howto-skip">SKIP</button><span id="howto-dots"></span><button class="btn primary" data-act="howto-next">NEXT ▸</button></div>
+</div>
+
+<!-- Hero Studio -->
+<div id="studio" class="screen hidden">
+  <div class="studio-panel paper">
+    <div class="studio-head"><h2>HERO STUDIO</h2><span class="bank-line"><i class="coin-icon"></i> <b id="st-bank">0</b></span></div>
+    <div class="studio-tabs" id="studio-tabs">
+      <button data-tab="presets" class="on">PRESETS</button><button data-tab="body">BODY</button><button data-tab="head">HEAD</button><button data-tab="suit">SUIT</button><button data-tab="gear">GEAR</button>
+    </div>
+    <div id="studio-body"></div>
+    <div class="studio-actions"><button class="btn" data-act="randomize">SURPRISE ME</button><button class="btn primary" data-act="studio-done">DONE</button></div>
+  </div>
+</div>
+
+<!-- Shop -->
+<div id="shop" class="screen hidden">
+  <div class="shop-panel paper">
+    <div class="studio-head"><h2>WEB SHOP</h2><span class="bank-line"><i class="coin-icon"></i> <b id="sh-bank">0</b></span></div>
+    <div class="shop-sec">UPGRADES <small>permanent</small></div>
+    <div id="shop-up" class="shop-grid"></div>
+    <div class="shop-sec">SUITS <small>tap to buy &amp; wear</small></div>
+    <div id="shop-suits" class="suit-grid"></div>
+    <div class="shop-sec">GADGETS <small>one use each</small></div>
+    <div id="shop-gd" class="shop-grid"></div>
+    <div class="studio-actions"><button class="btn primary" data-act="shop-back">DONE</button></div>
+  </div>
+</div>
+
+<!-- Safehouse (checkpoint pause) -->
+<div id="safehouse" class="screen hidden">
+  <div class="safe-panel paper">
+    <div class="safe-badge">SAFEHOUSE</div>
+    <h2 id="sh-act-title">ACT I</h2>
+    <p id="sh-act-text"></p>
+    <div class="safe-stats">
+      <span><i class="coin-icon"></i> <b id="sh-bank2">0</b></span>
+      <span id="sh-lives"></span>
+    </div>
+    <div class="menu">
+      <button class="btn primary" data-act="safehouse-continue">CONTINUE ▸</button>
+      <button class="btn shop-btn" data-act="shop">SHOP</button>
+      <button class="btn" data-act="skins">HERO</button>
+      <button class="btn" data-act="story">JOURNAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- Journal (story recap + clues) -->
+<div id="journal" class="screen hidden">
+  <div class="shop-panel paper">
+    <div class="studio-head"><h2>JOURNAL</h2></div>
+    <div class="shop-sec">CHAPTERS</div>
+    <div id="jr-acts" class="jr-list"></div>
+    <div class="shop-sec">CASE FILES <small id="jr-clue-count"></small></div>
+    <div id="jr-clues" class="jr-list"></div>
+    <div class="studio-actions"><button class="btn" data-act="replay-intro">REPLAY INTRO</button><button class="btn primary" data-act="journal-back">DONE</button></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="settings" class="screen hidden">
+  <h2 class="panel-title">SETTINGS</h2>
+  <div class="setting"><span>GRAPHICS</span><button class="toggle" id="set-quality">HIGH</button></div>
+  <div class="setting"><span>MUSIC</span><button class="toggle" id="set-music">ON</button></div>
+  <div class="setting"><span>SOUND FX</span><button class="toggle" id="set-sfx">ON</button></div>
+  <button class="btn" data-act="back">BACK</button>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="screen hidden">
+  <h2 class="panel-title">PAUSED</h2>
+  <div class="menu">
+    <button class="btn primary" data-act="resume">RESUME</button>
+    <button class="btn" data-act="quit">QUIT TO TITLE</button>
+  </div>
+</div>
+
+<!-- Game over -->
+<div id="gameover" class="screen hidden">
+  <div class="caught">CAUGHT!</div>
+  <div class="result-card">
+    <div class="res-score"><span class="label">SCORE</span><b id="g-score">0</b></div>
+    <div id="g-best" class="newbest hidden">NEW BEST!</div>
+    <div class="res-row"><span><i class="coin-icon"></i> +<b id="g-coins">0</b></span><span>BEST <b id="g-bestv">0</b></span></div>
+    <div class="res-row small"><span>DISTANCE <b id="g-dist">0</b>m</span><span>BANK <b id="g-bank">0</b></span></div>
+    <div class="res-row small"><span>REACHED <b id="g-chap">CHAPTER 1</b></span><span><b id="g-act"></b></span><span>BEST CHAIN <b id="g-chain">0</b></span></div>
+  </div>
+  <div class="xp-card paper">
+    <div class="xp-top"><span>LEVEL <b id="g-level">1</b></span><span id="g-xpgain">+0 XP</span></div>
+    <div class="xp-bar"><i id="g-xpfill"></i></div>
+    <div id="g-levelup" class="levelup hidden"></div>
+    <div id="g-bonus" class="coin-bonus hidden"></div>
+    <div id="g-goal" class="goal"><span id="g-goaltxt"></span><div class="goal-bar"><i id="g-goalfill"></i></div></div>
+    <div id="g-ach" class="ach-list"></div>
+    <div class="ach-count"><b id="g-achn">0</b> / <span id="g-acht">0</span> ACHIEVEMENTS</div>
+  </div>
+  <div class="tbc paper">TO BE CONTINUED…</div>
+  <div class="menu row">
+    <button class="btn primary" data-act="retry">SWING AGAIN</button>
+    <button class="btn shop-btn" data-act="shop" id="g-shop">SHOP</button>
+    <button class="btn" data-act="skins">HERO</button>
+    <button class="btn" data-act="title">TITLE</button>
+  </div>
+</div>
+
+<div id="wipe"></div>
+<div id="letterbox"><i></i><i></i></div>
+<div id="clue-card" class="clue-card paper hidden"></div>
+<div id="reticle" class="reticle hidden"><i></i></div>
+<div id="ach-toast" class="ach-toast hidden"></div>
+
+<div id="boot">
+  <div class="cover">
+    <div class="cover-top"><span>ISSUE #1</span><span>NYC RUSH</span><span>FREE</span></div>
+    <div class="cover-art">
+      <div class="burst"></div>
+      <div class="skyline"></div>
+      <div class="logo big"><span class="l1">SKYLINE</span><span class="l2">SWING</span><span class="l3">NYC RUSH</span></div>
+    </div>
+    <div class="cover-tag">“THE CITY GLOWS. THE HOUNDS ARE HUNGRY.”</div>
+    <div class="cover-load"><div class="load-line"><i id="load-fill"></i></div><span id="load-text">INKING THE CITY…</span></div>
+    <div class="cover-tip paper" id="load-tip"></div>
+  </div>
+</div>
+<div id="chapter" class="hidden"><div class="chap-card paper"><small id="chap-num">CHAPTER 1</small><b id="chap-title">ROOFTOPS</b><span id="chap-line"></span></div></div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

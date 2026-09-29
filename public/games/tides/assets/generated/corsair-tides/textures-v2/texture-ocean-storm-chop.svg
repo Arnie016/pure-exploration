@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="8" seed="114"/><feDisplacementMap in="SourceGraphic" scale="34"/></filter>
+    <linearGradient id="storm" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#071926"/><stop offset=".55" stop-color="#1c3540"/><stop offset="1" stop-color="#315a68"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#storm)"/>
+  <g filter="url(#rough)" fill="none" stroke-linecap="round">
+    <path d="M-60 120 C160 190 260 60 440 140 S760 210 1080 110" stroke="#78cbd6" stroke-width="16" opacity=".36"/>
+    <path d="M-60 285 C180 370 315 240 540 310 S824 388 1080 292" stroke="#e8ffff" stroke-width="11" opacity=".44"/>
+    <path d="M-60 508 C190 580 310 455 520 525 S790 620 1080 512" stroke="#9ce9ef" stroke-width="18" opacity=".38"/>
+    <path d="M-60 744 C150 820 365 690 570 776 S830 858 1080 742" stroke="#f0ffff" stroke-width="9" opacity=".42"/>
+  </g>
+  <g stroke="#d9ffff" stroke-width="6" opacity=".36"><path d="M132 52 l-72 260"/><path d="M480 88 l-94 340"/><path d="M832 70 l-78 300"/><path d="M300 620 l-80 310"/><path d="M700 590 l-96 350"/></g>
+</svg>

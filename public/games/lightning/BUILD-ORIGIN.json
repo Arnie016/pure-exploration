@@ -1,0 +1,12 @@
+{
+  "edition": "v7",
+  "recovered": "2026-09-29",
+  "artifactId": "RNdEZfYNZBBrFsrv3oy3NB",
+  "sourceSha256": "e0aad0a1fd23c83a2331190b095313f57afd81678b30adc521b1b24ae5331a0e",
+  "changes": [
+    "doctype",
+    "UTF-8 metadata",
+    "responsive viewport"
+  ],
+  "runtimeAuth": false
+}

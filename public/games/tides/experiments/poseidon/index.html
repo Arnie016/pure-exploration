@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tides · Poseidon evaluation</title>
+<style>body{margin:0;background:#12313a;color:#f2ecd9;font:15px system-ui}canvas{display:block;width:100vw;height:100vh}header{position:fixed;top:12px;left:12px;right:12px;padding:16px;background:#10282bea;border:1px solid #d5c19455;border-radius:12px;z-index:2;display:flex;gap:16px;align-items:center;flex-wrap:wrap}small{display:block;color:#b9c8bf}button,select,a{font:inherit;color:inherit;padding:10px;background:#214247;border:1px solid #aaa5;border-radius:6px}output{position:fixed;bottom:16px;left:16px;background:#10282bed;padding:16px;border-radius:8px;white-space:pre-line}</style>
+<script type="importmap">{"imports":{"three":"./vendor/poseidon-r184/three.webgpu.js","three/webgpu":"./vendor/poseidon-r184/three.webgpu.js","three/tsl":"./vendor/poseidon-r184/three.tsl.js"}}</script>
+<canvas id="ocean"></canvas><header><div><strong>Poseidon ocean evaluation</strong><small>Isolated WebGPU scene. Gameplay still uses the shared analytic ocean.</small></div><select id="light" aria-label="Lighting"><option value="0">Daylight</option><option value=".5">Dusk</option><option value=".9">Night</option></select><button id="pause">Pause</button><a href="/scripts/ocean-replay.html">Game ocean comparison</a></header><output id="status">Requesting WebGPU…</output>
+<script type="module">
+import { createPoseidonOceanLayer } from './world-expansion/modules/poseidonOceanLayer.js';
+const output=document.querySelector('#status'),canvas=document.querySelector('canvas');let status={},paused=false,day=0;
+const layer=createPoseidonOceanLayer({canvas,onModeChange:s=>{status=s;output.textContent=s.mode+' · '+s.reason}});
+let last=performance.now(),frames=[],count=0;
+document.querySelector('#light').onchange=e=>day=Number(e.target.value);
+document.querySelector('#pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'Resume':'Pause'};
+window.addEventListener('resize',()=>layer.resize());
+await layer.start('med');layer.resize();
+function frame(t){const dt=(t-last)/1000;last=t;if(!paused&&!document.hidden){const rendered=layer.syncAndRender({dt,position:[0,18,68],quaternion:[-.12,0,0,.99277],fov:64,aspect:innerWidth/innerHeight,near:.5,far:60000,day,wind:{direction:[.707,.707],speed:10.5,gust:0}});if(rendered){frames.push(dt*1000);if(frames.length>180)frames.shift();count++}}
+if(count%15===0){const s=layer.snapshot(),v=[...frames].sort((a,b)=>a-b);output.textContent=`${s.mode==='webgl-fallback'?'Poseidon unavailable — use Game ocean comparison':s.mode} · ${s.reason}\n${s.frames} rendered frames · FFT ${s.computeN} · ${((s.rendererCalls||0)/Math.max(1,s.frames)).toFixed(1)} mean calls / ocean frame\nSampled browser frame median ${(v[Math.floor(v.length*.5)]||0).toFixed(1)} ms · p95 ${(v[Math.floor(v.length*.95)]||0).toFixed(1)} ms\n${s.lastError||'No gameplay or buoyancy integration claimed.'}`}
+requestAnimationFrame(frame)}requestAnimationFrame(frame)
+</script></html>

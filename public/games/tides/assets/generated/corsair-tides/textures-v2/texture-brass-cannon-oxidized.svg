@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="metal"><feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="5" seed="176"/><feColorMatrix type="saturate" values=".55"/><feBlend mode="overlay" in2="SourceGraphic"/></filter>
+    <linearGradient id="brass" x1="0" x2="1"><stop stop-color="#30291c"/><stop offset=".35" stop-color="#7d8d6e"/><stop offset=".7" stop-color="#f4c95c"/><stop offset="1" stop-color="#294a3e"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#brass)" filter="url(#metal)"/>
+  <g opacity=".65">
+    <circle cx="260" cy="290" r="150" fill="#1b0f0b"/><circle cx="260" cy="290" r="84" fill="#7d8d6e"/><circle cx="260" cy="290" r="45" fill="#0d1111"/>
+    <rect x="430" y="180" width="460" height="160" rx="80" fill="#202622"/><rect x="470" y="218" width="380" height="84" rx="42" fill="#7d8d6e"/>
+    <path d="M140 650 C260 560 385 720 520 610 S800 525 980 660" fill="none" stroke="#55b85d" stroke-width="30" opacity=".44"/>
+    <path d="M88 810 C260 740 390 872 560 792 S780 734 960 840" fill="none" stroke="#f4c95c" stroke-width="18" opacity=".42"/>
+  </g>
+</svg>

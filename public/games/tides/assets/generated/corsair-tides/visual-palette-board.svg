@@ -1,0 +1,152 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100">
+  <defs>
+    <filter id="grain" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" seed="17"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.18"/>
+      </feComponentTransfer>
+      <feBlend mode="overlay" in2="SourceGraphic"/>
+    </filter>
+    <filter id="paint" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="5" seed="31"/>
+      <feDisplacementMap in="SourceGraphic" scale="9"/>
+    </filter>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#07151b"/>
+      <stop offset="0.48" stop-color="#143941"/>
+      <stop offset="1" stop-color="#24150f"/>
+    </linearGradient>
+    <linearGradient id="ocean" x1="0" x2="1">
+      <stop offset="0" stop-color="#063d56"/>
+      <stop offset="0.45" stop-color="#0d7f8c"/>
+      <stop offset="1" stop-color="#16a6b4"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" x2="1">
+      <stop offset="0" stop-color="#1b0f0b"/>
+      <stop offset="0.55" stop-color="#8b5431"/>
+      <stop offset="1" stop-color="#9b2730"/>
+    </linearGradient>
+    <linearGradient id="terrain" x1="0" x2="1" y1="1" y2="0">
+      <stop offset="0" stop-color="#d9b46b"/>
+      <stop offset="0.5" stop-color="#5d685e"/>
+      <stop offset="1" stop-color="#55b85d"/>
+    </linearGradient>
+    <linearGradient id="storm" x1="0" x2="1">
+      <stop offset="0" stop-color="#1c3540"/>
+      <stop offset="0.65" stop-color="#406b78"/>
+      <stop offset="1" stop-color="#8ffff0"/>
+    </linearGradient>
+    <linearGradient id="ui" x1="0" x2="1">
+      <stop offset="0" stop-color="#18110b"/>
+      <stop offset="0.42" stop-color="#7d5a2b"/>
+      <stop offset="1" stop-color="#f4c95c"/>
+    </linearGradient>
+    <linearGradient id="harbor" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#d9b46b"/>
+      <stop offset="0.5" stop-color="#8b5431"/>
+      <stop offset="1" stop-color="#2a1710"/>
+    </linearGradient>
+    <style>
+      .title{font:900 52px system-ui, -apple-system, Segoe UI, sans-serif;letter-spacing:.04em;fill:#fff5d7}
+      .sub{font:700 23px system-ui, -apple-system, Segoe UI, sans-serif;letter-spacing:.18em;fill:#9effe8}
+      .label{font:900 26px system-ui, -apple-system, Segoe UI, sans-serif;fill:#fff2cf}
+      .small{font:700 17px system-ui, -apple-system, Segoe UI, sans-serif;fill:#cbd8cf}
+      .chip{font:800 16px system-ui, -apple-system, Segoe UI, sans-serif;fill:#102022}
+      .panel{rx:28;stroke:#f4c95c55;stroke-width:2}
+    </style>
+  </defs>
+  <rect width="1600" height="1100" fill="url(#bg)"/>
+  <g filter="url(#grain)">
+    <text x="72" y="88" class="title">TIDES OF INFAMY VISUAL PALETTE</text>
+    <text x="76" y="127" class="sub">SALT-WORN STYLIZED PIRATE MATERIAL LANGUAGE</text>
+
+    <g transform="translate(70 175)">
+      <rect class="panel" width="450" height="260" fill="url(#ocean)"/>
+      <g filter="url(#paint)" opacity=".92">
+        <path d="M20 172 C88 132,148 212,222 156 S358 126,430 184" fill="none" stroke="#f4ffff" stroke-width="16" stroke-linecap="round"/>
+        <path d="M30 90 C108 50,162 118,245 77 S365 44,430 94" fill="none" stroke="#bdfdf8" stroke-width="8" stroke-linecap="round" opacity=".75"/>
+        <path d="M60 220 C120 196,163 236,230 209 S352 184,412 220" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".65"/>
+      </g>
+      <text x="26" y="44" class="label">Ocean / Surf</text>
+      <text x="26" y="232" class="small">reef cyan + deep teal + loud white wake foam</text>
+    </g>
+
+    <g transform="translate(575 175)">
+      <rect class="panel" width="450" height="260" fill="url(#wood)"/>
+      <g opacity=".9">
+        <path d="M38 82 H412" stroke="#2a1710" stroke-width="18" stroke-linecap="round"/>
+        <path d="M42 130 H400" stroke="#5d3627" stroke-width="22" stroke-linecap="round"/>
+        <path d="M56 182 H384" stroke="#e8d6a8" stroke-width="36" stroke-linecap="round" opacity=".9"/>
+        <path d="M68 184 C140 156,220 210,312 176" fill="none" stroke="#9b2730" stroke-width="5" opacity=".55"/>
+        <circle cx="352" cy="96" r="30" fill="#7d8d6e"/>
+        <circle cx="352" cy="96" r="18" fill="#1b0f0b"/>
+      </g>
+      <text x="26" y="44" class="label">Ship / Cannons</text>
+      <text x="26" y="232" class="small">tarred oak, chipped crimson paint, oxidized bronze</text>
+    </g>
+
+    <g transform="translate(1080 175)">
+      <rect class="panel" width="450" height="260" fill="url(#terrain)"/>
+      <path d="M10 205 C90 150,150 206,215 130 S350 64,443 125 V260 H10z" fill="#d9b46b"/>
+      <path d="M128 202 C174 102,240 84,282 26 C317 82,378 98,420 184 V260 H90z" fill="#5d685e"/>
+      <path d="M137 142 C188 90,242 93,282 42 C315 92,360 114,404 158 C314 145,212 149,137 142z" fill="#55b85d"/>
+      <path d="M46 216 C118 194,180 229,258 204 S386 181,438 221" fill="none" stroke="#f4fff4" stroke-width="8" opacity=".72"/>
+      <text x="26" y="44" class="label">Island Terrain</text>
+      <text x="26" y="232" class="small">gold sand, moss cliffs, green caps, wet shoreline</text>
+    </g>
+
+    <g transform="translate(70 495)">
+      <rect class="panel" width="450" height="260" fill="url(#storm)"/>
+      <path d="M52 78 C114 30,156 102,218 64 S342 32,408 86" fill="none" stroke="#c7fbff" stroke-width="18" opacity=".24"/>
+      <path d="M98 38 L67 134 H130 L92 229" fill="none" stroke="#d9ffff" stroke-width="12" stroke-linejoin="round"/>
+      <g stroke="#a9ffff" stroke-width="5" opacity=".72">
+        <path d="M196 92 l-26 94"/><path d="M240 74 l-34 130"/><path d="M300 88 l-28 112"/><path d="M354 106 l-26 86"/>
+      </g>
+      <circle cx="330" cy="195" r="40" fill="#f4fff4" opacity=".2"/>
+      <text x="26" y="44" class="label">Weather / VFX</text>
+      <text x="26" y="232" class="small">rain streaks, mist, lightning, smoke, splash decals</text>
+    </g>
+
+    <g transform="translate(575 495)">
+      <rect class="panel" width="450" height="260" fill="url(#ui)"/>
+      <rect x="45" y="67" width="360" height="116" rx="24" fill="#1a2623" stroke="#f4c95c" stroke-width="5"/>
+      <circle cx="110" cy="126" r="44" fill="#4c211f" stroke="#f4c95c" stroke-width="6"/>
+      <path d="M110 86 L122 126 L110 166 L98 126z" fill="#f4fff4"/>
+      <rect x="182" y="96" width="180" height="28" rx="14" fill="#e8d6a8"/>
+      <rect x="182" y="136" width="132" height="18" rx="9" fill="#9effe8" opacity=".8"/>
+      <text x="26" y="44" class="label">HUD / Parchment</text>
+      <text x="26" y="232" class="small">dark brass, worn parchment, compass gold, wax red</text>
+    </g>
+
+    <g transform="translate(1080 495)">
+      <rect class="panel" width="450" height="260" fill="url(#harbor)"/>
+      <rect x="58" y="159" width="334" height="34" fill="#5d3627"/>
+      <rect x="82" y="118" width="55" height="82" fill="#7d6c54"/>
+      <rect x="71" y="92" width="77" height="36" fill="#b9613c"/>
+      <rect x="188" y="98" width="88" height="98" fill="#8b5431"/>
+      <path d="M176 96 L232 50 L288 96z" fill="#d9b46b"/>
+      <rect x="315" y="110" width="42" height="87" fill="#2a1710"/>
+      <circle cx="336" cy="100" r="18" fill="#f4c95c" opacity=".8"/>
+      <path d="M48 205 C114 185,182 220,254 198 S374 176,420 210" fill="none" stroke="#f4ffff" stroke-width="7" opacity=".62"/>
+      <text x="26" y="44" class="label">Harbor / City</text>
+      <text x="26" y="232" class="small">docks, towers, lanterns, rope, market cloth</text>
+    </g>
+
+    <g transform="translate(72 840)">
+      <text x="0" y="0" class="label">Implementation Swatches</text>
+      <g transform="translate(0 36)">
+        <rect width="118" height="74" rx="14" fill="#063d56"/><text x="12" y="104" class="small">deep</text>
+        <rect x="140" width="118" height="74" rx="14" fill="#16a6b4"/><text x="152" y="104" class="small">reef</text>
+        <rect x="280" width="118" height="74" rx="14" fill="#f4fff4"/><text x="292" y="104" class="small">foam</text>
+        <rect x="420" width="118" height="74" rx="14" fill="#d9b46b"/><text x="432" y="104" class="small">sand</text>
+        <rect x="560" width="118" height="74" rx="14" fill="#55b85d"/><text x="572" y="104" class="small">grass</text>
+        <rect x="700" width="118" height="74" rx="14" fill="#2a1710"/><text x="712" y="104" class="small">tar oak</text>
+        <rect x="840" width="118" height="74" rx="14" fill="#9b2730"/><text x="852" y="104" class="small">crimson</text>
+        <rect x="980" width="118" height="74" rx="14" fill="#7d8d6e"/><text x="992" y="104" class="small">bronze</text>
+        <rect x="1120" width="118" height="74" rx="14" fill="#f4c95c"/><text x="1132" y="104" class="small">gold</text>
+        <rect x="1260" width="118" height="74" rx="14" fill="#ff4c4c"/><text x="1272" y="104" class="small">threat</text>
+      </g>
+    </g>
+  </g>
+</svg>

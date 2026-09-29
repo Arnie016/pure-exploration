@@ -1,0 +1,27 @@
+{
+  "edition": "0.8.0 offline preview",
+  "built": "2026-09-29",
+  "source": "existing Universe Clash checkout",
+  "online": false,
+  "changes": [
+    "public allowlist only",
+    "same-origin base paths",
+    "offline rooms disabled"
+  ],
+  "sourceHashes": {
+    "index.html": "a51070ca3ad2d6191fc80e42f073c725289109b243178c60cb759b913b7023fe",
+    "style.css": "3cd103bce2de868ce0ebf5fb1477aaf99b7923de0b73f6b46c3599c24bc56f91",
+    "favicon.svg": "45a3c8855ffd5fc9d2442714a2032c3c4d2cf3230a32cd98a612ef95c15d3522",
+    "app.mjs": "4200c1df6feca444572650cc43f6fe03bcc33b6f07e64ab5afff97837beb9db7",
+    "world.mjs": "b5d83168b8a6139c176a6373ddae0f95220b3a9404bc2176eda1d81bfc2e0e1d",
+    "audio.mjs": "d2dc045290b329824c74fb15fcc1c669211303b233d6c48fa2e52c01d8d2bc06",
+    "combat.mjs": "a613e103529f62aa611f8413423575b2b891ab6de9c4fbb4649369bc28cadad6",
+    "catalog.mjs": "ab3d93c8d21065c91d51aba263eac2b7ffe34d92edbbff2c88fd1b748dd8de41",
+    "tournament.mjs": "b472343e2b79d81f5684d86fc9e0951d1fb8f86191cffa268c87e1a1b6e4fd43",
+    "persona.mjs": "9c79293ffab458a3c61c140582f2727c775c45f2ca362b61815fac20214ea0b5",
+    "gear.mjs": "671575091c88724e7c5bfc42b15f72f81970188cbc564d60ef3f1874dc31621e",
+    "intel.mjs": "b69720b419d55689825c08e1ade12f8cebbe19719caf5587e6269a46d0559968",
+    "training.mjs": "d6fd13c648497d9c4108b783ac343d254bc4c9f960ab7ab0ff72699b3413464c",
+    "replay.mjs": "1a0be464274b0373998ce7e1a3df0be209b527e9567dc14046133ec201719adc"
+  }
+}

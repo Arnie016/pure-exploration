@@ -1,0 +1,16 @@
+{
+  "recovered": "2026-09-29",
+  "kind": "cinematic anthology",
+  "source": "existing creator Poe film project",
+  "newGeneration": false,
+  "changes": [
+    "H.264/AAC web compression",
+    "native interactive chapter player",
+    "actual film frame posters"
+  ],
+  "sourceHashes": {
+    "masque.mp4": "40eda446682b0e9ea5014a2f9de8c75c941e26655fce415b86e8ddf83d1d5461",
+    "usher.mp4": "2b3eede184893dd86863d7956ce1213bc99ff3eb14747a1c16ae16312586ff20",
+    "raven.mp4": "b40db5c8f60d39fdf303ab9d57bf2b2b537983c2ec6c6d4387ba1c4a9b9887c3"
+  }
+}

@@ -1,0 +1,1 @@
+Original user-created Modular Waterfall, Fountain & Spillway Liquid Mesh Kit. Source: liquid_15_waterfall_fountain_spillway, Blender 5.1 export. Static meshes; runtime flow shading added by Tides. Only WF01_Wide_Curtain is instantiated; no collision proxies rendered.

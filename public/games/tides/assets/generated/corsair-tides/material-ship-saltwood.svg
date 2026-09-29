@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="5" seed="9"/><feColorMatrix type="saturate" values=".25"/><feBlend in2="SourceGraphic" mode="multiply"/></filter>
+    <linearGradient id="plank" x1="0" x2="1"><stop offset="0" stop-color="#1b0f0b"/><stop offset=".55" stop-color="#7b4328"/><stop offset="1" stop-color="#2a1710"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#20120c"/>
+  <g filter="url(#grain)">
+    <g>
+      <rect y="0" width="1024" height="126" fill="url(#plank)"/><rect y="142" width="1024" height="118" fill="#8b5431"/><rect y="276" width="1024" height="132" fill="#2a1710"/>
+      <rect y="424" width="1024" height="126" fill="#9b2730"/><rect y="566" width="1024" height="120" fill="#5d3627"/><rect y="704" width="1024" height="132" fill="#e8d6a8"/><rect y="852" width="1024" height="172" fill="#7d8d6e"/>
+    </g>
+    <g stroke="#f4fff4" stroke-width="5" opacity=".22">
+      <path d="M28 84 C144 38,230 116,352 72 S646 48,1000 92"/><path d="M18 492 C166 430,332 526,488 468 S782 418,996 504"/>
+      <path d="M36 760 C196 710,332 790,516 742 S796 708,1002 790"/>
+    </g>
+    <g opacity=".52">
+      <circle cx="180" cy="914" r="70" fill="#24332b"/><circle cx="180" cy="914" r="38" fill="#101514"/>
+      <circle cx="412" cy="916" r="54" fill="#9da48c"/><circle cx="412" cy="916" r="26" fill="#151817"/>
+      <path d="M692 430 L878 516 L676 560" fill="none" stroke="#f0b05b" stroke-width="18" opacity=".45"/>
+    </g>
+  </g>
+</svg>

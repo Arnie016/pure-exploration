@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="sandgrain"><feTurbulence type="fractalNoise" baseFrequency=".16" numOctaves="5" seed="143"/><feColorMatrix type="saturate" values=".4"/><feBlend mode="overlay" in2="SourceGraphic"/></filter>
+    <radialGradient id="sand" cx=".44" cy=".45" r=".75"><stop stop-color="#ffe2a0"/><stop offset=".48" stop-color="#d9b46b"/><stop offset="1" stop-color="#987047"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sand)" filter="url(#sandgrain)"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M-80 210 C120 130 280 300 465 200 S790 122 1100 250" stroke="#f4fff4" stroke-width="26" opacity=".42"/>
+    <path d="M-70 724 C180 620 360 802 585 688 S840 640 1100 772" stroke="#8ff7d4" stroke-width="20" opacity=".32"/>
+  </g>
+  <g fill="#b99558" opacity=".35"><ellipse cx="230" cy="360" rx="80" ry="30"/><ellipse cx="730" cy="560" rx="110" ry="38"/><ellipse cx="500" cy="820" rx="70" ry="26"/></g>
+</svg>

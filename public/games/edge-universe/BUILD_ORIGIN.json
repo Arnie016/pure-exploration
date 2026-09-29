@@ -1,0 +1,22 @@
+{
+  "source_file": "thirty-steps-down.html",
+  "source_sha256": "478d23ae2fbf6ac1276d5a9b2e0dba37c4a1677de4886555d0e77ed83d4d2ccc",
+  "entry_sha256": "8ebe69f6b3d149b736ad409165afc51be1361bbf7d8c026feff847997c48db5b",
+  "original_bytes": 72865,
+  "bundled_entry_bytes": 75831,
+  "original_inline_scripts_unchanged": true,
+  "assets": "procedural Canvas 2D drawings; no bundled external media",
+  "runtime_auth_required": false,
+  "optional_network": "Google Fonts typography only",
+  "controls": [
+    "Space play/pause",
+    "ArrowLeft/ArrowRight previous/next layer",
+    "timeline drag",
+    "named layer selection",
+    "0.5x/1x/2x speed",
+    "restart",
+    "loop",
+    "fullscreen"
+  ],
+  "layout": "Fixed immersive canvas, hover/focus chapter chooser, local scroll confined to chapter list, lower-left controls"
+}

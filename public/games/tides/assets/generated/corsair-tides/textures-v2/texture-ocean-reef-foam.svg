@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".028" numOctaves="7" seed="101"/><feDisplacementMap in="SourceGraphic" scale="26"/></filter>
+    <linearGradient id="water" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#063d56"/><stop offset=".45" stop-color="#0b7e8b"/><stop offset="1" stop-color="#16a6b4"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#water)"/>
+  <g filter="url(#grain)" fill="none" stroke-linecap="round">
+    <path d="M-80 150 C120 50 280 236 470 132 S790 78 1120 182" stroke="#f4fff4" stroke-width="38" opacity=".64"/>
+    <path d="M-120 366 C118 260 318 436 535 318 S860 250 1120 390" stroke="#bffff8" stroke-width="18" opacity=".55"/>
+    <path d="M-80 602 C150 472 320 680 560 548 S850 500 1120 642" stroke="#ffffff" stroke-width="31" opacity=".68"/>
+    <path d="M-120 840 C120 746 340 924 570 790 S870 745 1120 876" stroke="#dffffb" stroke-width="15" opacity=".52"/>
+  </g>
+  <g opacity=".13"><circle cx="740" cy="300" r="180" fill="#f4ffff"/><circle cx="250" cy="710" r="240" fill="#032b40"/></g>
+</svg>

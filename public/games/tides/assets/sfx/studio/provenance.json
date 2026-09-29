@@ -1,0 +1,19 @@
+{
+  "source": "Shared Original Interaction Sound Library",
+  "generator": "ElevenLabs Sound Effects",
+  "use": "Local opt-in preview inside owner game; not standalone redistribution",
+  "human_device_review": "NOT_TESTED",
+  "events": {
+    "confirm": "settings preview",
+    "unlock": "minigame success",
+    "dash": "surge begins"
+  },
+  "cooldown_ms": 1000,
+  "gain": 0.13,
+  "silent_fallback": "Existing visible feedback and original synthesized cues",
+  "files": [
+    "core-ui/confirm.mp3",
+    "rewards/unlock.mp3",
+    "game-physics/dash.mp3"
+  ]
+}

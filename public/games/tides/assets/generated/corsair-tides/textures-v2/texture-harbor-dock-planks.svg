@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="dockgrain"><feTurbulence type="fractalNoise" baseFrequency=".07" numOctaves="6" seed="165"/><feBlend mode="multiply" in2="SourceGraphic"/></filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#2a1710"/>
+  <g filter="url(#dockgrain)">
+    <rect x="0" y="0" width="1024" height="120" fill="#5d3627"/><rect x="0" y="136" width="1024" height="112" fill="#8b5431"/><rect x="0" y="264" width="1024" height="126" fill="#4a291d"/>
+    <rect x="0" y="406" width="1024" height="110" fill="#6f3f2a"/><rect x="0" y="532" width="1024" height="128" fill="#301a12"/><rect x="0" y="676" width="1024" height="118" fill="#7a4d2c"/><rect x="0" y="810" width="1024" height="214" fill="#4b2a1c"/>
+    <g stroke="#1b0f0b" stroke-width="8" opacity=".55"><path d="M0 128 H1024"/><path d="M0 256 H1024"/><path d="M0 398 H1024"/><path d="M0 524 H1024"/><path d="M0 668 H1024"/><path d="M0 804 H1024"/></g>
+    <g fill="#f4c95c" opacity=".5"><circle cx="150" cy="94" r="12"/><circle cx="870" cy="210" r="10"/><circle cx="460" cy="482" r="13"/><circle cx="250" cy="752" r="10"/><circle cx="760" cy="910" r="14"/></g>
+    <path d="M740 86 C830 52 910 120 986 76" stroke="#e8d6a8" stroke-width="18" opacity=".2" fill="none"/>
+  </g>
+</svg>

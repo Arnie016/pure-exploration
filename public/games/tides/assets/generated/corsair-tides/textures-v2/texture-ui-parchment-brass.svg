@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="aged"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="5" seed="198"/><feBlend mode="multiply" in2="SourceGraphic"/></filter>
+    <radialGradient id="wax"><stop stop-color="#ff7272"/><stop offset=".62" stop-color="#9b2730"/><stop offset="1" stop-color="#3f1715"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#101817"/>
+  <g filter="url(#aged)">
+    <rect x="54" y="70" width="916" height="260" rx="38" fill="#e8d6a8" stroke="#f4c95c" stroke-width="10"/>
+    <rect x="74" y="372" width="876" height="188" rx="42" fill="#1a2623" stroke="#7d5a2b" stroke-width="9"/>
+    <rect x="96" y="620" width="344" height="278" rx="42" fill="#18110b" stroke="#f4c95c" stroke-width="10"/>
+    <circle cx="720" cy="750" r="148" fill="none" stroke="#f4c95c" stroke-width="18"/><circle cx="720" cy="750" r="86" fill="none" stroke="#7d5a2b" stroke-width="10"/>
+    <path d="M720 576 L765 750 L720 924 L675 750z" fill="#f4fff4"/>
+    <circle cx="826" cy="196" r="80" fill="url(#wax)"/>
+    <g stroke="#5d3627" stroke-width="16" opacity=".45" stroke-linecap="round"><path d="M144 150 H650"/><path d="M144 212 H580"/><path d="M144 274 H500"/></g>
+  </g>
+</svg>

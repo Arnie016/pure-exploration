@@ -1,0 +1,239 @@
+{
+  "collection": "corsair-tides-generated-assets",
+  "createdFor": "Corsair Tides multiplayer pirate sandbox",
+  "notes": [
+    "Generated bitmap assets for experimentation in the Three.js game.",
+    "Use these as textures, sprites, billboard planes, UI icons, shop/shipyard previews, or visual references for procedural 3D models.",
+    "Keep integrations lightweight and verify load behavior before shipping."
+  ],
+  "assets": [
+    {
+      "id": "texture-ocean-reef-realistic-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ocean-reef-realistic.png",
+      "category": "texture-v3",
+      "use": "Primary tiled ocean material URL for Three.js water color/foam detail and shipyard water preview."
+    },
+    {
+      "id": "texture-ocean-storm-bump-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ocean-storm-bump.png",
+      "category": "texture-v3",
+      "use": "Storm chop and water bump texture URL for rough weather, ocean normals/bump, and rain-heavy sea treatment."
+    },
+    {
+      "id": "texture-ship-crimson-saltwood-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ship-crimson-saltwood.png",
+      "category": "texture-v3",
+      "use": "Crimson salt-worn hull material URL for player/rival ship hulls and shipyard preview."
+    },
+    {
+      "id": "texture-ship-jade-saltwood-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ship-jade-saltwood.png",
+      "category": "texture-v3",
+      "use": "Jade salt-worn hull material URL for ship color customization and shipyard preview."
+    },
+    {
+      "id": "texture-ship-ivory-saltwood-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ship-ivory-saltwood.png",
+      "category": "texture-v3",
+      "use": "Ivory salt-worn hull material URL for ship color customization and shipyard preview."
+    },
+    {
+      "id": "texture-ship-midnight-saltwood-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ship-midnight-saltwood.png",
+      "category": "texture-v3",
+      "use": "Midnight salt-worn hull material URL for ship color customization and shipyard preview."
+    },
+    {
+      "id": "texture-dock-saltwood-planks-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-dock-saltwood-planks.png",
+      "category": "texture-v3",
+      "use": "Dock wood material URL for harbors, piers, deck trim, drydock, and shipyard surfaces."
+    },
+    {
+      "id": "texture-sail-aged-canvas-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-sail-aged-canvas.png",
+      "category": "texture-v3",
+      "use": "Aged sail canvas material URL for sail bump, shipyard preview, and canvas props."
+    },
+    {
+      "id": "texture-ui-parchment-brass-v3",
+      "file": "/assets/generated/corsair-tides/textures-v3/texture-ui-parchment-brass.png",
+      "category": "texture-v3",
+      "use": "Parchment and brass material URL for HUD, map cards, rank cards, and UI texture experiments."
+    },
+    {
+      "id": "stormglass-sail-upgrade",
+      "file": "/assets/generated/corsair-tides/stormglass-sail-upgrade.png",
+      "category": "ship-upgrade",
+      "use": "Shipyard sail upgrade preview, rare item icon, or mast billboard texture."
+    },
+    {
+      "id": "ironwood-kraken-hull-plating",
+      "file": "/assets/generated/corsair-tides/ironwood-kraken-hull-plating.png",
+      "category": "ship-upgrade",
+      "use": "Hull armor upgrade preview, damage-resistant plating cosmetic, or model reference."
+    },
+    {
+      "id": "twin-ember-chaser-cannons",
+      "file": "/assets/generated/corsair-tides/twin-ember-chaser-cannons.png",
+      "category": "ship-upgrade",
+      "use": "Front cannon upgrade preview, shop item icon, or chaser cannon material reference."
+    },
+    {
+      "id": "stylized-ocean-texture-tile",
+      "file": "/assets/generated/corsair-tides/stylized-ocean-texture-tile.png",
+      "category": "water-texture",
+      "use": "Ocean material overlay, animated UV foam/caustic layer, or shader reference."
+    },
+    {
+      "id": "rogue-wave-vfx-sheet",
+      "file": "/assets/generated/corsair-tides/rogue-wave-vfx-sheet.png",
+      "category": "vfx-sheet",
+      "use": "Billboard animation for rogue waves, storm impacts, and duel hazards."
+    },
+    {
+      "id": "sunken-corsair-loot-buoy",
+      "file": "/assets/generated/corsair-tides/sunken-corsair-loot-buoy.png",
+      "category": "loot",
+      "use": "Floating loot pickup, salvage marker, or reward icon."
+    },
+    {
+      "id": "hypersail-duel-gate",
+      "file": "/assets/generated/corsair-tides/hypersail-duel-gate.png",
+      "category": "duel",
+      "use": "PvP challenge portal, duel transition billboard, or arena gate concept."
+    },
+    {
+      "id": "bloodwake-captain-flag",
+      "file": "/assets/generated/corsair-tides/bloodwake-captain-flag.png",
+      "category": "ship-cosmetic",
+      "use": "Raised flag cosmetic, LIVE rival identity marker, or shipyard cosmetic preview."
+    },
+    {
+      "id": "ship-damage-vfx-sheet",
+      "file": "/assets/generated/corsair-tides/ship-damage-vfx-sheet.png",
+      "category": "vfx-sheet",
+      "use": "Scorch, crack, smoke, ember, sail tear, and leak overlays for damaged ships."
+    },
+    {
+      "id": "smuggler-lantern-den",
+      "file": "/assets/generated/corsair-tides/smuggler-lantern-den.png",
+      "category": "world-prop",
+      "use": "Raidable island/den landmark, smuggler shop prop, or location card artwork."
+    },
+    {
+      "id": "floating-shipyard-shop-kiosk",
+      "file": "/assets/generated/corsair-tides/floating-shipyard-shop-kiosk.png",
+      "category": "world-prop",
+      "use": "Harbor shop/shipyard landmark, upgrade menu art, or port marker."
+    },
+    {
+      "id": "weather-wind-vfx-sheet",
+      "file": "/assets/generated/corsair-tides/weather-wind-vfx-sheet.png",
+      "category": "vfx-sheet",
+      "use": "Rain, wind, fog, lightning, spray, and squall billboard effects."
+    },
+    {
+      "id": "visual-palette-board",
+      "file": "/assets/generated/corsair-tides/visual-palette-board.svg",
+      "category": "art-direction",
+      "use": "Overall salt-worn stylized pirate palette board for water, ship, terrain, weather, UI, and harbor materials."
+    },
+    {
+      "id": "material-ocean-surf",
+      "file": "/assets/generated/corsair-tides/material-ocean-surf.svg",
+      "category": "material-texture",
+      "use": "Ocean shader overlay, wake foam reference, shallow/deep water palette target."
+    },
+    {
+      "id": "material-ship-saltwood",
+      "file": "/assets/generated/corsair-tides/material-ship-saltwood.svg",
+      "category": "material-texture",
+      "use": "Ship hull, deck, sail, cannon, and salt-stained wood material reference."
+    },
+    {
+      "id": "material-island-cliffgrass",
+      "file": "/assets/generated/corsair-tides/material-island-cliffgrass.svg",
+      "category": "material-texture",
+      "use": "Island terrain material reference for sand, mossy rock, grass caps, shoreline foam, and reef rocks."
+    },
+    {
+      "id": "material-weather-vfx",
+      "file": "/assets/generated/corsair-tides/material-weather-vfx.svg",
+      "category": "material-texture",
+      "use": "Storm, lightning, rain, mist, splash, and cannon smoke VFX reference."
+    },
+    {
+      "id": "material-ui-parchment-brass",
+      "file": "/assets/generated/corsair-tides/material-ui-parchment-brass.svg",
+      "category": "ui-texture",
+      "use": "HUD, map card, compass, parchment, brass trim, and wax-seal UI material reference."
+    },
+    {
+      "id": "material-harbor-city",
+      "file": "/assets/generated/corsair-tides/material-harbor-city.svg",
+      "category": "material-texture",
+      "use": "Harbor, port, dock, tower, lantern, rope, market, and city landmark material reference."
+    },
+    {
+      "id": "texture-ocean-reef-foam-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-ocean-reef-foam.svg",
+      "category": "texture-v2",
+      "use": "Tileable bright tropical ocean surface with reef cyan water and thick surf foam for ocean/wake shader experiments."
+    },
+    {
+      "id": "texture-ocean-storm-chop-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-ocean-storm-chop.svg",
+      "category": "texture-v2",
+      "use": "Dark storm-water tile with rain streaks and rough chop for squall/weather water overlays."
+    },
+    {
+      "id": "texture-ship-tarred-crimson-hull-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-ship-tarred-crimson-hull.svg",
+      "category": "texture-v2",
+      "use": "Tarred oak, deck plank, and chipped crimson hull material for ship hull/deck surfaces."
+    },
+    {
+      "id": "texture-sail-aged-canvas-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-sail-aged-canvas.svg",
+      "category": "texture-v2",
+      "use": "Aged sailcloth with fibers, seams, weather stains, and faded faction color traces."
+    },
+    {
+      "id": "texture-island-golden-sand-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-island-golden-sand.svg",
+      "category": "texture-v2",
+      "use": "Golden sand and wet shoreline texture for island bases, beaches, and shallow coast geometry."
+    },
+    {
+      "id": "texture-cliff-moss-grass-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-cliff-moss-grass.svg",
+      "category": "texture-v2",
+      "use": "Mossy rock and bright grass-cap material for cliffs, mountain islands, and port backdrops."
+    },
+    {
+      "id": "texture-harbor-dock-planks-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-harbor-dock-planks.svg",
+      "category": "texture-v2",
+      "use": "Weathered dock plank texture with brass studs and rope marks for ports, piers, shops, and shipyard structures."
+    },
+    {
+      "id": "texture-brass-cannon-oxidized-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-brass-cannon-oxidized.svg",
+      "category": "texture-v2",
+      "use": "Oxidized cannon/brass material with green patina and warm gold scratches for cannons, compass, and upgrade metal."
+    },
+    {
+      "id": "texture-weather-smoke-splash-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-weather-smoke-splash.svg",
+      "category": "texture-v2",
+      "use": "Smoke, splash, mist, and lightning decal texture for cannon impacts, weather, crashes, and victory effects."
+    },
+    {
+      "id": "texture-ui-parchment-brass-v2",
+      "file": "/assets/generated/corsair-tides/textures-v2/texture-ui-parchment-brass.svg",
+      "category": "texture-v2",
+      "use": "Parchment, brass frame, wax seal, and compass texture for map panels, cards, rank boards, and shipyard UI."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="mist"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="5" seed="88"/><feGaussianBlur stdDeviation="2"/></filter>
+    <linearGradient id="storm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#081821"/><stop offset=".55" stop-color="#1c3540"/><stop offset="1" stop-color="#406b78"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#storm)"/>
+  <g filter="url(#mist)" opacity=".45">
+    <path d="M-40 222 C180 92,300 272,482 170 S782 98,1080 230" fill="none" stroke="#d9ffff" stroke-width="46" stroke-linecap="round"/>
+    <path d="M-60 760 C164 624,302 806,520 706 S806 642,1080 776" fill="none" stroke="#8ffff0" stroke-width="34" stroke-linecap="round"/>
+  </g>
+  <path d="M520 70 L426 354 H566 L452 704 L690 306 H552z" fill="#f4ffff" opacity=".92"/>
+  <g stroke="#8ffff0" stroke-width="9" stroke-linecap="round" opacity=".75">
+    <path d="M116 96 l-62 240"/><path d="M218 144 l-74 292"/><path d="M778 112 l-82 318"/><path d="M896 206 l-58 224"/>
+    <path d="M334 626 l-68 256"/><path d="M650 618 l-72 276"/>
+  </g>
+  <g fill="#f4fff4" opacity=".32">
+    <circle cx="210" cy="826" r="74"/><circle cx="288" cy="858" r="42"/><circle cx="758" cy="812" r="96"/><circle cx="842" cy="852" r="46"/>
+  </g>
+</svg>

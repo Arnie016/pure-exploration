@@ -1,0 +1,2 @@
+// Keep rendered pixels available for the host's explicit screenshot/video controls.
+(() => { const original = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function(kind, options, ...args) { if (kind === 'webgl' || kind === 'webgl2' || kind === 'experimental-webgl') options = {...(options || {}), preserveDrawingBuffer: true}; return original.call(this, kind, options, ...args); }; })();

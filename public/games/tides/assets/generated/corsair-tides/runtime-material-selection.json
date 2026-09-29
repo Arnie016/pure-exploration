@@ -1,0 +1,98 @@
+{
+  "name": "Tides of Infamy Runtime Material Selection",
+  "generatedAt": "2026-05-21",
+  "policy": "Use a small curated subset of compressed runtime textures. Keep the full PNG packs as an art library, but do not load every generated PNG in the game scene.",
+  "basePath": "/assets/generated/corsair-tides",
+  "packs": {
+    "v1": {
+      "sourcePath": "artifacts/generated/corsair-tides/gpt-texture-pack-v1",
+      "contactSheetUrl": "/assets/generated/corsair-tides/gpt-texture-pack-v1-contact-sheet.jpg",
+      "count": 50,
+      "role": "base pirate surfaces and first visual exploration"
+    },
+    "v2": {
+      "sourcePath": "artifacts/generated/corsair-tides/gpt-texture-pack-v2",
+      "contactSheetUrl": "/assets/generated/corsair-tides/gpt-texture-pack-v2-contact-sheet.jpg",
+      "count": 50,
+      "role": "alternate hull, water, sail, terrain, and VFX surfaces"
+    },
+    "v3": {
+      "sourcePath": "artifacts/generated/corsair-tides/gpt-texture-pack-v3",
+      "contactSheetUrl": "/assets/generated/corsair-tides/gpt-texture-pack-v3-contact-sheet.jpg",
+      "count": 50,
+      "role": "runtime-oriented material slots for water, hulls, docks, sails, terrain, weather, and upgrade metals"
+    },
+    "runtime": {
+      "path": "/assets/generated/corsair-tides/runtime-materials",
+      "count": 16,
+      "role": "compressed WebP material subset loaded by the game and shipyard UI"
+    }
+  },
+  "runtimeMaterials": {
+    "oceanReef": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ocean-reef.webp",
+      "repeat": [12, 12],
+      "role": "primary readable ocean albedo"
+    },
+    "oceanStorm": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ocean-storm.webp",
+      "repeat": [7, 7],
+      "role": "storm chop bump and rough-water detail"
+    },
+    "shipHull": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ship-hull-default.webp",
+      "repeat": [3, 1.35],
+      "role": "default starter hull and dark dressing wood"
+    },
+    "shipHullCrimson": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ship-hull-crimson.webp",
+      "repeat": [2.6, 1.4],
+      "role": "crimson ship hull customization"
+    },
+    "shipHullJade": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ship-hull-jade.webp",
+      "repeat": [2.6, 1.4],
+      "role": "jade ship hull customization"
+    },
+    "shipHullIvory": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ship-hull-ivory.webp",
+      "repeat": [2.6, 1.4],
+      "role": "ivory ship hull customization"
+    },
+    "shipHullMidnight": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/ship-hull-midnight.webp",
+      "repeat": [2.6, 1.4],
+      "role": "midnight ship hull customization"
+    },
+    "sailCanvas": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/sail-canvas.webp",
+      "repeat": [2.5, 2.5],
+      "role": "sail and canvas material detail"
+    },
+    "sand": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/terrain-sand.webp",
+      "repeat": [5, 5],
+      "role": "light island terrain and beach material"
+    },
+    "cliff": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/terrain-cliff.webp",
+      "repeat": [3.6, 3.6],
+      "role": "cliff, grass, stone, and island verticals"
+    },
+    "dock": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/dock-wood.webp",
+      "repeat": [4.5, 2.8],
+      "role": "harbor, deck trim, piers, and shipyard wood"
+    },
+    "brass": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/brass-upgrade.webp",
+      "repeat": [2.2, 2.2],
+      "role": "cannons, upgrade trim, and brass UI-like metal"
+    },
+    "weather": {
+      "url": "/assets/generated/corsair-tides/runtime-materials/weather-foam.webp",
+      "repeat": [3, 3],
+      "role": "foam, squall, splash, and weather VFX material"
+    }
+  }
+}

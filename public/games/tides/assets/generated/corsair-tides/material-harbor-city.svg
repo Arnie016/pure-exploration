@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="5" seed="64"/><feDisplacementMap in="SourceGraphic" scale="12"/></filter>
+    <linearGradient id="water" x1="0" x2="1"><stop offset="0" stop-color="#063d56"/><stop offset="1" stop-color="#16a6b4"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#water)"/>
+  <g filter="url(#rough)">
+    <path d="M40 776 C208 686,320 794,510 716 S818 656,1010 760 V1024 H40z" fill="#d9b46b"/>
+    <rect x="146" y="670" width="760" height="58" fill="#5d3627"/>
+    <rect x="224" y="452" width="86" height="238" fill="#7d6c54"/>
+    <rect x="200" y="378" width="134" height="86" fill="#b9613c"/>
+    <rect x="388" y="334" width="142" height="360" fill="#8b5431"/>
+    <path d="M368 334 L460 226 L552 334z" fill="#d9b46b"/>
+    <rect x="642" y="472" width="72" height="218" fill="#2a1710"/>
+    <circle cx="678" cy="438" r="38" fill="#f4c95c" opacity=".84"/>
+    <rect x="718" y="548" width="150" height="60" fill="#e8d6a8" opacity=".88"/>
+    <path d="M146 842 C284 784,408 888,558 812 S838 742,1008 850" fill="none" stroke="#f4fff4" stroke-width="22" opacity=".68"/>
+    <g fill="#2a1710">
+      <rect x="140" y="720" width="30" height="146"/><rect x="288" y="720" width="30" height="128"/><rect x="512" y="706" width="30" height="164"/><rect x="764" y="704" width="30" height="142"/>
+    </g>
+  </g>
+</svg>

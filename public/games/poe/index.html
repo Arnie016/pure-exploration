@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08080b">
+  <title>Poe — A Small Theatre of Unease</title>
+  <link rel="stylesheet" href="./theatre.css">
+</head>
+<body>
+  <main class="theatre" aria-label="Poe film anthology">
+    <video id="film" playsinline preload="metadata" poster="./media/masque.jpg" src="./media/masque.mp4" aria-label="The Masque of the Red Death, a 65-second cinematic film"></video>
+    <div class="shade" aria-hidden="true"></div>
+    <header class="signature"><span class="raven" aria-hidden="true">✦</span><div>ARNAV'S PICTURE HOUSE<span>AFTER EDGAR ALLAN POE</span></div></header>
+    <section class="intro" aria-labelledby="title">
+      <p class="eyebrow" id="chapter-label">01 / THE MASQUE</p>
+      <h1 id="title">A small theatre<br>of <em>unease.</em></h1>
+      <p id="description">Behind the walls, the party continues. Beyond them, the world falls silent. Enter the colour, shadows and impossible rooms of Poe.</p>
+      <button class="primary" id="begin"><span aria-hidden="true">▷</span> Enter the film <small>65 seconds</small></button>
+      <p class="format-note">An original cinematic anthology. Choose a film or let chance guide you.</p>
+    </section>
+    <section class="chapter-picker" aria-label="Choose a film">
+      <div class="chapter-caption"><span>THREE DOORS INTO THE DARK</span><button id="shuffle">↝ Let chance choose</button></div>
+      <div class="chapters">
+        <button data-chapter="masque" aria-pressed="true"><img src="./media/masque.jpg" alt="" loading="lazy"><span><small>01 · 65 SECONDS</small>The Masque</span></button>
+        <button data-chapter="usher" aria-pressed="false"><img src="./media/usher.jpg" alt="" loading="lazy"><span><small>02 · MOVING STUDY</small>The House of Usher</span></button>
+        <button data-chapter="raven" aria-pressed="false"><img src="./media/raven.jpg" alt="" loading="lazy"><span><small>03 · MOVING STUDY</small>The Raven</span></button>
+      </div>
+    </section>
+    <div class="playback" aria-label="Film playback">
+      <button id="play" aria-label="Play film">▷</button>
+      <label class="timeline"><span class="sr-only">Film position</span><input id="seek" type="range" min="0" max="65.33" step="0.1" value="0"></label>
+      <span id="time" aria-hidden="true">0:00 / 1:05</span>
+      <button id="sound" aria-label="Mute film">Sound on</button>
+      <button id="restart" aria-label="Restart film">↺</button>
+    </div>
+    <div class="film-info"><button id="about" aria-expanded="false" aria-controls="credits">About this theatre</button><span id="status" role="status">Choose a film. No account needed.</span></div>
+    <section id="credits" hidden aria-label="About the films"><button id="close-credits" aria-label="Close film information">×</button><h2>Stories told in atmosphere.</h2><p>Created by Arnav from the worlds of Edgar Allan Poe, using AI-generated cinematic imagery. The original 65-second film is joined by two short moving studies.</p><p>This theatre adds film selection and playback to the recovered movies. It is a cinematic anthology, not a recovered branching game.</p><p>Film imagery produced with Higgsfield / Kling. Theatre assembled with Codex. The source films retain their creator's rights and provider terms.</p></section>
+    <section id="error" hidden role="alert"><h2>The film could not load.</h2><p>The rest of the theatre is still here. Try this film again or choose another door.</p><button id="retry">Try again</button></section>
+  </main>
+  <script src="./theatre.js" defer></script>
+</body>
+</html>

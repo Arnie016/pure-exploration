@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-29",
+  "bundle": "assets/index-Cz3SBwhd.js",
+  "beforeSha256": "4104c7baf659390ab232c9982138cd87adfc67acee346fa79f1e11888294a53e",
+  "afterSha256": "c081ab6a27bb531b70157123a01181b3946e5b887f36a9a456f2f07232aa6948",
+  "changed": [
+    "voice defaults off including persisted settings",
+    "guided route copy",
+    "realtime arm disabled before network",
+    "unavailable control visibility"
+  ],
+  "tutorialPreserved": true
+}

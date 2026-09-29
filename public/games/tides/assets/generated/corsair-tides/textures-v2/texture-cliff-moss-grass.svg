@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="rock"><feTurbulence type="fractalNoise" baseFrequency=".055" numOctaves="7" seed="154"/><feDisplacementMap in="SourceGraphic" scale="18"/></filter>
+    <linearGradient id="cliff" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#3a413c"/><stop offset=".5" stop-color="#5d685e"/><stop offset=".78" stop-color="#2f6a46"/><stop offset="1" stop-color="#55b85d"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#cliff)"/>
+  <g filter="url(#rock)">
+    <path d="M70 1024 L180 120 L315 1024z" fill="#4a534d" opacity=".8"/>
+    <path d="M330 1024 L512 60 L700 1024z" fill="#68706a" opacity=".88"/>
+    <path d="M650 1024 L830 150 L980 1024z" fill="#3d4944" opacity=".82"/>
+    <path d="M130 200 C230 120 330 165 438 92 S660 110 842 210" fill="none" stroke="#69c96e" stroke-width="44" opacity=".8"/>
+    <path d="M112 398 C230 330 388 440 512 350 S760 304 940 418" fill="none" stroke="#2f6a46" stroke-width="28" opacity=".6"/>
+  </g>
+  <g stroke="#f4fff4" stroke-width="7" opacity=".18"><path d="M220 180 L160 860"/><path d="M530 130 L440 950"/><path d="M820 220 L735 940"/></g>
+</svg>

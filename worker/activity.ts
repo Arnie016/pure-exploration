@@ -2,7 +2,7 @@ import {privateSchema} from './private';
 /** First-party, pseudonymous activity. Visitor tokens never leave HttpOnly cookies. */
 interface DB {prepare(sql:string):Stmt;batch<T=unknown>(statements:Stmt[]):Promise<{results:T[]}[]>}
 interface Stmt {bind(...values:unknown[]):Stmt;run():Promise<unknown>;all<T=unknown>():Promise<{results:T[]}>;first<T=unknown>(column?:string):Promise<T|null>}
-const knownProjects=new Set(['leaderboard','garden','telescope','airport','lightning','galevein','hollowdeep','neuroscience','universe-clash','tides','reef-relay','aeolith','cansat','checkfirst','morse','particles','poe','edge-universe','skyline','alien-art','ben10','tokenbar','bitepdf','fable-flight']);
+const knownProjects=new Set(['glorp','spacetime','leaderboard','garden','telescope','airport','lightning','galevein','hollowdeep','neuroscience','universe-clash','tides','reef-relay','aeolith','cansat','checkfirst','morse','particles','poe','edge-universe','skyline','alien-art','ben10','tokenbar','bitepdf','fable-flight']);
 const eventNames=new Set(['first_interaction','share','project_open','chapter','tour','clip','follow','remix','screenshot']);
 const signals=['Hello, explorers!','I found something wonderful.','Try the telescope.','Who wants to race?','The lightning lab is incredible.','Come explore the airport.'];
 let initialized:Promise<unknown>|null=null;

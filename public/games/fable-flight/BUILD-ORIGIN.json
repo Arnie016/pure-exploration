@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-29",
+  "edition": "public GitHub Pages snapshot, offline lessons",
+  "sourceUrl": "https://arnie016.github.io/flight-simulator-fable5/",
+  "sourceHtmlSha256": "5caa14cf4c0ca8949a58aa23f07f2d29819a53ecfdd70b018499c59ba773fd7b",
+  "sourceHashes": {
+    "sf-parked-plane.js": "a49df16c349e5ceec165ab42b805c29a48ac6068bf782a4b69725044cc3a9391",
+    "blender-airfield-props.js": "d5721369db067cdb2b0d3f9d5476760f4f4962bf0545f6c558595480b0c71926",
+    "blender-scene-landmarks.js": "5cb81430d3a7353234953e5ed835dcb3a8072161b81ba57d9757edf693a0a462",
+    "assets/runtime/island-runtime-pack.js": "67bdd5b60c7a56632e0a390a3273008a24a5e010ce014703e28b8b416f57d7ef",
+    "assets/skyboxes/manifest.json": "2274aa674afc9b7a00f549e5d4986b7be102df8c5109265fe19b0eee021ee2f2",
+    "assets/cockpit/primary_instrument_pack.glb": "a2ed6d686808ee57bf0a3ff60546f9d489e2f5b9f74236124da57d651c208133",
+    "assets/cockpit/engine_control_quadrant.glb": "6d8768875ea424172573af82e3b983f65fcbc1c852aef30bcfb39930dde09223",
+    "assets/cockpit/flight_systems_console.glb": "4f76a55e0c2f977bd6129d495790cde1a6010b5684eff8f4fc2beca2bb36797b",
+    "assets/cockpit/flight_controls_pedestal.glb": "6277fe1c4349c92c289af3a156abcebae05f90a78a9b1c07a800397417000c7b",
+    "assets/destinations/redMesa.webp": "454122355017a79b4b2e5ecf93d3bffdf6644a955fa27bea4544bbe269f383a2",
+    "assets/destinations/kauriTownship.webp": "33503cce5c59c9a007d3f628927ed28cf350d31d9534b79a4efacebb32e062f8",
+    "assets/destinations/shepherdHighlands.webp": "80a7ae5aab7b39f5acc03f581791ee456a3bd70b318bccb8f2ae8cce2e05ac4a",
+    "assets/destinations/frontierField.webp": "2d0d733dd9af465e0e4627f6789d8067159100872e1dc649e9dff1ebc51cb3bd",
+    "assets/destinations/alpineRidge.webp": "52290782d45484625684947ee5400fbd6f94b4e6c265bbdd8c21ec9ec630b09a",
+    "assets/destinations/breakwater.webp": "18a2d4ae38c8ae78236f624be646ca41628ac16fe62f0adadbf4e5e456f29ef6",
+    "assets/destinations/silverLake.webp": "c0a0d5ba3c21d9eaa2fb397e64a3b8c1f7f7d5c0fce368e755c7f293dcb12cbd",
+    "assets/destinations/stormhaven.webp": "674f41ab742f0217a800ba81e52d2cf760232a50a36c9324803331074d9d3055",
+    "assets/destinations/academy.webp": "bd6aedb14b7af61cadcac192690be7babab20d5ff5d016f1dceb4a877226ef10",
+    "assets/destinations/emberRuins.webp": "244d08fe4a90a25571422e5b18ea72bca7db1b90f0ae5b76f94329f3a994f5d2"
+  },
+  "changes": [
+    "local Three dependencies",
+    "disabled provider voice",
+    "procedural cockpit fallbacks for unclear source imports",
+    "procedural audio only"
+  ],
+  "externalService": false
+}

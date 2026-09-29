@@ -1,0 +1,24 @@
+{
+  "source_file": "glorp-protocol.html",
+  "source_sha256": "b16f40c87b18ade95b50c56558bbc7d478c89dcec6ceefe6b3bcca5a5a662fc0",
+  "entry_sha256": "23d37ce4adeb00f00efec426d2f711d1bc65e07c9d8e1cd610fd935cab3fc7aa",
+  "entry_bytes": 13312200,
+  "original_inline_script_blocks_unchanged": 2,
+  "generated_asset_provenance": "Existing project progress.md lines 67\u2013101",
+  "runtime_auth_required": false,
+  "vendor_version": "three@0.128.0",
+  "vendor_sources": [
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/LICENSE"
+  ],
+  "files": {
+    "vendor/LICENSE": "7dddf7c5b8fd10ee654db8857d75d104b5557889aa5a91fc4ca545ea7c07062f",
+    "vendor/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2",
+    "vendor/GLTFLoader.js": "5c15967ba830918a9caea6338712c994c354bccd4edc4569bde411c3ec06a3e6",
+    "vendor/SkeletonUtils.js": "cc2e2e1a3183ab55169d185565f86f43f80c6dfafe73610d991e741ea990ac1a",
+    "vendor/OrbitControls.js": "02bb4ade710f3e607329e37a21f098bc3ac70eb6e33daf8a65e79f4db785e7b2"
+  }
+}

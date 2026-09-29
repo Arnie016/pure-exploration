@@ -1,0 +1,4 @@
+/* Solo edition: deterministic tutorial guidance remains; unavailable cloud controls do not. */
+#tutorial-voice,#sea-shanty,[data-settings-action="voice-coach"],[data-settings-action="realtime-coach"]{display:none!important}
+.tuning-row:has([data-settings-action^="personality-"]),.tuning-row:has([data-settings-action="shanty"]){display:none!important}
+#voice-provider-status{display:block;color:#93c2c6;margin-top:4px}

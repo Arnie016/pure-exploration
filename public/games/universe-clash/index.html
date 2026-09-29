@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#090b0e" />
+    <meta name="uc-multiplayer" content="disabled" />
+    <meta name="uc-version" content="0.8.0" />
+    <meta
+      name="description"
+      content="An original 3D fan fighting prototype. Twelve-fighter battles, guided training, a sixteen-fighter championship, and offline AI duels. Single-player preview; online friend rooms are unavailable."
+    />
+    <title>Universe Clash | Enter the Pit</title>
+    <link rel="icon" href="/games/universe-clash/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/games/universe-clash/style.css" />
+    <script src="/games/capture-context.js"></script>
+<script type="importmap">{"imports":{"three":"/games/universe-clash/vendor/three.module.js"}}</script>
+  </head>
+  <body>
+    <canvas id="arena" aria-label="Live 3D fighting arena"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <div id="loading" role="status">
+      <span class="loading-ring"></span><strong>ASSEMBLING THE ARENA</strong
+      ><span id="loading-status"
+        >Preparing sixteen fighters and ten worlds.</span
+      >
+    </div>
+
+    <main id="menu" hidden>
+      <header class="masthead">
+        <a class="wordmark" href="/games/universe-clash/index.html" aria-label="Universe Clash home"
+          ><span class="brand-icon">UC</span
+          ><span>UNIVERSE<b>CLASH</b></span></a
+        >
+        <nav class="main-nav" aria-label="Main navigation">
+          <button data-nav="play" aria-current="page">Play</button
+          ><button data-nav="tournament">Tournament</button
+          ><button data-nav="training">Training</button
+          ><button data-nav="locker">Locker</button
+          ><button data-nav="intel">Fighter Intel</button>
+        </nav>
+        <button id="sound-toggle" class="quiet" aria-label="Mute sound">
+          Sound On
+        </button>
+      </header>
+      <div class="menu-main">
+        <section class="launch-panel" aria-labelledby="mode-title">
+          <div class="eyebrow">
+            <span class="live-dot"></span> CHOOSE YOUR NEXT FIGHT
+          </div>
+          <h1 id="mode-title">THE <em>PIT.</em></h1>
+          <p id="mode-description">
+            Twelve fighters. One arena. Last fighter standing.
+          </p>
+          <div class="mode-tabs" role="group" aria-label="Match type">
+            <button data-mode="pit" aria-pressed="true"><img alt="" /><span class="mode-caption"><b>Local Pit</b><small>12 fighters / 11 AI</small></span></button>
+            <button data-mode="duel" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Duel</b><small>Chosen rival / best of 3</small></span></button>
+            <button data-mode="series" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Aura Series</b><small>12 rivals / best of 3</small></span></button>
+            <button data-mode="spectate" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Watch AI</b><small>Live 3D / two AI</small></span></button>
+          </div>
+          <div class="launch-options">
+            <label>AI level<select id="difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select></label>
+          </div>
+          <button id="showcase-open"><span data-icon="play"></span><span><b>Watch Showcase</b><small>CINEMATIC / SCRIPTED / 42s</small></span></button>
+        </section>
+        <section class="preview-space" aria-label="Live fighter preview">
+          <div class="preview-tag">
+            <span>LIVE 3D / YOUR LOADOUT</span
+            ><strong id="preview-name">GOKU</strong
+            ><small id="preview-form">Base</small>
+          </div>
+        </section>
+      </div>
+      <section class="selection-bar" aria-label="Fighter and arena selection">
+        <div class="fighter-pair" role="group" aria-label="Your fighter and mode opponents">
+        <button id="roster-open" class="selected-fighter" aria-label="Choose your fighter">
+          <img id="selected-portrait" alt="" /><span
+             ><small>YOU</small
+            ><strong id="profile-name">Goku</strong
+            ><span id="profile-description"></span
+             ><b>CHANGE &#8599;</b></span
+          >
+        </button>
+        <button id="rival-open" class="selected-fighter" aria-label="Choose your rival"><img id="rival-portrait" alt="" /><span><small>RIVAL</small><strong id="rival-name">Jiren</strong><b>CHANGE &#8599;</b></span></button>
+        <div id="menu-quote" hidden><b></b><span></span></div>
+        </div>
+        <button id="stage-open" class="stage-selected">
+          <img id="stage-thumbnail" alt="" /><span
+             ><small>MAP / 10 WORLDS &#8599;</small
+            ><strong id="stage-title">Null Horizon</strong
+            ><span id="stage-region"></span></span
+          ><b>&#8599;</b>
+        </button>
+        <div class="selection-tools">
+          <button id="random-fighter">Random You</button>
+          <div id="duel-options"><button id="random-rival" aria-label="Random rival">Random Rival</button><label class="sr-only">Rival<select id="opponent-select"></select></label></div>
+          <button id="form-lab-open">Forms &amp; Voice</button>
+          <button data-nav="locker">Locker <span id="loadout-count">0/5</span></button>
+        </div>
+      </section>
+      <section class="launch-rail" aria-label="Launch your match">
+        <div class="launch-buttons">
+           <button id="play" class="primary-button">ENTER 12-FIGHTER PIT <span>&#8599;</span></button>
+          <button id="start-tournament" class="tournament-button">TOURNAMENTS <span>16</span></button>
+          <button id="start-training" class="secondary-button">TRAINING STUDIO</button>
+        </div>
+        <div class="friend-actions">
+          <span>SOLO ABOVE · REAL OPPONENTS ONLINE</span>
+          <button id="online-open" class="primary-button">PLAY ONLINE <span>↗</span></button>
+        </div>
+      </section>
+      <footer class="menu-footer">
+        <span>UNOFFICIAL FAN PROTOTYPE / ORIGINAL 3D ASSETS</span
+        ><button data-open="controls-dialog">Controls reference</button
+         ><button id="menu-settings">Settings</button><button data-replays>Replays</button>
+      </footer>
+    </main>
+
+    <section id="battle" aria-label="Match" hidden>
+      <div class="hud">
+        <div class="fighter-hud" id="hud-a">
+          <div class="hud-identity">
+            <img alt="" /><span
+              ><small class="player-tag">YOU</small
+              ><b class="hud-name">GOKU</b></span
+            ><strong class="hud-hp">1000</strong>
+          </div>
+          <div
+            class="health-track"
+            role="progressbar"
+            aria-label="Your health"
+            aria-valuemin="0"
+            aria-valuemax="1000"
+          >
+            <i></i>
+          </div>
+          <div class="hud-lower">
+            <div
+              class="energy-track"
+              role="progressbar"
+              aria-label="Your ki"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <i></i>
+            </div>
+            <span class="energy-value">60 KI</span>
+          </div>
+          <div class="hud-form"></div>
+        </div>
+        <div class="timer-block">
+          <span id="round-label">ROUND 1</span><strong id="timer">90</strong
+            ><span id="match-mode">DUEL</span>
+        </div>
+        <div class="fighter-hud target-hud" id="hud-b">
+          <div class="hud-identity">
+            <img alt="" /><span
+              ><small class="player-tag">TARGET</small
+              ><b class="hud-name">JIREN</b></span
+            ><strong class="hud-hp">1000</strong>
+          </div>
+          <div
+            class="health-track"
+            role="progressbar"
+            aria-label="Target health"
+            aria-valuemin="0"
+            aria-valuemax="1000"
+          >
+            <i></i>
+          </div>
+          <div class="hud-lower">
+            <div
+              class="energy-track"
+              role="progressbar"
+              aria-label="Target ki"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <i></i>
+            </div>
+            <span class="energy-value">60 KI</span>
+          </div>
+          <div class="hud-form"></div>
+        </div>
+      </div>
+      <div id="auratotal"><span id="aura-total">0 AURA</span></div>
+      <div class="battle-toolbar">
+        <span id="connection-status">LOCAL COMBAT</span>
+        <button id="target-next" data-action="targetNext" aria-label="Next nearby target and recenter, H or Tab" aria-keyshortcuts="H Tab">Target <kbd>H</kbd></button>
+        <div id="camera-controls" role="group" aria-label="Camera perspective">
+          <button data-camera="1" aria-pressed="false" aria-label="Camera 1: Arena" aria-keyshortcuts="1" title="1 / Arena"><kbd>1</kbd></button>
+          <button data-camera="2" aria-pressed="true" aria-label="Camera 2: Third-person" aria-keyshortcuts="2" title="2 / Third-person"><kbd>2</kbd></button>
+          <button data-camera="3" aria-pressed="false" aria-label="Camera 3: Tactical" aria-keyshortcuts="3" title="3 / Tactical"><kbd>3</kbd></button>
+          <button data-camera="4" aria-pressed="false" aria-label="Camera 4: Eye, first-person" aria-keyshortcuts="4" title="4 / Eye"><kbd>4</kbd></button>
+        </div>
+        <button id="battle-bracket" hidden>Bracket</button
+        ><button id="pause-button" aria-label="Pause and settings">
+          Pause <kbd>Esc</kbd>
+        </button>
+      </div>
+      <div id="aura-gain" hidden role="status"></div>
+      <div id="ki-cue" hidden role="status"></div>
+      <div id="resource-gain" hidden role="status"></div>
+      <section id="clash-hud" hidden aria-label="Beam clash">
+        <header><strong>BEAM CLASH</strong><output id="clash-time" aria-label="Clash time remaining" aria-live="off"></output></header>
+        <div class="clash-sides"><b id="clash-a"></b><b id="clash-b"></b><span id="clash-ki-a"></span><span id="clash-ki-b"></span></div>
+        <div id="clash-pressure" role="meter" aria-label="Clash pressure, positive favors left side" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"><i></i></div>
+        <div id="clash-cue" role="status">WATCH THE CUE</div>
+        <div class="clash-actions"><button data-action="clashBoost" aria-label="Tap to boost clash, X or J" aria-keyshortcuts="X J"><kbd>X / J</kbd> Tap boost</button><button data-action="guard" aria-label="Hold to brace clash, C or primary pointer" aria-keyshortcuts="C"><kbd>C</kbd> Hold brace</button></div>
+        <small>Boost spends ki / time the cue. Hold primary pointer in arena to brace.</small>
+      </section>
+      <div id="field-warning" hidden role="status"></div>
+      <div id="hazard-cue" hidden role="status"></div>
+      <div id="combat-cues">
+        <div id="danger-cue" hidden></div>
+        <div id="counter-cue" hidden>COUNTER WINDOW / STRIKE NOW</div>
+        <div id="damage-numbers" aria-hidden="true"></div>
+        <div id="hit-label"></div>
+        <div id="combo-progress" hidden>
+          <span>LAUNCHER</span><i>L</i><i>L</i><i>H</i
+          ><small>Click / Click / Right-click</small>
+        </div>
+      </div>
+      <aside id="training-coach" hidden aria-label="Training objective">
+        <div class="coach-actions">
+          <select id="training-live-fighter" aria-label="Training fighter"></select>
+          <button id="training-reset" aria-label="Reset dummy" title="Reset dummy" data-icon="reset"></button>
+          <button id="training-choose">Drills</button>
+          <button id="training-exit">Exit</button>
+        </div>
+        <div class="coach-instruction">
+        <span class="eyebrow" id="training-step"></span>
+        <h2 id="training-title"></h2>
+        <div class="training-gesture"><span id="training-illustration" aria-hidden="true"></span><div id="training-keys" aria-label="Next input"></div></div>
+        <strong id="training-prompt"></strong>
+        <div class="lesson-meter"><i></i></div>
+        <span id="training-progress" role="status"></span>
+        <details id="training-help"><summary aria-label="Training help">?</summary><p id="training-hint"></p><span id="training-damage" role="status"></span></details>
+        <p id="training-success" role="status" hidden></p>
+        </div>
+      </aside>
+      <div id="movement-marker" hidden>
+        <span>&#8593;</span><b>MOVE THROUGH THE ARENA</b
+        ><small>WASD / thumbpad</small>
+      </div>
+      <aside id="pit-feed" hidden>
+        <strong id="alive-counter">12 REMAIN</strong>
+        <p id="spectate-message" hidden></p>
+        <div id="elimination-feed"></div>
+      </aside>
+      <div id="announcement" hidden aria-live="polite">
+        <div id="intro-details">
+          <img id="intro-stage" alt="" />
+          <span id="intro-chapter"></span><b id="intro-stage-name"></b>
+          <small id="intro-seed"></small><small id="intro-fighters"></small>
+        </div>
+        <span id="announcement-small"></span>
+        <div class="vs-portraits">
+          <img id="intro-a" alt="" /><b>VS</b><img id="intro-b" alt="" />
+        </div>
+        <strong id="announcement-big"></strong>
+      </div>
+      <div class="combat-bottom">
+          <div class="power-readout" hidden aria-label="Power readiness">
+            <kbd class="power-key">SPACE</kbd>
+            <output id="center-ki" aria-label="Ki" aria-live="off">60 KI</output>
+            <span id="current-form">BASE</span
+            ><strong id="power-rating"></strong
+            ><small id="transform-requirement"></small>
+            <div class="resolve-track"><i></i></div>
+            <small id="shot-readiness"></small>
+            <button id="transform-ready" data-action="transform" hidden aria-keyshortcuts="R" aria-label="Transform ready, press R"><kbd>R</kbd> TRANSFORM READY</button>
+             <small id="flight-hint"></small>
+             <div id="power-meter" hidden role="status"><b id="power-phase"></b><div><i></i></div></div>
+          </div>
+          <div id="energy-meter" hidden role="status"><kbd>X</kbd><b id="energy-tier"></b><div><i></i></div></div>
+        <div class="control-deck">
+          <div id="utility-dock" role="group" aria-label="Prop and vanish utilities">
+            <button id="grab-button" data-action="grab"><kbd>G</kbd><b>Grab</b><small class="ability-status">10 KI / NEAR PROP</small></button>
+            <button id="vanish-button" data-action="vanish"><kbd>Z</kbd><b>Vanish</b><small class="ability-status">16 KI</small></button>
+          </div>
+          <div id="touch-controls">
+            <div id="thumbpad" role="group" aria-label="Movement thumbpad">
+              <button data-action="forward" aria-label="Move forward">
+                &#8593;</button
+              ><button data-action="left" aria-label="Move left">&#8592;</button
+              ><span>MOVE</span
+              ><button data-action="right" aria-label="Move right">
+                &#8594;</button
+              ><button data-action="back" aria-label="Move backward">
+                &#8595;
+              </button>
+            </div>
+          </div>
+          <button id="look-pad" aria-label="Drag to look around">LOOK <small>DRAG / ARROWS</small></button>
+          <div
+            id="ability-dock"
+            role="group"
+            aria-label="Combat abilities"
+          ></div>
+        </div>
+        <div class="battle-footer">
+          <span id="battle-stage-name"></span
+          ><span id="action-hint"
+            >WASD move / Q evade / H target / T charge / X shot / R form</span
+          >
+        </div>
+      </div>
+      <section id="replay-controls" hidden aria-label="Visual replay controls">
+        <strong id="replay-title"></strong>
+        <button id="replay-toggle" aria-pressed="true">Pause</button>
+        <label class="replay-scrubber">Seek<input id="replay-seek" type="range" min="0" max="60" step="0.1" value="0" /></label>
+        <output id="replay-time">0 / 0s</output>
+        <select id="replay-speed" aria-label="Replay speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select>
+        <button id="replay-exit">Exit Replay</button>
+      </section>
+    </section>
+
+    <dialog id="showcase-dialog" aria-labelledby="showcase-title">
+      <header class="dialog-header"><div><span class="eyebrow">CINEMATIC / SCRIPTED</span><h2 id="showcase-title">Goku / Jiren</h2></div><button data-close aria-label="Close showcase">&#215;</button></header>
+      <div class="dialog-body"><video id="showcase-video" controls playsinline preload="metadata" poster="/games/universe-clash/assets/goku-jiren-showcase-poster.png" aria-label="Scripted Goku and Jiren forms showcase"></video><p id="showcase-status" role="status">42 seconds / original synthesized sound / not a real match or leaderboard result.</p></div>
+    </dialog>
+    <dialog
+      id="roster-dialog"
+      class="wide-dialog"
+      aria-labelledby="roster-heading"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">16 FIGHTERS / NO LOCKS</span>
+          <h2 id="roster-heading">Choose Your Fighter</h2>
+        </div>
+        <button data-close aria-label="Close roster">&#215;</button>
+      </header>
+      <div class="dialog-body">
+        <div id="roster" role="group" aria-label="Fighters"></div>
+      </div>
+    </dialog>
+    <dialog id="rival-dialog" class="wide-dialog" aria-labelledby="rival-heading">
+      <header class="dialog-header"><div><span class="eyebrow">YOUR NEXT OPPONENT</span><h2 id="rival-heading">Choose A Rival</h2></div><button data-close aria-label="Close rivals">&#215;</button></header>
+      <div class="dialog-body"><div id="rival-grid"></div></div>
+    </dialog>
+    <dialog id="online-dialog" aria-labelledby="online-title">
+      <header class="dialog-header"><div><span class="eyebrow">REAL OPPONENTS</span><h2 id="online-title">Play Online</h2></div><button data-close aria-label="Close online play">×</button></header>
+      <div class="dialog-body">
+        <p id="online-status" role="status">Checking the match server…</p>
+        <div class="online-choices">
+          <section><span class="eyebrow">01 / DUEL</span><h3>One rival. Best of three.</h3><p>Find another player automatically, or invite a friend to the same duel.</p><button id="quick-match" class="primary-button full-width">FIND A RIVAL</button><small id="duel-population">Queue count unavailable</small>
+          <details id="friend-options"><summary>Play with a friend</summary><p>Create an invite, or use the code your friend sent you.</p><div class="friend-buttons"><button id="create-room">Create invite</button><button id="join-room">Enter code</button></div></details></section>
+          <section><span class="eyebrow">02 / BATTLE ROYALE</span><h3>Twelve players. One survivor.</h3><p>All 12 places need connected players. The battle starts when the queue fills.</p><button id="pool-match" class="secondary-button full-width">JOIN 12-PLAYER BATTLE</button><small id="pit-population">Queue count unavailable</small><p class="note">No bots or replacement players. Try a duel if this queue is quiet.</p></section>
+        </div>
+        <div class="online-footer"><button id="leaderboard-open">Session Aura board</button><button id="online-refresh">Check connection</button></div>
+      </div>
+    </dialog>
+    <dialog id="tournament-entry-dialog" class="wide-dialog" aria-labelledby="tournament-entry-title">
+      <header class="dialog-header"><div><span class="eyebrow">CHAMPIONSHIP / 16 ENTRANTS</span><h2 id="tournament-entry-title">See your route to the final</h2></div><button data-close aria-label="Close tournament preview">×</button></header>
+      <div class="sticky-actions tournament-entry-actions"><p id="tournament-entry-status"></p><button id="tournament-enter" class="primary-button">ENTER THIS CHAMPIONSHIP</button></div>
+      <div class="dialog-body"><div class="tournament-types"><div><strong>AI Championship</strong><p>Sixteen fighters. Four rounds. Enter against AI or watch the championship.</p><label class="check-label"><input id="tournament-spectator" type="checkbox" /> Watch instead of playing</label></div><div><strong>Live Championship · unavailable</strong><p>Human tournament brackets are not supported yet. Online duels and 12-player battles are in Play Online.</p></div></div><div id="tournament-preview" aria-label="Tournament draw preview"></div></div>
+    </dialog>
+    <dialog id="lesson-dialog" aria-labelledby="lesson-title">
+      <header class="dialog-header"><div><span class="eyebrow">WATCH → TRY → MASTER</span><h2 id="lesson-title">Learn the move</h2></div><button data-close aria-label="Close lesson">×</button></header>
+      <div class="dialog-body"><video id="lesson-video" controls playsinline preload="none" aria-label="Recorded in-game training demonstration"></video><p id="lesson-video-status" role="status">Recorded in-game demonstration · Goku · no audio</p><p id="lesson-prompt"></p><p id="lesson-hint"></p><button id="lesson-practice" class="primary-button full-width">TRY THIS MOVE</button></div>
+    </dialog>
+    <dialog id="queue-dialog" aria-labelledby="queue-title">
+      <header class="dialog-header"><div><span class="eyebrow">PUBLIC / HUMAN ONLY</span><h2 id="queue-title">Find Your Rival</h2></div><button data-close aria-label="Close matchmaking">&#215;</button></header>
+      <div class="dialog-body"><div id="queue-slots" aria-label="Human queue slots"></div><p id="queue-status" role="status">Waiting for players.</p><p id="queue-wait"></p><small id="queue-help">Only connected players count. No bots.</small><div class="queue-recovery"><button id="queue-retry" hidden>Try again</button><button id="queue-duel" hidden>Find a duel instead</button></div><button id="queue-cancel" class="secondary-button full-width">Cancel &amp; Back</button></div>
+    </dialog>
+    <dialog id="leaderboard-dialog" aria-labelledby="leaderboard-title">
+      <header class="dialog-header"><div><span class="eyebrow">SERVER SESSION</span><h2 id="leaderboard-title">Session Aura</h2></div><button data-close aria-label="Close Live Aura">&#215;</button></header>
+      <div class="dialog-body"><p>Earn Aura in online fights. This board lasts until the server restarts; solo scores stay in your match.</p><p id="leaderboard-status" role="status"></p><ol id="leaderboard-entries"></ol><button id="leaderboard-refresh">Refresh</button></div>
+    </dialog>
+    <dialog
+      id="training-dialog"
+      class="wide-dialog"
+      aria-labelledby="drills-heading"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">LEARN BY DOING</span>
+          <h2 id="drills-heading">Training Studio</h2>
+        </div>
+        <button data-close aria-label="Close training">&#215;</button>
+      </header>
+      <div class="dialog-body">
+        <p id="training-fighter"></p>
+        <label>Practice fighter<select id="training-fighter-select"></select></label>
+        <div class="training-options"><button id="training-guided">Start the six-lesson course</button><button id="training-repeat" hidden>Repeat</button><button id="training-next" hidden>Next</button></div>
+        <p id="lesson-course-progress" role="status"></p><div id="training-drills"></div>
+      </div>
+    </dialog>
+    <dialog
+      id="locker-dialog"
+      class="locker-dialog"
+      aria-labelledby="locker-heading"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">FIVE SLOTS / LIVE 3D GEAR</span>
+          <h2 id="locker-heading">The Locker</h2>
+        </div>
+        <button data-close aria-label="Close locker">&#215;</button>
+      </header>
+      <div class="dialog-body locker-layout">
+        <div class="locker-preview">
+          <canvas
+            id="gear-preview"
+            width="360"
+            height="480"
+            aria-label="Live 3D equipped fighter"
+          ></canvas
+          ><strong id="locker-fighter"></strong
+          ><small>Actual equipped meshes / live preview</small>
+        </div>
+        <div class="locker-options">
+          <div class="locker-toolbar">
+            <button id="loadout-random" class="primary-button">
+              Random Gear</button
+            ><label
+              >Tint <input id="loadout-tint" type="color" value="#ffc45b"
+            /></label>
+          </div>
+          <div id="gear-slots"></div>
+          <p id="gear-stats"></p>
+          <p class="note">
+            Small, capped game bonuses. Tint accents your gear, not canonical
+            hair colors.
+          </p>
+        </div>
+      </div>
+    </dialog>
+    <dialog
+      id="intel-dialog"
+      class="wide-dialog"
+      aria-labelledby="intel-heading"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">FIGHTER INTEL / SOURCED HISTORY</span>
+          <h2 id="intel-heading">Fighter Intel</h2>
+        </div>
+        <button data-close aria-label="Close intel">&#215;</button>
+      </header>
+      <div class="dialog-body">
+        <label
+          >Fighter
+          <select id="intel-fighter"></select
+        ></label>
+        <div id="intel-content"></div>
+      </div>
+    </dialog>
+    <dialog
+      id="stages-dialog"
+      class="wide-dialog"
+      aria-labelledby="stages-heading"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">TEN ORIGINAL WORLDS</span>
+          <h2 id="stages-heading">Choose Your Arena</h2>
+        </div>
+        <button data-close aria-label="Close stages">&#215;</button>
+      </header>
+      <div class="dialog-body"><div id="stage-grid"></div></div>
+    </dialog>
+    <dialog id="forms-dialog" aria-labelledby="forms-heading">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">FORM &amp; PERSONA LAB</span>
+          <h2 id="forms-heading">Beyond The Limit</h2>
+        </div>
+        <button data-close aria-label="Close form lab">&#215;</button>
+      </header>
+      <div class="dialog-body">
+        <p id="forms-intro"></p>
+        <div id="form-list"></div>
+        <button id="voice-preview" class="secondary-button full-width">
+          Hear Persona
+        </button>
+        <p id="persona-status" role="status"></p>
+        <div class="dialog-caption" hidden><b></b><span></span></div>
+        <p class="note">
+          Original dialogue with local synthetic voices, not the anime actors.
+          Form previews do not unlock combat upgrades.
+        </p>
+      </div>
+    </dialog>
+    <dialog
+      id="cup-dialog"
+      class="bracket-dialog"
+      aria-labelledby="cup-heading"
+    >
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">16 ENTRANTS / SINGLE ELIMINATION</span>
+          <h2 id="cup-heading">Universe Championship</h2>
+        </div>
+        <button data-close aria-label="Close bracket">&#215;</button>
+      </header>
+      <div class="sticky-actions">
+        <button id="cup-play" class="primary-button">Resume Match</button
+        ><button id="cup-pause">Pause Progression</button
+        ><button id="cup-exit">Exit Tournament</button
+        ><span id="cup-status" role="status"></span>
+      </div>
+      <div class="dialog-body">
+        <div id="cup-bracket"></div>
+        <h3>Tournament Feed</h3>
+        <div id="cup-feed"></div>
+        <p class="note">
+          PLAYED: resolved in the combat engine. SIMULATED: seeded,
+          style-weighted CPU fixture. Your live match is never simulated.
+        </p>
+      </div>
+    </dialog>
+    <dialog id="join-dialog" aria-labelledby="join-title">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">FRIENDS / PRIVATE 1V1</span>
+          <h2 id="join-title">Enter your friend’s code</h2>
+        </div>
+        <button data-close aria-label="Close join room">&#215;</button>
+      </header>
+      <div class="dialog-body">
+        <form id="join-form">
+          <label for="room-input">SIX-CHARACTER ROOM CODE</label
+          ><input
+            id="room-input"
+            name="code"
+            maxlength="6"
+            minlength="6"
+            pattern="[A-Za-z0-9]{6}"
+            placeholder="ABC123"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            required
+          />
+          <p id="join-error" class="error-message" role="alert"></p>
+          <button
+            id="join-submit"
+            class="primary-button full-width"
+            type="submit"
+          >
+            JOIN ROOM
+          </button>
+        </form>
+        <p class="note">
+          Use the six-character code from your friend’s invite. This starts a private online duel for two players.
+        </p>
+      </div>
+    </dialog>
+    <dialog id="lobby-dialog" aria-labelledby="lobby-title">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">FRIENDS / PRIVATE 1V1</span>
+          <h2 id="lobby-title">Your Arena. Your Rival.</h2>
+        </div>
+        <div id="lobby-aura" aria-label="Your server session Aura"><strong>0</strong><small>SESSION AURA</small></div>
+        <button id="leave-lobby" aria-label="Leave room">&#215;</button>
+      </header>
+      <div class="sticky-actions">
+        <button id="ready-button" class="primary-button">READY</button
+        ><button id="copy-code">Copy Code</button
+        ><button id="copy-invite">Copy Invite</button>
+      </div>
+      <div class="dialog-body">
+        <div class="room-code-row">
+          <span>ROOM CODE</span><strong id="room-code">------</strong>
+        </div>
+        <div id="pool-players" hidden aria-label="Twelve human players"></div>
+        <div class="lobby-players">
+          <div>
+            <span id="lobby-a-label">YOU</span
+            ><img id="lobby-a-img" alt="" /><strong id="lobby-a-name"></strong
+            ><small id="lobby-a-state"></small><small id="lobby-a-gear"></small>
+          </div>
+          <b>VS</b>
+          <div>
+            <span id="lobby-b-label">RIVAL</span
+            ><img id="lobby-b-img" alt="" /><strong id="lobby-b-name"></strong
+            ><small id="lobby-b-state"></small><small id="lobby-b-gear"></small>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Your Fighter<select id="lobby-fighter"></select></label
+          ><label>Arena / Host Chooses<select id="lobby-stage"></select></label>
+        </div>
+        <button id="lobby-locker" class="secondary-button full-width">
+          Edit Loadout / Live Preview
+        </button>
+        <p id="lobby-status" role="status"></p>
+        <p class="note">
+          Localhost invites work only on this computer. LAN or public play needs
+          a reachable server address.
+        </p>
+      </div>
+    </dialog>
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <header class="dialog-header">
+        <div>
+          <span id="pause-label" class="eyebrow">MATCH PAUSED</span>
+          <h2 id="settings-title">Take A Breath</h2>
+        </div>
+        <button data-close aria-label="Close settings">&#215;</button>
+      </header>
+      <div class="dialog-body pause-body">
+        <div id="pause-root" class="pause-grid">
+          <button id="resume" class="pause-tile primary-button"><span data-icon="play"></span><b>Resume</b></button>
+          <button class="pause-tile" data-pause-panel="audio"><span data-icon="audio"></span><b>Audio</b></button>
+          <button class="pause-tile" data-pause-panel="visuals"><span data-icon="visuals"></span><b>Visuals</b></button>
+          <button class="pause-tile" data-pause-panel="training"><span data-icon="training"></span><b>Training</b></button>
+          <button class="pause-tile" data-pause-panel="replays"><span data-icon="replays"></span><b>Replays</b></button>
+          <button id="exit-match" class="pause-tile"><span data-icon="exit"></span><b>Exit</b></button>
+        </div>
+        <button id="pause-back" hidden aria-label="Back to pause menu">&#8592; Back</button>
+        <section data-pause-view="audio" hidden aria-label="Audio settings">
+        <div class="setting-row">
+          <label for="sound-setting"
+            >Master sound<small>Combat audio and persona voices</small></label
+          ><input id="sound-setting" type="checkbox" role="switch" />
+        </div>
+        <div class="setting-row">
+          <label for="voice-setting"
+            >Persona voices<small>Local synthetic voices only</small></label
+          ><input id="voice-setting" type="checkbox" role="switch" />
+        </div>
+        <p id="voice-status" class="note"></p>
+        </section>
+        <section data-pause-view="visuals" hidden aria-label="Visual settings">
+        <div class="setting-row">
+          <label for="effects-setting"
+            >Reduced effects<small>Less flash, no camera shake</small></label
+          ><input id="effects-setting" type="checkbox" role="switch" />
+        </div>
+        <button id="show-controls" class="secondary-button full-width">
+          Controls Reference
+        </button>
+        </section>
+        <section data-pause-view="training" hidden aria-label="Training choices">
+          <div id="pause-drills" class="pause-grid"></div>
+          <button id="replay-tutorial" class="secondary-button full-width">Guided path</button>
+        </section>
+        <section data-pause-view="replays" hidden aria-label="Local replays">
+          <div class="pause-grid">
+            <button id="save-replay" data-save-replay class="pause-tile"><span data-icon="save"></span><b>Save Last 60s</b></button>
+            <button data-replays class="pause-tile"><span data-icon="replays"></span><b>Library</b></button>
+          </div>
+          <small>This browser only</small>
+        </section>
+      </div>
+    </dialog>
+    <dialog id="results-dialog" aria-labelledby="result-title">
+      <header class="dialog-header">
+        <div>
+          <span id="result-eyebrow" class="eyebrow">MATCH COMPLETE</span>
+          <h2 id="result-title">YOU WIN.</h2>
+        </div>
+      </header>
+      <div class="sticky-actions result-actions">
+        <button id="rematch" class="primary-button">REMATCH</button
+        ><button id="result-auto-pause" hidden>Pause Advance</button
+        ><button id="result-bracket" hidden>Bracket</button
+        ><button id="results-exit">Exit</button>
+      </div>
+      <div class="dialog-body">
+        <p id="result-description"></p>
+        <div id="result-score" class="result-score"></div>
+        <button id="result-save-replay" data-save-replay class="secondary-button full-width">Save Last 60 Seconds</button>
+        <p id="rematch-status" role="status"></p>
+        <div id="result-feed"></div>
+        <div class="dialog-caption" hidden><b></b><span></span></div>
+      </div>
+    </dialog>
+    <dialog id="controls-dialog" aria-labelledby="controls-title">
+      <header class="dialog-header">
+        <div>
+          <span class="eyebrow">SECONDARY REFERENCE</span>
+          <h2 id="controls-title">Make Every Hit Count</h2>
+        </div>
+        <button data-close aria-label="Close controls">&#215;</button>
+      </header>
+      <div class="sticky-actions">
+        <button id="controls-training" class="primary-button">
+          Learn In Training
+        </button>
+      </div>
+      <div class="dialog-body">
+        <div class="controls-grid">
+          <p><kbd>W A S D</kbd> Move on the arena plane</p>
+           <p><kbd>E</kbd> Jump / ascend. Double-E is a flight alias.</p>
+           <p><kbd>E + Q / C + Q</kbd> Air dodge up / down. Shift remains an alternate for Q.</p>
+            <p><kbd>Q / Shift</kbd> Dodge in your movement direction</p>
+            <p><kbd>Q + Arrows</kbd> Evade left / right / forward / back, without turning the camera. Either key order; Shift + Arrows also works.</p>
+            <p><kbd>Z</kbd> Committed 2.4m blink / 16 ki / 2s cooldown / 0.18s evasion. No homing or attack cancellation.</p>
+           <p><kbd>Hold G</kbd> Lift a nearby prop / 10 ki. Release to throw; pause or blur drops safely. Hold limit 2s.</p>
+          <p><kbd>C</kbd> Hold guard / descend while flying</p>
+          <p><kbd>Mouse L / R</kbd> Light / heavy strike</p>
+           <p><kbd>X</kbd> Tap blast: 8 ki, 80 base damage. Hold 0.35s beam: 35 ki, 220 damage. Hold 1.2s ultimate: 100 ki, 375 damage.</p>
+           <p><kbd>X / J in clash</kbd> Tap to boost. Time the cue; holding or key repeat earns no extra taps. Ordinary X shot charging is suspended.</p>
+           <p><kbd>C / Primary pointer in clash</kbd> Hold to brace instead. Release, pause, blur or clash end clears the commitment.</p>
+          <p><kbd>F</kbd> Signature technique</p>
+           <p><kbd>Space</kbd> Double-tap within 320ms: flight. Hold at least 0.6s: one transformation while held, with earned resolve and enough ki. Holding refills ki only. Release does not transform.</p>
+           <p><kbd>T</kbd> Hold to charge ki. Charge never earns resolve.</p>
+          <p><kbd>R</kbd> Transform when requirements are met</p>
+          <p><kbd>V</kbd> Ultimate / 100 ki</p>
+           <p><kbd>H / Tab</kbd> Next nearby living target and recenter. The locked target is not the only opponent in the Pit.</p>
+           <p><kbd>1 / 2 / 3 / 4</kbd> Arena / third-person / tactical / Eye camera</p>
+          <p><kbd>Arrows / LOOK pad</kbd> Free look. Home recenters.</p>
+        </div>
+        <p class="note">
+          Optional chains: J, J, K launcher; evade a real hit, then counter.
+          KI pays for attacks and boosts; RESOLVE is combat-earned progress toward a form.
+          Real hits earn resolve; melee hits also return ki. Shots still spend ki.
+          Front guard or perfect evade returns defensive ki only against an incoming hit.
+          Queue the next hit during recovery.
+          Aliases: J light, K heavy, L ki, U beam, I ultimate. In flight hold
+          E to rise. All combat buttons are clickable; touch uses the same
+          hold and double-tap behavior.
+        </p>
+      </div>
+    </dialog>
+    <dialog id="replays-dialog" class="wide-dialog" aria-labelledby="replays-heading">
+      <header class="dialog-header"><div><span class="eyebrow">LOCAL HISTORY / THIS BROWSER ONLY</span><h2 id="replays-heading">Visual Replays</h2></div><button data-close aria-label="Close replay library">&#215;</button></header>
+      <div class="dialog-body">
+        <p class="note">Visual playback, not competitive resume. No wins, XP, account or cloud save. Manual saves only; up to five clips and the last 60 seconds per clip.</p>
+        <p id="replay-storage" role="status">Checking browser storage...</p>
+        <p id="replay-library-status" role="status"></p>
+        <button id="replay-retry" hidden>Refresh Library</button>
+        <div id="replay-list"></div>
+        <button id="replay-clear" disabled>Delete All Replays</button>
+      </div>
+    </dialog>
+    <div id="persona-caption" hidden><b></b><span></span></div>
+    <div id="toast" role="status" hidden></div>
+    <script type="module" src="/games/universe-clash/app.mjs"></script>
+  </body>
+</html>

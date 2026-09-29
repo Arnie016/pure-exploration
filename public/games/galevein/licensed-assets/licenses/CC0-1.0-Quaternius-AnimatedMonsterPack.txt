@@ -1,0 +1,40 @@
+Quaternius — Animated Monster Pack ("Dragon")
+=============================================
+
+Runtime file in this repository:
+  licensed-assets/models/dragon_quaternius_cc0.glb
+  sha256 983f28d4864199f45e1ca67005466d35f2381f08ecf2e234735bf65ecd7be252
+  268,896 bytes · glTF binary v2 · generator "FBX2glTF v0.9.7"
+
+Author / rights holder
+  Quaternius — https://quaternius.com/
+
+Primary sources read for this licence statement
+  Pack page:    https://quaternius.com/packs/animatedmonster.html
+                links directly to https://creativecommons.org/publicdomain/zero/1.0/
+                pack text: "free to use in personal and commercial projects."
+  Hosted record: https://poly.pizza/m/VBvzjFIYws
+                 record fields: "Creator":{"Username":"Quaternius"}, "Licence":"CC0 1.0",
+                 "Animated":true, "Tris":1088
+  CC0 mirror:   https://opengameart.org/content/lowpoly-animated-monsters
+
+Licence
+  Creative Commons CC0 1.0 Universal (Public Domain Dedication)
+  https://creativecommons.org/publicdomain/zero/1.0/
+
+Attribution obligation
+  NONE. CC0 waives attribution. The in-game credit shown for this model is voluntary
+  courtesy, not a licence condition. Do not remove the CC-BY credits, which are
+  conditions; this one may be removed without breaching anything.
+
+How it was obtained
+  Direct HTTPS download of the hosted glTF binary. No account was created, no login was
+  used, and no payment was made or considered.
+
+Reference copies kept for comparison, not shipped by the runtime
+  licensed-assets/source-packs/quaternius-animated-monster/ultimate-monsters-dragon.glb
+  licensed-assets/source-packs/quaternius-animated-monster/ultimate-monsters-dragon-evolved.glb
+  Both from Quaternius's Ultimate Monsters pack, both CC0 1.0 per their poly.pizza records
+  (https://poly.pizza/m/3rUm1cN3yp and https://poly.pizza/m/LlwD0QNUPj). Neither is loaded
+  by the game; they were downloaded to compare rigs and were rejected because neither has
+  any tail bones, which the game's procedural spine layer drives.

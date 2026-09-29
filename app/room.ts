@@ -22,7 +22,7 @@ export function observingRoom(scene:T.Scene) {
  for(let i=0;i<11;i++){const peak=new T.Mesh(new T.ConeGeometry(1.4+Math.sin(i*3.2)*.4,2.8+Math.cos(i*2.1),4),mountain);peak.position.set(-13,-1.6,-10+i*2);peak.rotation.y=i*.62;root.add(peak);}
  const outsideStars=new T.BufferGeometry(),starPoints=[];for(let i=0;i<120;i++)starPoints.push(-14.3,Math.abs(Math.sin(i*13.17))*10-1,Math.sin(i*29.3)*11);outsideStars.setAttribute('position',new T.Float32BufferAttribute(starPoints,3));root.add(new T.Points(outsideStars,new T.PointsMaterial({color:0xd1dde9,size:.035})));
  const observingMoon=new T.Mesh(new T.SphereGeometry(.38,24,18),new T.MeshBasicMaterial({color:0xd6e4e8}));observingMoon.position.set(-13.4,2.9,1.8);root.add(observingMoon);
- const windowLight=new T.DirectionalLight(0x8fc3dd,.9);windowLight.position.set(-12,5,0);windowLight.target.position.set(0,-1,0);root.add(windowLight,windowLight.target);
+ const windowLight=new T.DirectionalLight(0x8fc3dd,.55);windowLight.position.set(-12,5,0);windowLight.target.position.set(0,-1,0);root.add(windowLight,windowLight.target);
  
  const night=new T.MeshBasicMaterial({color:0x091321});box(1.2,1.8,-7.1,10.2,4.6,.1,night);
  for(const x of[-4.1,1.2,6.5])box(x,1.8,-6.95,.095,5,.16,brass);for(const y of[-.65,4.25])box(1.2,y,-6.95,10.75,.11,.22,brass);
@@ -56,5 +56,11 @@ export function observingRoom(scene:T.Scene) {
  for(let i=0;i<13;i++)box(7.15+i*.14,1.2,-7.1,.045,6.3,.1,wood);
  for(const z of[-6.8,-3.4,0,3.4])box(0,4.65,z,19,.19,.2,walnut);
  
+ // Practical light paints the reading nook while the moon cuts shadows through the rafters.
+ const readingPool=new T.SpotLight(0xffb968,75,12,.75,.8,1.7);readingPool.position.set(8,.16,-.2);readingPool.target.position.set(5.8,-2.3,1.2);root.add(readingPool,readingPool.target);
+ const strip=new T.MeshBasicMaterial({color:0xe9a668});for(const y of[-1.02,.13,1.28])box(-7.4,y,-5.4,2.6,.025,.035,strip);
+ const shelfLight=new T.PointLight(0xf1ba78,7,5,2);shelfLight.position.set(-7,1,-4.8);root.add(shelfLight);
+ // Slim astronomical relief and a softly lit wall give the study depth without a flat backdrop.
+ const orrery=new T.Group();orrery.position.set(6.6,-1.55,.2);root.add(orrery);for(let i=0;i<3;i++){const orbit=new T.Mesh(new T.TorusGeometry(.25+i*.12,.008,6,48),brass);orbit.rotation.set(Math.PI/2+i*.3,.25*i,0);orrery.add(orbit);const planet=new T.Mesh(new T.SphereGeometry(.045,12,8),i===1?glow:brass);planet.position.set(Math.cos(i*2)*(.25+i*.12),Math.sin(i)*.1,Math.sin(i*2)*(.25+i*.12));orrery.add(planet);}
  return root;
 }

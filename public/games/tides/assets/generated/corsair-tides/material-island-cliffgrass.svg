@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="terrainNoise"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="6" seed="73"/><feDisplacementMap in="SourceGraphic" scale="20"/></filter>
+    <radialGradient id="sand" cx=".45" cy=".56" r=".62"><stop offset="0" stop-color="#f0d28e"/><stop offset=".62" stop-color="#d9b46b"/><stop offset="1" stop-color="#9f7a49"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#16a6b4"/>
+  <g filter="url(#terrainNoise)">
+    <path d="M74 640 C170 360,318 218,512 190 C712 160,890 324,950 558 C838 818,630 918,390 858 C218 818,122 760,74 640z" fill="url(#sand)"/>
+    <path d="M210 610 C294 378,390 286,520 260 C644 318,728 404,800 612 C622 698,420 722,210 610z" fill="#5d685e"/>
+    <path d="M270 470 C368 328,456 296,540 254 C642 312,708 376,770 486 C610 448,444 458,270 470z" fill="#55b85d"/>
+    <path d="M148 730 C282 660,390 776,540 706 S814 628,918 746" fill="none" stroke="#f4fff4" stroke-width="20" opacity=".68"/>
+    <path d="M116 592 C260 538,372 618,510 558 S764 498,916 608" fill="none" stroke="#caffef" stroke-width="10" opacity=".55"/>
+    <g fill="#2f6a46" opacity=".8">
+      <circle cx="380" cy="410" r="28"/><circle cx="468" cy="392" r="20"/><circle cx="612" cy="430" r="26"/><circle cx="696" cy="502" r="22"/>
+    </g>
+    <g fill="#8c826b" opacity=".82">
+      <ellipse cx="216" cy="706" rx="50" ry="22"/><ellipse cx="810" cy="686" rx="64" ry="26"/><ellipse cx="550" cy="802" rx="48" ry="18"/>
+    </g>
+  </g>
+</svg>

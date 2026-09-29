@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {blackHole,photonPath} from '../app/spacetime/physics.ts';
+test('Schwarzschild scales linearly with mass and separates horizon from shadow',()=>{const a=blackHole(1),b=blackHole(10);assert.ok(Math.abs(a.horizonKm-2.953)<.002);assert.equal(b.horizonKm/a.horizonKm,10);assert.ok(Math.abs(a.photonSphereKm/a.horizonKm-1.5)<1e-12);assert.ok(Math.abs(a.shadowRadiusKm/a.horizonKm-Math.sqrt(27)/2)<1e-12);assert.ok(a.crossingSeconds>0);});
+test('static time dilation approaches zero near horizon and unity far away',()=>{assert.ok(blackHole(10,1.01).staticClockRate<.1);assert.ok(blackHole(10,1000).staticClockRate>.999);assert.ok(Number.isFinite(blackHole(NaN,NaN).staticClockRate));});
+test('photon paths capture low impact rays and deflect escaping rays',()=>{const captured=photonPath(1.8),escaped=photonPath(5.5),flat=photonPath(5.5,false);assert.equal(captured.captured,true);assert.equal(escaped.captured,false);assert.ok(escaped.points.some(([,y])=>Math.abs(y-5.5)>1));assert.ok(flat.points.every(([,y])=>y===5.5));assert.ok(escaped.points.flat().every(Number.isFinite));});

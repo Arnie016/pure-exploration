@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thirty Steps Down</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --void:#07080b; --panel:#0f1218; --line:#1d2330; --line2:#343c4a;
+  --ink:#e9ecf2; --muted:#8c95a8; --amber:#f2b544; --amber-deep:#17140c;
+  --fd:"Bricolage Grotesque",system-ui,-apple-system,sans-serif;
+  --fm:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --fs:"Newsreader",Georgia,"Times New Roman",serif;
+}
+html,body{background:var(--void);color:var(--ink)}
+body{font-family:var(--fd);padding-inline:16px;padding-block:28px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+header{display:grid;gap:8px}
+.eyebrow{font:500 12px/1.2 var(--fm);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+h1{font:700 clamp(30px,5vw,52px)/1 var(--fd);margin:0;letter-spacing:-.02em;text-wrap:balance}
+.lede{font:italic 400 clamp(16px,2vw,19px)/1.45 var(--fs);color:var(--muted);margin:0;max-width:62ch}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:#000;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%;cursor:pointer}
+.stage:fullscreen{border:0;border-radius:0;display:grid;place-items:center;aspect-ratio:auto}
+.stage:fullscreen canvas{width:min(100vw,177.78vh);height:auto;aspect-ratio:16/9}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+button{font:500 13px/1 var(--fm);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer}
+button:hover{border-color:var(--line2)}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+button.primary{background:var(--amber);color:#1a1204;border-color:var(--amber);min-width:88px}
+.seg{display:inline-flex}
+.seg button{border-radius:0;margin-left:-1px}
+.seg button:first-child{border-radius:4px 0 0 4px;margin-left:0}
+.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button[aria-pressed="true"]{color:var(--amber);border-color:#5a4a22;background:var(--amber-deep);position:relative;z-index:1}
+.time{font:500 13px var(--fm);color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.track{position:relative;height:34px;cursor:pointer;touch-action:none}
+.track .rail,.track .fill{position:absolute;left:0;top:16px;height:2px}
+.track .rail{right:0;background:var(--line)}
+.track .fill{background:var(--amber)}
+.track .tick{position:absolute;top:10px;width:1px;height:14px;background:var(--line2)}
+.track .tick.on{background:var(--amber)}
+.track .knob{position:absolute;top:9px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 4px rgba(242,181,68,.22)}
+.layers{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.layers li{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.layers button{width:100%;height:100%;text-align:left;border:0;border-radius:0;background:transparent;display:grid;grid-template-columns:2.4em 1fr;gap:5px 8px;padding:11px 12px;align-items:baseline}
+.layers button:hover{background:var(--panel)}
+.layers .n{font:500 12px var(--fm);color:var(--muted);grid-row:span 2}
+.layers .nm{font:500 15px/1.15 var(--fd);color:var(--ink)}
+.layers .sz{font:400 12px var(--fm);color:var(--muted)}
+.layers button[aria-current="true"]{background:var(--amber-deep)}
+.layers button[aria-current="true"] .n{color:var(--amber)}
+.foot{font:400 12px/1.6 var(--fm);color:var(--muted);margin:0}
+@media (max-width:560px){.time{margin-left:0;width:100%}}
+</style>
+
+
+<script src="/games/capture-context.js"></script>
+
+<style id="world-hub-safe-area">
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { margin: 0; padding: 0; background: #03050a; }
+.wrap { position: fixed; inset: 0; display: block; max-width: none; margin: 0; }
+.stage { position: absolute; inset: 0 0 102px; width: 100%; height: calc(100% - 102px); aspect-ratio: auto; border: 0; border-radius: 0; background: #03050a; }
+.stage canvas { width: 100%; height: 100%; object-fit: contain; }
+header { position: fixed; z-index: 2; top: 16px; left: 18px; display: block; pointer-events: none; text-shadow: 0 2px 16px #000; }
+.eyebrow { font-size: 9px; letter-spacing: .14em; }
+h1 { margin-top: 7px; font-size: clamp(21px, 2.5vw, 30px); }
+.lede { display: none; }
+.layers { position: fixed; z-index: 3; top: 87px; left: 18px; width: 264px; max-height: 62px; display: block; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #364151; border-radius: 8px; background: rgba(7, 12, 20, .9); backdrop-filter: blur(14px); scrollbar-width: none; transition: max-height .2s ease; }
+.layers:hover, .layers:focus-within { max-height: min(290px, calc(100dvh - 245px)); scrollbar-width: thin; scrollbar-color: #697688 #0a111b; }
+.layers li { border-right: 0; }
+.layers button { min-height: 61px; padding: 10px 12px; }
+.layers .nm { font-size: 13px; }
+.layers .sz, .layers .n { font-size: 10px; }
+.track { position: fixed; z-index: 3; left: 18px; right: 340px; bottom: 67px; height: 34px; border-radius: 6px; background: rgba(3, 7, 13, .7); }
+.bar { position: fixed; z-index: 3; left: 18px; right: 340px; bottom: 18px; min-height: 34px; gap: 6px; padding: 0; }
+.bar button { background: rgba(11, 19, 30, .93); border-color: #344153; font-size: 11px; padding: 10px 11px; border-radius: 6px; }
+.bar button.primary { background: var(--amber); color: #17110a; }
+.bar .seg button[aria-pressed="true"] { background: #302512; border-color: #ba8a31; }
+.time { font-size: 11px; color: #c8d0dc; }
+.foot { position: fixed; z-index: 2; left: 18px; bottom: 110px; max-width: calc(100vw - 360px); padding: 4px 7px; font-size: 9px; line-height: 1.4; color: #aeb8c8; border-radius: 4px; background: rgba(3, 7, 13, .76); }
+@media (max-width: 900px) {
+  header { top: 12px; left: 12px; }
+  .layers { top: 76px; left: 12px; width: min(250px, calc(100vw - 24px)); }
+  .layers:hover, .layers:focus-within { max-height: min(180px, calc(100dvh - 390px)); }
+  .track { left: 12px; right: 12px; bottom: 306px; }
+  .bar { left: 12px; right: 12px; bottom: 242px; min-height: 54px; }
+  .bar button { font-size: 10px; padding: 9px; }
+  .time { width: auto; margin-left: 0; }
+  .foot { left: 12px; bottom: 347px; max-width: calc(100vw - 24px); }
+}
+@media (prefers-reduced-motion: reduce) { .layers { transition: none; } }
+</style>
+</head><body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Powers of ten · 30 layers · 61 seconds</div>
+    <h1>Thirty Steps Down</h1>
+    <p class="lede">A continuous zoom from the edge of the observable universe to a single quark, dropping through galaxies, a sunny park, a fingertip, a cell and its DNA. Each layer adds detail as you pass through it.</p>
+  </header>
+
+  <div class="stage" id="stage"><canvas id="cv" aria-label="Animated zoom from the observable universe down to a quark"></canvas></div>
+
+  <div class="track" id="track" role="slider" tabindex="0" aria-label="Timeline" aria-valuemin="0" aria-valuemax="61" aria-valuenow="0">
+    <div class="rail"></div><div class="fill" id="fill"></div><div id="ticks"></div><div class="knob" id="knob"></div>
+  </div>
+
+  <div class="bar">
+    <button class="primary" id="play">Pause</button>
+    <button id="restart">Restart</button>
+    <div class="seg" id="speed" role="group" aria-label="Speed">
+      <button data-v="0.5" aria-pressed="false">0.5×</button>
+      <button data-v="1" aria-pressed="true">1×</button>
+      <button data-v="2" aria-pressed="false">2×</button>
+    </div>
+    <button id="loop" aria-pressed="false">Loop: off</button>
+    <button id="fs">Fullscreen</button>
+    <div class="time" id="time">00:00 / 01:01</div>
+  </div>
+
+  <ol class="layers" id="list"></ol>
+  <p class="foot">Keys: space plays or pauses, ← and → jump one layer. An illustrative scale journey; the drawings are stylised.</p>
+</div>
+
+<script>
+(() => {
+const TAU = Math.PI * 2, LY = 9.4607e15, AU = 1.496e11;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W = 1600, H = 900, DIAG = 920, U = 1, S = 1, ROT = 0, LA = 0, CAM = 0;
+let exportMode = false;
+
+/* ---------- helpers ---------- */
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const c01 = v => clamp(v, 0, 1);
+const smooth = t => t * t * (3 - 2 * t);
+const sstep = (a, b, x) => smooth(c01((x - a) / (b - a)));
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gauss = r => Math.sqrt(-2 * Math.log(r() + 1e-9)) * Math.cos(TAU * r());
+function hash2(x, y, s) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi, s), b = hash2(xi + 1, yi, s), c = hash2(xi, yi + 1, s), d = hash2(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y, s, o = 5) { let t = 0, a = .5, f = 1, n = 0; for (let i = 0; i < o; i++) { t += a * vnoise(x * f, y * f, s + i * 17); n += a; a *= .5; f *= 2.03; } return t / n; }
+
+function glow(g, x, y, r, col, a) {
+  if (r < .3 || a <= 0 || Math.hypot(x, y) - r > DIAG) return;
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, rgba(col, a)); gr.addColorStop(1, rgba(col, 0));
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+}
+function softDisc(g, r, col, a, inner = .7) {
+  if (r < .5) return;
+  const gr = g.createRadialGradient(0, 0, r * inner, 0, 0, r);
+  gr.addColorStop(0, rgba(col, a)); gr.addColorStop(1, rgba(col, 0));
+  g.fillStyle = gr; g.beginPath(); g.arc(0, 0, Math.min(r, DIAG * 1.5), 0, TAU); g.fill();
+}
+function sphere(g, x, y, r, col, a = 1) {
+  if (r < .4 || Math.hypot(x, y) - r > DIAG) return;
+  const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .05, x, y, r);
+  gr.addColorStop(0, rgba(mix(col, [255, 255, 255], .55), a));
+  gr.addColorStop(.55, rgba(col, a));
+  gr.addColorStop(1, rgba(mix(col, [0, 0, 0], .55), a));
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+}
+function capsule(g, x1, y1, x2, y2, w, col) { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+function label(g, x, y, txt, opts = {}) {
+  const a = LA * (opts.a ?? 1);
+  if (a < .02 || Math.hypot(x, y) > DIAG * 1.1) return;
+  g.save(); g.translate(x, y); g.rotate(-ROT); g.globalAlpha *= a;
+  const fs = Math.round(15 * U);
+  g.font = `500 ${fs}px "JetBrains Mono", ui-monospace, monospace`;
+  const right = opts.align === 'right', dx = (right ? -1 : 1) * 12 * U;
+  g.strokeStyle = 'rgba(242,181,68,.8)'; g.lineWidth = Math.max(1, U);
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(dx * .7, 0); g.stroke();
+  g.fillStyle = 'rgba(242,181,68,.95)'; g.beginPath(); g.arc(0, 0, 2.2 * U, 0, TAU); g.fill();
+  g.textAlign = right ? 'right' : 'left'; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(4,5,8,.55)'; const tw = g.measureText(txt).width;
+  g.fillRect(right ? dx - tw - 5 * U : dx - 5 * U, -fs * .75, tw + 10 * U, fs * 1.5);
+  g.fillStyle = 'rgba(236,239,245,.95)'; g.fillText(txt, dx, fs * .05);
+  g.restore();
+}
+function makeCanvas(n) { const c = document.createElement('canvas'); c.width = c.height = n; return c; }
+function maskRadial(c, inner = .72) {
+  const x = c.getContext('2d'), n = c.width;
+  x.globalCompositeOperation = 'destination-in';
+  const gr = x.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  gr.addColorStop(0, '#000'); gr.addColorStop(inner, '#000'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, n, n); x.globalCompositeOperation = 'source-over';
+  return c;
+}
+function pixelTex(n, fn) {
+  const c = makeCanvas(n), x = c.getContext('2d'), img = x.createImageData(n, n), d = img.data;
+  for (let py = 0; py < n; py++) for (let px = 0; px < n; px++) {
+    const o = fn(px, py); if (!o) continue;
+    const i = (py * n + px) * 4; d[i] = o[0]; d[i + 1] = o[1]; d[i + 2] = o[2]; d[i + 3] = o[3] ?? 255;
+  }
+  x.putImageData(img, 0, 0); return c;
+}
+function drawTex(g, tex, half) { if (half < 1) return; g.drawImage(tex, -half, -half, half * 2, half * 2); }
+function blobPath(g, R, rad, cx = 0, cy = 0) {
+  g.beginPath();
+  for (let i = 0; i <= rad.length; i++) { const k = i % rad.length, a = k / rad.length * TAU; const r = R * rad[k]; i ? g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r) : g.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+  g.closePath();
+}
+function blobRadii(r, n, amp) { const p1 = r() * TAU, p2 = r() * TAU, out = []; for (let i = 0; i < n; i++) { const a = i / n * TAU; out.push(1 + amp * (.6 * Math.sin(2 * a + p1) + .4 * Math.sin(5 * a + p2))); } return out; }
+
+const STARCOL = [[255, 244, 234], [202, 216, 255], [255, 214, 170], [255, 176, 120], [170, 191, 255]];
+function makeStars(r, n, span) { const a = new Float32Array(n * 4); for (let i = 0; i < n; i++) { a[i * 4] = (r() * 2 - 1) * span; a[i * 4 + 1] = (r() * 2 - 1) * span; a[i * 4 + 2] = Math.pow(r(), 3); a[i * 4 + 3] = Math.floor(r() * 5); } return a; }
+function drawStars(g, st, R, gain = 1) {
+  for (let i = 0; i < st.length; i += 4) {
+    const x = st[i] * R, y = st[i + 1] * R; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue;
+    const b = st[i + 2], sz = (.7 + b * 2.4) * U, col = STARCOL[st[i + 3]];
+    g.fillStyle = rgba(col, (.35 + .65 * b) * gain); g.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+    if (b > .75) glow(g, x, y, sz * 4, col, .25 * gain);
+  }
+}
+
+/* ---------- the thirty layers ---------- */
+// e = log10 of the layer's characteristic size in metres (it fills half the frame height at its moment)
+const LAYERS = [
+{ name: 'The observable universe', size: '93 billion light-years', e: 26.94, bg: [5, 5, 10],
+  fact: 'Everything whose light has had time to reach us. Galaxies trace a cosmic web of filaments wrapped around enormous empty voids.',
+  init(r) {
+    const nodes = [[0, 0, 1]];
+    for (let i = 0; i < 90; i++) { const a = r() * TAU, d = Math.sqrt(r()) * .95; nodes.push([Math.cos(a) * d, Math.sin(a) * d, .35 + r() * .65]); }
+    const pts = [];
+    nodes.forEach((n, i) => {
+      const near = nodes.map((m, j) => [Math.hypot(m[0] - n[0], m[1] - n[1]), j]).filter(q => q[1] !== i).sort((a, b) => a[0] - b[0]).slice(0, 3);
+      near.forEach(([dd, j]) => { if (j < i) return; const m = nodes[j]; const k = Math.floor(dd * 180) + 8;
+        for (let s = 0; s < k; s++) { const t = r(); pts.push(n[0] + (m[0] - n[0]) * t + gauss(r) * .012, n[1] + (m[1] - n[1]) * t + gauss(r) * .012, r()); } });
+    });
+    for (let i = 0; i < 700; i++) { const a = r() * TAU, d = Math.sqrt(r()) * .98; pts.push(Math.cos(a) * d, Math.sin(a) * d, r() * .4); }
+    return { nodes, pts: new Float32Array(pts) };
+  },
+  draw(g, R, t, D) {
+    glow(g, 0, 0, R * 1.05, [40, 30, 70], .55);
+    const gr = g.createRadialGradient(0, 0, R * .86, 0, 0, R * 1.14);
+    gr.addColorStop(0, 'rgba(255,140,70,0)'); gr.addColorStop(.5, 'rgba(255,140,70,.32)'); gr.addColorStop(1, 'rgba(255,140,70,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, R * 1.14, 0, TAU); g.fill();
+    const sz = Math.max(1, R * .004), P = D.pts;
+    for (let i = 0; i < P.length; i += 3) { const x = P[i] * R, y = P[i + 1] * R; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue; g.fillStyle = `rgba(175,195,255,${.2 + .55 * P[i + 2]})`; g.fillRect(x, y, sz, sz); }
+    D.nodes.forEach(n => glow(g, n[0] * R, n[1] * R, R * .035 * n[2], [255, 225, 190], .55));
+    label(g, R * .99, 0, 'cosmic microwave background');
+    label(g, 0, 0, 'Laniakea (us)', { align: 'right' });
+  } },
+{ name: 'Laniakea Supercluster', size: '520 million light-years', e: 24.69, bg: [6, 6, 13],
+  fact: 'About 100,000 galaxies drifting toward a gravity well called the Great Attractor. Laniakea is Hawaiian for "immense heaven".',
+  init(r) {
+    const A = [.42, .1], pts = [];
+    for (let k = 0; k < 70; k++) { const a0 = r() * TAU, r0 = .45 + r() * .75, curl = (r() - .5) * 2.4;
+      for (let s = 0; s < 34; s++) { const q = r(), rr = r0 * Math.pow(1 - q, .9), a = a0 + curl * q; pts.push(A[0] + Math.cos(a) * rr + gauss(r) * .01, A[1] + Math.sin(a) * rr + gauss(r) * .01, q); } }
+    for (let i = 0; i < 900; i++) pts.push((r() * 2 - 1) * 1.8, (r() * 2 - 1) * 1.8, -1);
+    return { A, pts: new Float32Array(pts) };
+  },
+  draw(g, R, t, D) {
+    const [ax, ay] = [D.A[0] * R, D.A[1] * R];
+    glow(g, ax, ay, R * .55, [255, 190, 110], .22); glow(g, ax, ay, R * .12, [255, 230, 190], .7);
+    const sz = Math.max(1, R * .003), P = D.pts;
+    for (let i = 0; i < P.length; i += 3) { const x = P[i] * R, y = P[i + 1] * R; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue;
+      const q = P[i + 2]; g.fillStyle = q < 0 ? 'rgba(150,170,230,.35)' : rgba(mix([150, 180, 255], [255, 215, 150], q), .35 + q * .5); g.fillRect(x, y, sz, sz); }
+    glow(g, 0, 0, R * .03, [210, 220, 255], .9);
+    label(g, ax, ay, 'Great Attractor'); label(g, 0, 0, 'Local Group', { align: 'right' });
+  } },
+{ name: 'The Local Group', size: '10 million light-years', e: 22.97, bg: [7, 7, 16],
+  fact: 'More than 80 galaxies. Andromeda is closing in at 110 km/s and will merge with the Milky Way in about 4.5 billion years.',
+  init(r) {
+    const dw = []; for (let i = 0; i < 46; i++) { const host = r() < .55 ? [0, 0] : [.42, -.27]; const a = r() * TAU, d = .03 + r() * .2; dw.push(host[0] + Math.cos(a) * d, host[1] + Math.sin(a) * d, .3 + r() * .7); }
+    return { dw, far: makeStars(r, 380, 2.5) };
+  },
+  draw(g, R, t, D, s) {
+    drawStars(g, D.far, R, .45);
+    const mw = 4.73e20 * s;
+    glow(g, -.52 * mw, 0, mw * 1.6, [200, 210, 255], .75);
+    const m31 = [.42 * R, -.27 * R], m31r = 1.05e21 * s;
+    g.save(); g.translate(m31[0], m31[1]); g.rotate(.65); g.scale(1, .34); glow(g, 0, 0, m31r * 1.5, [255, 225, 200], .8); glow(g, 0, 0, m31r * .3, [255, 245, 225], .9); g.restore();
+    glow(g, .55 * R, -.08 * R, 3e20 * s * 1.6, [190, 205, 255], .6);
+    for (let i = 0; i < D.dw.length; i += 3) glow(g, D.dw[i] * R, D.dw[i + 1] * R, R * .008 * D.dw[i + 2] + U, [220, 225, 255], .7);
+    label(g, 0, 0, 'Milky Way', { align: 'right' }); label(g, m31[0], m31[1], 'Andromeda · 2.5 million ly'); label(g, .55 * R, -.08 * R, 'Triangulum', { a: .8 });
+  } },
+{ name: 'The Milky Way', size: '100,000 light-years', e: 20.98, bg: [7, 7, 15],
+  fact: '100 to 400 billion stars in a barred spiral. The Sun sits 26,000 light-years from the centre and takes 230 million years to go round once.',
+  init(r) {
+    const p = [];
+    for (let i = 0; i < 3200; i++) { const arm = i % 4, q = Math.pow(r(), .75), rad = .06 + q * .94, th = arm * TAU / 4 + Math.log(rad / .06) * 1.9, sc = .025 + .07 * rad;
+      p.push(Math.cos(th) * rad + gauss(r) * sc, Math.sin(th) * rad + gauss(r) * sc, r() < .06 ? 3 : r() < .5 ? 1 : 0); }
+    for (let i = 0; i < 1000; i++) { const x = gauss(r) * .14, y = gauss(r) * .06, c = Math.cos(.45), sn = Math.sin(.45); p.push(x * c - y * sn, x * sn + y * c, 2); }
+    for (let i = 0; i < 800; i++) { const a = r() * TAU, d = Math.sqrt(r()); p.push(Math.cos(a) * d, Math.sin(a) * d, 0); }
+    return { p: new Float32Array(p) };
+  },
+  draw(g, R, t, D) {
+    const gx = -.52 * R, cols = [[190, 205, 255], [236, 240, 255], [255, 218, 160], [255, 130, 170]], al = [.55, .95, .9, 1];
+    glow(g, gx, 0, R * 1.05, [110, 130, 220], .32); glow(g, gx, 0, R * .3, [255, 205, 140], .9);
+    const sz = Math.max(1.5 * U, R * .0035), P = D.p;
+    for (let c = 0; c < 4; c++) { g.fillStyle = rgba(cols[c], al[c]);
+      for (let i = 0; i < P.length; i += 3) { if (P[i + 2] !== c) continue; const x = gx + P[i] * R, y = P[i + 1] * R; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue; g.fillRect(x, y, sz, sz); } }
+    g.strokeStyle = 'rgba(242,181,68,.9)'; g.lineWidth = 1.5 * U; g.beginPath(); g.arc(0, 0, 7 * U, 0, TAU); g.stroke();
+    label(g, 0, 0, 'Sun · 26,000 ly from centre'); label(g, gx, 0, 'galactic centre', { align: 'right' });
+  } },
+{ name: 'The Local Bubble', size: 'About 1,000 light-years', e: 18.9, bg: [8, 6, 16],
+  fact: 'A cavity of thin, hot gas blown out by supernovae over the last 15 million years. Most stars you can see by eye lie inside it or near its walls.',
+  init(r) { return { st: makeStars(r, 1400, 4), rad: blobRadii(r, 120, .12), neb: Array.from({ length: 6 }, () => [(r() * 2 - 1) * 2.4, (r() * 2 - 1) * 1.6, .3 + r() * .5, r() < .5 ? [255, 90, 120] : [90, 150, 255]]) }; },
+  draw(g, R, t, D) {
+    D.neb.forEach(n => glow(g, n[0] * R, n[1] * R, n[2] * R, n[3], .18));
+    blobPath(g, R * .85, D.rad); g.fillStyle = 'rgba(255,120,160,.05)'; g.fill(); g.strokeStyle = 'rgba(255,150,180,.28)'; g.lineWidth = 1.5 * U; g.stroke();
+    drawStars(g, D.st, R);
+    glow(g, 0, 0, 6 * U, [255, 230, 170], .9);
+    label(g, R * .82, -R * .3, 'edge of the bubble'); label(g, 0, 0, 'Sun', { align: 'right' });
+  } },
+{ name: 'The nearest stars', size: '20 light-years', e: 17.28, bg: [5, 7, 13],
+  fact: 'Light from Alpha Centauri, the closest star system, takes 4.4 years to arrive. Most of our neighbours are dim red dwarfs invisible to the naked eye.',
+  init(r) { return { st: makeStars(r, 500, 4), named: [['Alpha Centauri', 4.37, 2.3, [255, 236, 190], 1], ["Barnard's Star", 5.96, .4, [255, 140, 110], .45], ['Wolf 359', 7.86, 1.6, [255, 130, 100], .4], ['Lalande 21185', 8.31, 1.05, [255, 150, 110], .45], ['Sirius', 8.6, -1.9, [200, 220, 255], 1.25], ['Luyten 726-8', 8.73, -.9, [255, 130, 100], .4], ['Ross 154', 9.69, -.3, [255, 140, 110], .4], ['Epsilon Eridani', 10.5, -2.6, [255, 200, 150], .7]] }; },
+  draw(g, R, t, D, s) {
+    drawStars(g, D.st, R, .55);
+    g.setLineDash([4 * U, 6 * U]); g.strokeStyle = 'rgba(140,160,200,.3)'; g.lineWidth = U;
+    [5, 10].forEach(l => { g.beginPath(); g.arc(0, 0, l * LY * s, 0, TAU); g.stroke(); }); g.setLineDash([]);
+    label(g, 0, -5 * LY * s, '5 ly', { a: .8 }); label(g, 0, -10 * LY * s, '10 ly', { a: .8 });
+    D.named.forEach(([n, d, a, c, b]) => { const x = Math.cos(a) * d * LY * s, y = Math.sin(a) * d * LY * s; glow(g, x, y, 14 * U * b, c, .6); glow(g, x, y, 3 * U * b, [255, 255, 255], 1); label(g, x, y, `${n} · ${d} ly`, { align: x > 0 ? 'left' : 'right' }); });
+    glow(g, 0, 0, 12 * U, [255, 225, 160], .7); glow(g, 0, 0, 2.5 * U, [255, 255, 240], 1); label(g, 0, 0, 'Sun');
+  } },
+{ name: 'The Oort Cloud', size: 'About 3 light-years', e: 16.4, bg: [4, 6, 11],
+  fact: 'A shell of perhaps trillions of icy bodies, the source of long-period comets. It marks the outer limit of the Sun\'s gravitational reach.',
+  init(r) { const p = []; for (let i = 0; i < 2600; i++) { const a = r() * TAU, d = .03 + 1.15 * Math.pow(r(), .45); p.push(Math.cos(a) * d, Math.sin(a) * d * .94); } return { p: new Float32Array(p) }; },
+  draw(g, R, t, D) {
+    const P = D.p, sz = Math.max(1, U * 1.1); g.fillStyle = 'rgba(185,215,255,.4)';
+    for (let i = 0; i < P.length; i += 2) { const x = P[i] * R, y = P[i + 1] * R; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue; g.fillRect(x, y, sz, sz); }
+    glow(g, 0, 0, 16 * U, [255, 220, 150], .8); glow(g, 0, 0, 3 * U, [255, 255, 235], 1);
+    label(g, R * .78, -R * .55, 'outer Oort Cloud · ~100,000 AU'); label(g, -R * .2, R * .12, 'inner cloud', { align: 'right', a: .8 });
+  } },
+{ name: 'The Solar System', size: '60 AU across Neptune\'s orbit', e: 12.95, bg: [5, 6, 9], fout: [2.3, 3.3],
+  fact: 'Eight planets. Sunlight takes four hours to reach Neptune, and 99.86% of all the mass here is in the Sun.',
+  init(r) { const k = [], ab = []; for (let i = 0; i < 700; i++) { const a = r() * TAU, d = 30 + r() * 20; k.push(Math.cos(a) * d, Math.sin(a) * d); } for (let i = 0; i < 900; i++) { const a = r() * TAU, d = 2.1 + r() * 1.2 + gauss(r) * .05; ab.push(Math.cos(a) * d, Math.sin(a) * d); } return { k: new Float32Array(k), ab: new Float32Array(ab) }; },
+  draw(g, R, t, D, s) {
+    const u = AU * s, sx = -u;
+    g.lineWidth = U;
+    PLANETS.forEach(p => { const rr = p[1] * u; if (rr < 2 || Math.abs(rr - u) > DIAG * 1.2) return; g.strokeStyle = p[0] === 'Earth' ? 'rgba(120,190,255,.6)' : 'rgba(150,170,210,.22)'; g.beginPath(); g.arc(sx, 0, rr, 0, TAU); g.stroke(); });
+    const dot = (arr, col, sz) => { g.fillStyle = col; for (let i = 0; i < arr.length; i += 2) { const x = sx + arr[i] * u, y = arr[i + 1] * u; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue; g.fillRect(x, y, sz, sz); } };
+    dot(D.k, 'rgba(170,190,230,.35)', Math.max(1, U)); dot(D.ab, 'rgba(200,180,150,.45)', Math.max(1, U));
+    glow(g, sx, 0, Math.max(28 * U, 6.96e8 * s * 5), [255, 190, 110], .8); sphere(g, sx, 0, Math.max(3 * U, 6.96e8 * s), [255, 230, 170]);
+    PLANETS.forEach(p => { const x = sx + Math.cos(p[2]) * p[1] * u, y = Math.sin(p[2]) * p[1] * u; sphere(g, x, y, Math.max(2.2 * U, p[4] * s), p[3]); if (p[1] > 4) label(g, x, y, p[0]); });
+    label(g, sx + 40 * u, 0, 'Kuiper Belt', { a: .8 });
+  } },
+{ name: 'The inner planets', size: '3 AU across Mars\'s orbit', e: 11.66, bg: [6, 7, 10],
+  fact: 'Mercury, Venus, Earth and Mars are the rocky worlds. Beyond them, the whole asteroid belt holds less mass than our Moon.',
+  init() { return {}; },
+  draw(g, R, t, D, s) {
+    const u = AU * s, sx = -u;
+    glow(g, sx, 0, u * .9, [255, 200, 150], .08);
+    PLANETS.forEach(p => { if (p[1] > 2) return; const x = sx + Math.cos(p[2]) * p[1] * u, y = Math.sin(p[2]) * p[1] * u; label(g, x, y, p[0] === 'Earth' ? 'Earth · 1 AU · 365 days' : p[0], { align: x < sx ? 'right' : 'left' }); });
+    label(g, sx + 2.7 * u * Math.cos(-.9), 2.7 * u * Math.sin(-.9), 'asteroid belt'); label(g, sx, 0, 'Sun', { align: 'right' });
+  } },
+{ name: 'Earth and Moon', size: '770,000 km', e: 8.89, bg: [3, 5, 9],
+  fact: 'The Moon is 384,400 km away. All seven other planets could fit side by side in the gap between us.',
+  init() { return {}; },
+  draw(g, R, t, D, s) {
+    const md = 3.844e8 * s, ma = -2.25, mx = Math.cos(ma) * md, my = Math.sin(ma) * md;
+    g.setLineDash([3 * U, 7 * U]); g.strokeStyle = 'rgba(160,175,210,.35)'; g.lineWidth = U; g.beginPath(); g.arc(0, 0, md, 0, TAU); g.stroke(); g.setLineDash([]);
+    const er = Math.max(2 * U, 6.371e6 * s); glow(g, 0, 0, er * 3, [90, 160, 255], .5); sphere(g, 0, 0, er, [60, 120, 210]);
+    const mr = Math.max(1.5 * U, 1.737e6 * s); sphere(g, mx, my, mr, [180, 178, 172]);
+    label(g, mx, my, 'Moon · 384,400 km', { align: 'right' }); label(g, 0, 0, 'Earth');
+  } },
+{ name: 'Earth', size: '12,742 km', e: 7.105, bg: [2, 4, 10],
+  fact: 'About 71% ocean. The atmosphere that keeps us alive is, relative to the planet, thinner than the skin on an apple.',
+  init() {
+    const n = 560, L = [-.55, .35, .76], ll = Math.hypot(...L); L.forEach((v, i) => L[i] = v / ll);
+    return { tex: pixelTex(n, (px, py) => {
+      const u = (px + .5) / n * 2 - 1, v = (py + .5) / n * 2 - 1, rr = u * u + v * v; if (rr > 1) return null;
+      const z = Math.sqrt(1 - rr), lat = Math.asin(-v), lon = Math.atan2(u, z);
+      const h = fbm(lon * 1.5 + 3.1, lat * 1.8 + 7.3, 11, 6) + .2 * Math.exp(-rr / .03), m = fbm(lon * 2.2 + 50, lat * 2.2 + 9, 23, 4), cl = fbm(lon * 3 + 20, lat * 6 + 2, 31, 5);
+      let col;
+      if (Math.abs(lat) > 1.22) col = [232, 238, 245];
+      else if (h < .55) col = mix([40, 110, 165], [8, 32, 82], c01((.55 - h) * 6));
+      else { const hh = c01((h - .55) * 5); col = m > .5 ? mix([66, 118, 54], [38, 80, 42], hh) : mix([184, 156, 104], [142, 112, 74], hh); if (h > .72) col = mix(col, [128, 108, 92], c01((h - .72) * 5)); }
+      const ca = sstep(.5, .72, cl) * .85; col = mix(col, [246, 248, 252], ca);
+      const dif = Math.max(0, u * L[0] - v * L[1] + z * L[2]);
+      col = col.map(c => c * (.035 + .965 * Math.pow(dif, .85)));
+      if (dif < .07 && h >= .55 && ca < .3 && hash2(px, py, 5) > .975) col = mix(col, [255, 205, 130], .8 * (1 - dif / .07));
+      return [col[0], col[1], col[2], 255 * c01((1 - Math.sqrt(rr)) * n / 2)];
+    }) };
+  },
+  draw(g, R, t, D, s) {
+    const er = 6.371e6 * s;
+    const gr = g.createRadialGradient(0, 0, er * .96, 0, 0, er * 1.09); gr.addColorStop(0, 'rgba(110,180,255,.55)'); gr.addColorStop(1, 'rgba(110,180,255,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(0, 0, er * 1.09, 0, TAU); g.fill();
+    drawTex(g, D.tex, er);
+    label(g, er * .75, -er * .5, 'atmosphere · ~100 km thick');
+  } },
+{ name: 'A coastline from orbit', size: '1,000 km', e: 6, bg: [12, 30, 48],
+  fact: 'From 400 km up, rivers, mountain ranges and cities are easy to pick out. Individual roads and buildings are still invisible.',
+  init(r) {
+    const n = 640;
+    const tex = pixelTex(n, (px, py) => {
+      const x = ((px + .5) / n * 2 - 1) * 1.3, y = ((py + .5) / n * 2 - 1) * 1.3;
+      const H0 = q => fbm(q[0] * 2.2 + 40, q[1] * 2.2 + 11, 41, 6) + .24 * Math.exp(-(q[0] * q[0] + q[1] * q[1]) / .05);
+      const h = H0([x, y]), hx = H0([x + .01, y + .01]), shade = clamp(1 + (h - hx) * 28, .7, 1.25);
+      let col;
+      if (h < .55) col = mix([36, 118, 150], [10, 38, 84], c01((.55 - h) * 5));
+      else if (h < .565) col = [206, 194, 150];
+      else { const m = fbm(x * 4 + 3, y * 4 + 1, 43, 4); col = m > .55 ? [58, 104, 50] : m > .45 ? [96, 126, 62] : [156, 144, 98];
+        if (h > .74) col = mix(col, [122, 106, 92], c01((h - .74) * 8)); if (h > .84) col = mix(col, [236, 236, 240], c01((h - .84) * 10));
+        col = col.map(c => c * shade); }
+      const cr = Math.hypot(x, y); if (cr < .045 && h >= .565) col = mix(col, [150, 146, 140], (1 - cr / .045) * .8 * (.6 + .4 * hash2(px, py, 9)));
+      return col;
+    });
+    return { tex: maskRadial(tex, .7), clouds: Array.from({ length: 22 }, () => [(r() * 2 - 1) * 1.4, (r() * 2 - 1) * 1.4, .05 + r() * .15]) };
+  },
+  draw(g, R, t, D) {
+    drawTex(g, D.tex, R * 1.3);
+    D.clouds.forEach(c => { const x = (c[0] + t * .004) * R, y = c[1] * R; if (Math.hypot(c[0], c[1]) < 1.2) glow(g, x, y, c[2] * R, [248, 250, 255], .42); });
+    label(g, 0, 0, 'a city', { align: 'right' });
+  } },
+{ name: 'A city', size: '30 km', e: 4.5, bg: [34, 44, 36],
+  fact: 'Home to a few million people. At night a city this size is bright enough to see clearly from the International Space Station.',
+  init(r) {
+    const n = 1000, c = makeCanvas(n), x = c.getContext('2d');
+    x.fillStyle = '#4b5a3e'; x.fillRect(0, 0, n, n);
+    for (let by = 0; by < n; by += 5) for (let bx = 0; bx < n; bx += 5) {
+      const d = Math.hypot(bx - 500, by - 500) / 500, dens = Math.exp(-d * d / .3) + (fbm(bx / 90, by / 90, 61, 3) - .5) * .9;
+      if (hash2(bx, by, 3) < dens * 1.15) { const v = 118 + hash2(bx, by, 4) * 70 + (1 - d) * 25; x.fillStyle = `rgb(${v | 0},${(v * .98) | 0},${(v * .94) | 0})`; }
+      else x.fillStyle = hash2(bx, by, 6) < .5 ? '#5d7048' : '#6f7a50';
+      x.fillRect(bx, by, 4, 4);
+    }
+    x.strokeStyle = '#d9b877'; x.lineWidth = 2.2;
+    [[0, 470, 1000, 540], [430, 0, 560, 1000], [0, 860, 1000, 180]].forEach(l => { x.beginPath(); x.moveTo(l[0], l[1]); x.lineTo(l[2], l[3]); x.stroke(); });
+    x.beginPath(); x.arc(500, 500, 190, 0, TAU); x.stroke();
+    x.strokeStyle = '#2d5570'; x.lineWidth = 15; x.lineCap = 'round'; x.beginPath(); x.moveTo(-20, 360); x.bezierCurveTo(300, 700, 620, 430, 1020, 640); x.stroke();
+    x.fillStyle = '#3f7d3c'; x.fillRect(488, 488, 24, 24);
+    return { tex: maskRadial(c, .7) };
+  },
+  draw(g, R) { drawTex(g, D => 0, 0); },
+  _draw: null },
+{ name: 'A park', size: '1 km', e: 3, bg: [36, 52, 32],
+  fact: 'A big city park can hold tens of thousands of trees. Each mature tree takes in roughly 20 kg of CO₂ a year.',
+  init(r) {
+    const n = 1000, c = makeCanvas(n), x = c.getContext('2d');
+    x.fillStyle = '#5c5e5c'; x.fillRect(0, 0, n, n);
+    for (let by = 0; by < n; by += 34) for (let bx = 0; bx < n; bx += 34) { const v = 150 + r() * 60; x.fillStyle = `rgb(${v | 0},${(v * .96) | 0},${(v * .92) | 0})`; x.fillRect(bx + 4, by + 4, 26, 26); }
+    x.fillStyle = '#3e3f41'; x.fillRect(100, 100, 800, 800);
+    x.fillStyle = '#4e8a3a'; x.fillRect(115, 115, 770, 770);
+    for (let i = 0; i < 7000; i++) { x.fillStyle = `rgba(${60 + r() * 50 | 0},${110 + r() * 50 | 0},${40 + r() * 30 | 0},.35)`; x.fillRect(115 + r() * 766, 115 + r() * 766, 2 + r() * 3, 2 + r() * 3); }
+    x.fillStyle = 'rgba(140,190,100,.35)'; x.beginPath(); x.arc(500, 500, 40, 0, TAU); x.fill();
+    x.strokeStyle = '#d6c7a0'; x.lineWidth = 5; x.lineCap = 'round';
+    [[115, 300, 400, 420, 620, 180, 885, 260], [300, 885, 360, 600, 560, 620, 640, 115], [115, 720, 380, 700, 520, 820, 885, 700]].forEach(p => { x.beginPath(); x.moveTo(p[0], p[1]); x.bezierCurveTo(p[2], p[3], p[4], p[5], p[6], p[7]); x.stroke(); });
+    x.beginPath(); x.ellipse(680, 380, 110, 75, 0, 0, TAU); x.stroke();
+    x.fillStyle = '#3b7390'; x.beginPath(); x.ellipse(680, 380, 95, 62, 0, 0, TAU); x.fill();
+    x.fillStyle = 'rgba(180,220,235,.25)'; x.beginPath(); x.ellipse(660, 365, 60, 30, 0, 0, TAU); x.fill();
+    x.fillStyle = '#d9c9a0'; x.fillRect(250, 560, 70, 50);
+    for (let i = 0; i < 1100; i++) {
+      const tx = 125 + r() * 750, ty = 125 + r() * 750;
+      if (((tx - 680) / 118) ** 2 + ((ty - 380) / 82) ** 2 < 1 || Math.hypot(tx - 500, ty - 500) < 55 || (tx > 240 && tx < 330 && ty > 550 && ty < 620)) continue;
+      const tr = 4 + r() * 6;
+      x.fillStyle = 'rgba(0,0,0,.25)'; x.beginPath(); x.arc(tx + 3, ty + 3, tr, 0, TAU); x.fill();
+      x.fillStyle = `rgb(${30 + r() * 30 | 0},${75 + r() * 45 | 0},${30 + r() * 20 | 0})`; x.beginPath(); x.arc(tx, ty, tr, 0, TAU); x.fill();
+      x.fillStyle = 'rgba(150,200,110,.35)'; x.beginPath(); x.arc(tx - tr * .3, ty - tr * .3, tr * .45, 0, TAU); x.fill();
+    }
+    return { tex: maskRadial(c, .72) };
+  },
+  draw(g, R, t, D) { drawTex(g, D.tex, R * 1.3); label(g, R * .36, -R * .24, 'pond'); label(g, 0, 0, 'picnic blanket', { align: 'right' }); } },
+{ name: 'A person', size: '1.8 m', e: .3, bg: [48, 72, 38],
+  fact: 'Roughly 37 trillion cells and 206 bones. Laid end to end, their blood vessels would stretch around 100,000 km.',
+  init(r) { const b = [[], [], []]; for (let i = 0; i < 1800; i++) { const x = (r() * 2 - 1) * 7, y = (r() * 2 - 1) * 7; if (x > -1.3 && x < .4 && y > -1.2 && y < 1.2) continue; const a = r() * TAU, l = .04 + r() * .06; b[i % 3].push(x, y, x + Math.cos(a) * l, y + Math.sin(a) * l); } return { b }; },
+  draw(g, R, t, D, s) {
+    softDisc(g, 60 * s, [70, 118, 52], 1, .6);
+    g.save(); g.scale(s, s);
+    if (s * .01 > .6) { g.lineWidth = .012; g.lineCap = 'round'; ['#3e6d2e', '#5f9444', '#88b35d'].forEach((c, k) => { g.strokeStyle = c; g.beginPath(); const a = D.b[k]; for (let i = 0; i < a.length; i += 4) { g.moveTo(a[i], a[i + 1]); g.lineTo(a[i + 2], a[i + 3]); } g.stroke(); }); }
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(-1.2, -1.1, 1.6, 2.3);
+    g.fillStyle = '#efe9dc'; g.fillRect(-1.25, -1.15, 1.6, 2.3);
+    g.fillStyle = '#c4413a'; for (let i = 0; i < 10; i++) for (let j = 0; j < 14; j++) if ((i + j) % 2 === 0) g.fillRect(-1.25 + i * .16, -1.15 + j * .164, .16, .164);
+    g.save(); g.translate(-1.02, -.25); g.rotate(-.3); g.fillStyle = '#2a4f8e'; g.fillRect(-.08, -.11, .16, .22); g.fillStyle = '#f2eee4'; g.fillRect(-.07, -.1, .012, .2); g.restore();
+    sphere(g, -.95, .45, .04, [200, 40, 40]); capsule(g, -1.07, .72, -.87, .79, .07, '#86c6dd');
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(-.4, .12, .3, .95, 0, 0, TAU); g.fill();
+    capsule(g, -.51, .05, -.57, .92, .14, '#34466f'); capsule(g, -.37, .05, -.31, .9, .14, '#34466f');
+    sphere(g, -.58, .97, .065, [236, 236, 236]); sphere(g, -.3, .95, .065, [236, 236, 236]);
+    g.fillStyle = '#2a968a'; g.beginPath(); g.roundRect(-.65, -.6, .4, .72, .08); g.fill();
+    capsule(g, -.62, -.5, -.76, .06, .085, '#c9906e'); sphere(g, -.77, .1, .05, [205, 150, 118]);
+    capsule(g, -.29, -.5, -.07, -.13, .082, '#c9906e'); sphere(g, -.045, -.07, .06, [205, 150, 118]);
+    capsule(g, -.45, -.62, -.45, -.66, .08, '#b98262');
+    sphere(g, -.45, -.76, .11, [60, 42, 32]); sphere(g, -.45, -.71, .09, [205, 150, 118]);
+    g.fillStyle = '#1c1c22'; g.fillRect(-.51, -.72, .045, .02); g.fillRect(-.435, -.72, .045, .02);
+    g.restore();
+    label(g, -.45 * s, -.76 * s, 'you', { align: 'right' }); label(g, 0, 0, 'right hand');
+  } },
+{ name: 'A hand', size: '19 cm', e: -.72, bg: [150, 70, 64],
+  fact: '27 bones and more than 30 muscles. A fingertip packs in about 2,500 touch receptors per square centimetre.',
+  init() { return {}; },
+  draw(g, R, t, D, s) {
+    g.save(); g.scale(s, s); g.rotate(2.57);
+    const sk = '#d4a081', out = '#a8725a';
+    const parts = [[.02, .12, .02, .32, .066], [.0, .058, .0, .004, .018], [.021, .052, .022, -.006, .018], [.041, .056, .043, .003, .017], [.059, .066, .063, .026, .015], [-.02, .105, -.046, .058, .02]];
+    parts.forEach(p => capsule(g, p[0], p[1], p[2], p[3], p[4] + .003, out));
+    g.fillStyle = out; g.beginPath(); g.ellipse(.028, .1, .049, .054, 0, 0, TAU); g.fill();
+    parts.forEach(p => capsule(g, p[0], p[1], p[2], p[3], p[4], sk));
+    g.fillStyle = sk; g.beginPath(); g.ellipse(.028, .1, .046, .051, 0, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(240,170,150,.55)'; [[0, .006], [.022, -.004], [.043, .005], [.063, .027], [-.045, .058]].forEach(p => { g.beginPath(); g.arc(p[0], p[1], .0075, 0, TAU); g.fill(); });
+    g.strokeStyle = 'rgba(140,85,65,.7)'; g.lineWidth = .0012; g.lineCap = 'round';
+    [[-.008, .03, .008, .03], [-.008, .018, .008, .018], [.013, .026, .03, .026], [.014, .012, .03, .012], [.033, .03, .05, .03], [.052, .045, .067, .045]].forEach(l => { g.beginPath(); g.moveTo(l[0], l[1]); g.lineTo(l[2], l[3]); g.stroke(); });
+    g.beginPath(); g.moveTo(-.01, .08); g.quadraticCurveTo(.03, .07, .07, .085); g.stroke();
+    g.beginPath(); g.moveTo(-.012, .095); g.quadraticCurveTo(.02, .1, .055, .1); g.stroke();
+    g.beginPath(); g.moveTo(-.005, .09); g.quadraticCurveTo(-.01, .12, .01, .14); g.stroke();
+    g.restore();
+    label(g, 0, 0, 'index fingertip');
+  } },
+{ name: 'A fingertip', size: '1 cm', e: -2, bg: [206, 146, 124], fout: [1.6, 2.6],
+  fact: 'Friction ridges about half a millimetre apart. The pattern forms before birth, and even identical twins have different prints.',
+  init() { return {}; },
+  draw(g, R, t, D, s) {
+    softDisc(g, .011 * s, [226, 170, 146], 1, .75);
+    const gap = .00048;
+    g.strokeStyle = 'rgba(156,88,74,.62)'; g.lineWidth = .00022 * s; g.lineJoin = 'round';
+    for (let k = 1; k <= 20; k++) { const rk = k * gap * s; if (rk < .8 || rk * .75 > DIAG * 1.2) continue; g.beginPath(); for (let i = 0; i <= 96; i++) { const p = ridge(k, i / 96 * TAU, s); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); } g.stroke(); }
+    const pr = .00005 * s;
+    if (pr > .6) { g.fillStyle = 'rgba(105,50,45,.6)'; for (let k = 1; k <= 20; k++) { const n = Math.floor(TAU * k * gap / .0006); for (let j = 0; j < n; j++) { const p = ridge(k, j / n * TAU + k * .37, s); if (Math.abs(p[0]) > DIAG || Math.abs(p[1]) > DIAG) continue; g.beginPath(); g.arc(p[0], p[1], pr, 0, TAU); g.fill(); } } }
+    label(g, ridge(3, -.6, s)[0], ridge(3, -.6, s)[1], 'friction ridge');
+  } },
+{ name: 'The skin surface', size: '1 mm', e: -3, bg: [198, 136, 116],
+  fact: 'Each ridge is dotted with sweat pores. You shed somewhere around 30,000 to 40,000 dead skin cells every minute.',
+  init(r) { const fl = []; for (let i = 0; i < 34; i++) { const cx = (r() * 2 - 1) * .0013, cy = (r() * 2 - 1) * .0013, sz = .00003 + r() * .00006, pts = []; for (let k = 0; k < 7; k++) { const a = k / 7 * TAU + r() * .5, d = sz * (.6 + r() * .6); pts.push(cx + Math.cos(a) * d, cy + Math.sin(a) * d); } fl.push(pts); }
+    const fu = []; for (let i = 0; i < 70; i++) { const x = (r() * 2 - 1) * .0015, y = (r() * 2 - 1) * .0015, a = r() * TAU, l = .0001 + r() * .0002; fu.push(x, y, x + Math.cos(a) * l, y + Math.sin(a) * l); } return { fl, fu }; },
+  draw(g, R, t, D, s) {
+    g.strokeStyle = 'rgba(150,90,78,.35)'; g.lineWidth = Math.max(.6, 8e-6 * s); g.beginPath(); for (let i = 0; i < D.fu.length; i += 4) { g.moveTo(D.fu[i] * s, D.fu[i + 1] * s); g.lineTo(D.fu[i + 2] * s, D.fu[i + 3] * s); } g.stroke();
+    D.fl.forEach(p => { g.beginPath(); for (let i = 0; i < p.length; i += 2) i ? g.lineTo(p[i] * s, p[i + 1] * s) : g.moveTo(p[i] * s, p[i + 1] * s); g.closePath(); g.fillStyle = 'rgba(252,228,218,.38)'; g.fill(); g.strokeStyle = 'rgba(255,242,236,.5)'; g.lineWidth = Math.max(.6, 4e-6 * s); g.stroke(); });
+    const dp = ridge(2, .9, s), dr = 9e-5 * s;
+    const gr = g.createRadialGradient(dp[0] - dr * .3, dp[1] - dr * .3, 0, dp[0], dp[1], dr); gr.addColorStop(0, 'rgba(255,255,255,.75)'); gr.addColorStop(.6, 'rgba(210,230,255,.25)'); gr.addColorStop(1, 'rgba(210,230,255,.05)');
+    g.fillStyle = gr; g.beginPath(); g.arc(dp[0], dp[1], dr, 0, TAU); g.fill();
+    label(g, dp[0], dp[1], 'sweat droplet at a pore'); label(g, D.fl[0][0] * s, D.fl[0][1] * s, 'dead skin flake', { a: .9, align: 'right' });
+  } },
+{ name: 'Stratum corneum', size: '0.2 mm', e: -3.7, bg: [226, 180, 166],
+  fact: 'The outermost layer: 15 to 20 sheets of flat, dead cells packed with keratin. It forms a waterproof shield that renews about once a month.',
+  init() {
+    const n = 700, cs = 103, seeds = {};
+    const seed = (gx, gy) => { const k = gx + ',' + gy; if (!seeds[k]) seeds[k] = (gx === 3 && gy === 3) ? [350, 350] : [(gx + .2 + .6 * hash2(gx, gy, 71)) * cs - 10, (gy + .2 + .6 * hash2(gx, gy, 72)) * cs - 10]; return seeds[k]; };
+    const tex = pixelTex(n, (px, py) => {
+      const gx = Math.floor((px + 10) / cs), gy = Math.floor((py + 10) / cs); let d1 = 1e9, d2 = 1e9, id = 0;
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const sd = seed(gx + i, gy + j), d = Math.hypot(px - sd[0], py - sd[1]); if (d < d1) { d2 = d1; d1 = d; id = (gx + i) * 31 + (gy + j); } else if (d < d2) d2 = d; }
+      const sh = .9 + .14 * hash2(id, 1, 73) + .05 * (1 - d1 / cs) + (vnoise(px / 6, py / 6, 74) - .5) * .06;
+      let col = [240 * sh, 202 * sh, 190 * sh]; const e = d2 - d1; if (e < 3.5) col = mix([172, 116, 106], col, e / 3.5);
+      return col;
+    });
+    return { tex: maskRadial(tex, .7) };
+  },
+  draw(g, R, t, D) { drawTex(g, D.tex, R * 1.3); label(g, R * .34, -R * .1, 'one dead cell · ~40 µm'); } },
+{ name: 'A living skin cell', size: '30 µm', e: -4.5, bg: [30, 10, 30], fin: [-1.7, -.7],
+  fact: 'Beneath the dead layer, living keratinocytes are busy with mitochondria, filaments and proteins, all built from instructions stored in the nucleus.',
+  init(r) {
+    const mem = blobRadii(r, 90, .08), nb = Array.from({ length: 6 }, (_, k) => [k / 6 * TAU + .3, 2.05 + r() * .15, blobRadii(r, 60, .1)]);
+    const mito = Array.from({ length: 46 }, () => { const a = r() * TAU, d = .36 + r() * .5; return [Math.cos(a) * d, Math.sin(a) * d, r() * TAU, .07 + r() * .06]; });
+    const ves = Array.from({ length: 50 }, () => { const a = r() * TAU, d = .3 + r() * .6; return [Math.cos(a) * d, Math.sin(a) * d, .012 + r() * .02]; });
+    const fil = Array.from({ length: 24 }, () => { const a = r() * TAU, b = a + Math.PI + (r() - .5) * 1.4; return [Math.cos(a) * .88, Math.sin(a) * .88, (r() - .5) * .8, (r() - .5) * .8, Math.cos(b) * .88, Math.sin(b) * .88]; });
+    return { mem, nb, mito, ves, fil };
+  },
+  draw(g, R, t, D) {
+    softDisc(g, R * 2.6, [30, 10, 30], .95, .55);
+    D.nb.forEach(([a, d, rad]) => { blobPath(g, R, rad, Math.cos(a) * d * R, Math.sin(a) * d * R); g.fillStyle = 'rgba(190,80,150,.13)'; g.fill(); g.strokeStyle = 'rgba(255,160,210,.3)'; g.lineWidth = Math.max(1, R * .01); g.stroke(); });
+    blobPath(g, R, D.mem); const gr = g.createRadialGradient(0, 0, R * .1, 0, 0, R); gr.addColorStop(0, 'rgba(236,140,192,.38)'); gr.addColorStop(1, 'rgba(196,84,158,.26)'); g.fillStyle = gr; g.fill();
+    g.strokeStyle = 'rgba(255,184,222,.85)'; g.lineWidth = Math.max(1, R * .012); g.stroke();
+    g.strokeStyle = 'rgba(255,205,232,.22)'; g.lineWidth = Math.max(.6, R * .004); D.fil.forEach(f => { g.beginPath(); g.moveTo(f[0] * R, f[1] * R); g.quadraticCurveTo(f[2] * R, f[3] * R, f[4] * R, f[5] * R); g.stroke(); });
+    g.strokeStyle = 'rgba(226,150,255,.42)'; g.lineWidth = Math.max(.7, R * .006);
+    for (let k = 0; k < 5; k++) { const rr = .25 + k * .025; g.beginPath(); for (let i = 0; i <= 60; i++) { const a = -1 + k * .5 + i / 60 * 2.4, w = rr + .01 * Math.sin(i * .9 + k); i ? g.lineTo(Math.cos(a) * w * R, Math.sin(a) * w * R) : g.moveTo(Math.cos(a) * w * R, Math.sin(a) * w * R); } g.stroke(); }
+    D.mito.forEach(m => { g.save(); g.translate(m[0] * R, m[1] * R); g.rotate(m[2]); capsule(g, -m[3] * R / 2, 0, m[3] * R / 2, 0, R * .035, 'rgba(255,140,100,.8)'); if (R > 120 * U) { g.strokeStyle = 'rgba(120,40,40,.6)'; g.lineWidth = R * .004; g.beginPath(); for (let i = 1; i < 5; i++) { const x = (-m[3] / 2 + m[3] * i / 5) * R; g.moveTo(x, -R * .012); g.lineTo(x, R * .012); } g.stroke(); } g.restore(); });
+    g.strokeStyle = 'rgba(255,232,242,.5)'; g.lineWidth = Math.max(.6, R * .003); D.ves.forEach(v => { g.beginPath(); g.arc(v[0] * R, v[1] * R, v[2] * R, 0, TAU); g.stroke(); });
+    const nr = R * .2; const ng = g.createRadialGradient(0, 0, 0, 0, 0, nr); ng.addColorStop(0, 'rgba(130,60,180,.95)'); ng.addColorStop(1, 'rgba(90,35,130,.95)'); g.fillStyle = ng; g.beginPath(); g.arc(0, 0, nr, 0, TAU); g.fill();
+    label(g, 0, 0, 'nucleus'); label(g, D.mito[0][0] * R, D.mito[0][1] * R, 'mitochondrion', { align: 'right' }); label(g, R * .98, 0, 'cell membrane', { a: .9 });
+  } },
+{ name: 'The nucleus', size: '6 µm', e: -5.2, bg: [22, 10, 36],
+  fact: 'Two metres of DNA folded into a space six thousandths of a millimetre wide. The dark nucleolus assembles the cell\'s ribosomes.',
+  init(r) { const th = Array.from({ length: 36 }, () => { let x = (r() * 2 - 1) * .7, y = (r() * 2 - 1) * .7, a = r() * TAU; const p = [x, y]; for (let i = 0; i < 40; i++) { a += (r() - .5) * 1.2; x += Math.cos(a) * .03; y += Math.sin(a) * .03; if (x * x + y * y > .85) { a += Math.PI; } p.push(x, y); } return p; }); return { th, nuc: blobRadii(r, 50, .15) }; },
+  draw(g, R, t, D) {
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, R); gr.addColorStop(0, 'rgba(126,60,176,.95)'); gr.addColorStop(1, 'rgba(82,30,120,.95)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(230,180,255,.75)'; g.lineWidth = Math.max(1, R * .008); [1, 1.035].forEach(k => { g.beginPath(); g.arc(0, 0, R * k, 0, TAU); g.stroke(); });
+    blobPath(g, R * .24, D.nuc, R * .42, -R * .28); g.fillStyle = 'rgba(46,14,66,.92)'; g.fill();
+    g.strokeStyle = 'rgba(214,154,244,.45)'; g.lineWidth = Math.max(.7, R * .009); g.lineJoin = 'round';
+    D.th.forEach(p => { g.beginPath(); for (let i = 0; i < p.length; i += 2) i ? g.lineTo(p[i] * R, p[i + 1] * R) : g.moveTo(p[i] * R, p[i + 1] * R); g.stroke(); });
+    for (let i = 0; i < 56; i++) { const a = i / 56 * TAU, x = Math.cos(a) * R * 1.017, y = Math.sin(a) * R * 1.017; g.fillStyle = 'rgba(40,14,60,1)'; g.beginPath(); g.arc(x, y, R * .022, 0, TAU); g.fill(); g.strokeStyle = 'rgba(240,200,255,.8)'; g.lineWidth = Math.max(.6, R * .005); g.stroke(); }
+    label(g, R * .42, -R * .28, 'nucleolus'); label(g, R * 1.02, R * .06, 'nuclear pore', { a: .9 });
+  } },
+{ name: 'A chromosome', size: '1.4 µm', e: -5.85, bg: [14, 12, 34],
+  fact: 'When a cell divides, its DNA condenses into 46 chromosomes. Chromosome 1, the largest, carries about 249 million base pairs.',
+  init(r) { const loops = []; for (let i = 0; i < 260; i++) loops.push(r(), r(), r() * TAU, r() < .5 ? 1 : -1); return { loops, bands: Array.from({ length: 4 }, () => Array.from({ length: 7 }, () => [.08 + r() * .88, .02 + r() * .05])) }; },
+  draw(g, R, t, D) {
+    const C = [-.5 * R, -.5 * R], arms = [[-.45, -.55], [-.2, -.72], [1, 1], [1.2, .62]], w = R * .3;
+    arms.forEach(a => capsule(g, C[0], C[1], C[0] + a[0] * R, C[1] + a[1] * R, w + R * .03, 'rgba(210,190,255,.35)'));
+    arms.forEach(a => capsule(g, C[0], C[1], C[0] + a[0] * R, C[1] + a[1] * R, w, '#8a6ad6'));
+    g.lineCap = 'butt';
+    arms.forEach((a, k) => { const ex = a[0] * R, ey = a[1] * R, L = Math.hypot(ex, ey), nx = -ey / L, ny = ex / L;
+      D.bands[k].forEach(([f, bw]) => { const x = C[0] + ex * f, y = C[1] + ey * f; g.strokeStyle = 'rgba(44,28,100,.75)'; g.lineWidth = bw * R; g.beginPath(); g.moveTo(x - nx * w * .48, y - ny * w * .48); g.lineTo(x + nx * w * .48, y + ny * w * .48); g.stroke(); });
+      if (R > 300 * U) { g.strokeStyle = 'rgba(210,190,255,.45)'; g.lineWidth = R * .004; for (let i = 0; i < D.loops.length; i += 4) { if ((i / 4) % 4 !== k) continue; const f = D.loops[i], side = D.loops[i + 3], x = C[0] + ex * f + nx * side * w * .5, y = C[1] + ey * f + ny * side * w * .5; g.beginPath(); g.arc(x, y, R * .02 * (.5 + D.loops[i + 1]), D.loops[i + 2], D.loops[i + 2] + 4); g.stroke(); } } });
+    sphere(g, C[0], C[1], w * .45, [190, 120, 255], .9);
+    label(g, C[0], C[1], 'centromere', { align: 'right' }); label(g, 0, 0, 'chromatid');
+  } },
+{ name: 'Chromatin fibre', size: '30 nm', e: -7.3, bg: [10, 12, 28], fout: [.5, 1],
+  fact: 'DNA winds around protein spools called nucleosomes, like beads on a string, and the string coils again into thicker fibres.',
+  init(r) { return { bgf: Array.from({ length: 6 }, () => { let x = (r() * 2 - 1) * 3, y = (r() * 2 - 1) * 3, a = r() * TAU; const p = [x, y]; for (let i = 0; i < 30; i++) { a += (r() - .5) * .6; x += Math.cos(a) * .25; y += Math.sin(a) * .25; p.push(x, y); } return p; }) }; },
+  draw(g, R, t, D, s) {
+    g.strokeStyle = 'rgba(160,120,230,.22)'; g.lineWidth = 30e-9 * s; g.lineCap = 'round'; g.lineJoin = 'round';
+    D.bgf.forEach(p => { g.beginPath(); for (let i = 0; i < p.length; i += 2) i ? g.lineTo(p[i] * R, p[i + 1] * R) : g.moveTo(p[i] * R, p[i + 1] * R); g.stroke(); });
+    const st = 11e-9 * s, N = Math.min(300, Math.ceil(DIAG / st) + 2), pos = i => { const x = i * st; return [x, 20e-9 * s * Math.sin(i * st / (40e-9 * s)) + (i % 2 ? 7e-9 * s : 0)]; };
+    g.strokeStyle = 'rgba(90,170,255,.85)'; g.lineWidth = Math.max(.8, 2e-9 * s); g.beginPath(); for (let i = -N; i <= N; i++) { const p = pos(i); i === -N ? g.moveTo(p[0], p[1] - 4.2e-9 * s) : g.lineTo(p[0], p[1] - 4.2e-9 * s); } g.stroke();
+    const br = 5.2e-9 * s;
+    if (br > .8) for (let i = -N; i <= N; i++) { const p = pos(i); sphere(g, p[0], p[1] - 4.2e-9 * s, br, [214, 120, 200]); }
+    label(g, 0, -4.2e-9 * s, 'nucleosome'); label(g, pos(1)[0] * .5, (pos(0)[1] + pos(1)[1]) / 2 - 4.2e-9 * s, 'linker DNA', { a: .85 });
+  } },
+{ name: 'A nucleosome', size: '11 nm', e: -8, bg: [10, 11, 22], fout: [.15, .45],
+  fact: 'A stretch of 147 base pairs of DNA wraps 1.7 times around a core of eight histone proteins.',
+  init() { return {}; },
+  draw(g, R, t, D, s) {
+    const nm = 1e-9 * s, cy = -4.2 * nm;
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(70,130,220,.55)'; g.lineWidth = 2 * nm; g.beginPath(); g.arc(0, cy, 4.2 * nm, Math.PI, TAU); g.stroke();
+    g.beginPath(); g.arc(0, cy - .5 * nm, 4.5 * nm, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+    const hc = [[250, 200, 80], [240, 90, 100], [90, 150, 255], [90, 220, 140]];
+    for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + .2; sphere(g, Math.cos(a) * 1.9 * nm, cy + Math.sin(a) * 1.9 * nm, 1.55 * nm, hc[i % 4]); }
+    g.strokeStyle = 'rgba(95,175,255,.95)'; g.lineWidth = 2 * nm; g.beginPath(); g.moveTo(-DIAG * 1.2, 0); g.lineTo(0, 0); g.arc(0, cy, 4.2 * nm, Math.PI / 2, 0, true); g.stroke();
+    g.beginPath(); g.moveTo(0, 0); g.arc(0, cy, 4.2 * nm, Math.PI / 2, Math.PI, false); g.stroke();
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(DIAG * 1.2, 0); g.stroke();
+    g.strokeStyle = 'rgba(210,235,255,.5)'; g.lineWidth = .5 * nm; g.beginPath(); g.moveTo(-DIAG * 1.2, -.4 * nm); g.lineTo(DIAG * 1.2, -.4 * nm); g.stroke();
+    label(g, 0, cy, 'histone core · 8 proteins', { align: 'right' }); label(g, 3 * nm, 0, 'DNA');
+  } },
+{ name: 'The double helix', size: '2 nm wide', e: -8.5, bg: [7, 10, 20], fout: [.25, .75],
+  fact: 'Two sugar-phosphate backbones twist around each other, making one full turn every 10.5 base pairs, or 3.4 nm.',
+  init(r) { return { seq: Array.from({ length: 512 }, () => Math.floor(r() * 4)) }; },
+  draw(g, R, t, D, s) {
+    const nm = 1e-9 * s, rr = nm, pitch = 3.4 * nm, sp = t * .5, BC = [[90, 220, 140], [240, 90, 110], [250, 200, 80], [90, 160, 250]], COMP = [1, 0, 3, 2];
+    const X = DIAG * 1.1, step = 3 * U;
+    const strand = (off, front) => { g.beginPath(); let on = false; for (let x = -X; x <= X; x += step) { const ph = x / pitch * TAU + sp + off, z = Math.cos(ph), y = rr * Math.sin(ph); if ((z >= 0) === front) { on ? g.lineTo(x, y) : g.moveTo(x, y); on = true; } else on = false; } g.stroke(); };
+    g.lineCap = 'round';
+    g.strokeStyle = 'rgba(70,110,190,.55)'; g.lineWidth = Math.max(.8, .32 * nm); strand(0, false); strand(2.2, false);
+    const bs = .34 * nm;
+    if (bs > 3 * U) { const n = Math.ceil(X / bs); g.lineWidth = .16 * nm; g.lineCap = 'butt';
+      for (let j = -n; j <= n; j++) { const x = j * bs, ph = x / pitch * TAU + sp, y1 = rr * Math.sin(ph), y2 = rr * Math.sin(ph + 2.2), ym = (y1 + y2) / 2, b = D.seq[((j % 512) + 512) % 512];
+        g.strokeStyle = rgba(BC[b], .9); g.beginPath(); g.moveTo(x, y1); g.lineTo(x, ym); g.stroke(); g.strokeStyle = rgba(BC[COMP[b]], .9); g.beginPath(); g.moveTo(x, ym); g.lineTo(x, y2); g.stroke(); } g.lineCap = 'round'; }
+    g.strokeStyle = 'rgba(130,195,255,.95)'; g.lineWidth = Math.max(.8, .34 * nm); strand(0, true); strand(2.2, true);
+    g.strokeStyle = 'rgba(235,245,255,.6)'; g.lineWidth = Math.max(.5, .08 * nm); strand(0, true); strand(2.2, true);
+    label(g, 1.02 * nm, -rr * .9, 'sugar-phosphate backbone'); label(g, -2 * bs, 0, 'base pairs', { align: 'right' });
+  } },
+{ name: 'A base pair', size: '1 nm', e: -9.05, bg: [6, 7, 16],
+  fact: 'Adenine pairs with thymine through two hydrogen bonds, guanine with cytosine through three. Your genome holds about 3.1 billion pairs.',
+  init() {
+    const A = [ // x, y (nm), element
+      [0, -.47, 'C'], [.121, -.40, 'C'], [.121, -.26, 'C'], [0, -.19, 'N'], [-.121, -.26, 'C'], [-.121, -.40, 'N'],
+      [-.228, -.20, 'O'], [.228, -.20, 'O'], [0, -.09, 'H'], [.228, -.47, 'C'], [0, -.57, 'H'], [-.228, -.47, 'C'],
+      [0, .19, 'N'], [.121, .26, 'C'], [.121, .40, 'C'], [0, .47, 'C'], [-.121, .40, 'N'], [-.121, .26, 'C'],
+      [.228, .20, 'N'], [.228, .10, 'H'], [.33, .25, 'H'], [-.228, .20, 'H'], [.245, .47, 'N'], [.2, .6, 'C'], [.07, .6, 'N'], [.27, .69, 'H'], [.02, .72, 'C'],
+      [.3, -.55, 'H'], [.3, -.41, 'H'], [.25, -.56, 'H']];
+    const B = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], [4, 6], [2, 7], [3, 8], [1, 9], [0, 10], [5, 11], [12, 13], [13, 14], [14, 15], [15, 16], [16, 17], [17, 12], [13, 18], [18, 19], [18, 20], [17, 21], [14, 22], [22, 23], [23, 24], [24, 15], [23, 25], [24, 26], [9, 27], [9, 28], [9, 29]];
+    const HB = [[7, 19], [8, 12]];
+    const ox = -.121, oy = -.26; A.forEach(a => { a[0] -= ox; a[1] -= oy; });
+    return { A, B, HB };
+  },
+  draw(g, R, t, D, s) {
+    const nm = 1e-9 * s, EC = { C: [150, 156, 168], N: [80, 120, 255], O: [240, 72, 72], H: [236, 236, 242] }, ER = { C: .06, N: .058, O: .056, H: .036 };
+    g.strokeStyle = 'rgba(220,226,238,.9)'; g.lineWidth = .022 * nm; g.lineCap = 'round';
+    g.beginPath(); D.B.forEach(([i, j]) => { g.moveTo(D.A[i][0] * nm, D.A[i][1] * nm); g.lineTo(D.A[j][0] * nm, D.A[j][1] * nm); }); g.stroke();
+    g.strokeStyle = 'rgba(150,220,255,.9)'; g.lineWidth = .014 * nm; g.setLineDash([.025 * nm, .025 * nm]);
+    g.beginPath(); D.HB.forEach(([i, j]) => { g.moveTo(D.A[i][0] * nm, D.A[i][1] * nm); g.lineTo(D.A[j][0] * nm, D.A[j][1] * nm); }); g.stroke(); g.setLineDash([]);
+    D.A.forEach(a => sphere(g, a[0] * nm, a[1] * nm, ER[a[2]] * nm, EC[a[2]]));
+    label(g, D.A[1][0] * nm + .15 * nm, -.19 * nm, 'thymine (T)'); label(g, D.A[14][0] * nm + .2 * nm, .6 * nm, 'adenine (A)');
+    label(g, D.A[7][0] * nm, (D.A[7][1] + D.A[19][1]) / 2 * nm, 'hydrogen bonds'); label(g, 0, 0, 'a carbon atom', { align: 'right' });
+  } },
+{ name: 'A carbon atom', size: '0.14 nm', e: -9.85, bg: [4, 4, 11], fout: [2, 3.8],
+  fact: 'Six electrons spread through a probability cloud. The atom is nearly all empty space; its nucleus is about 25,000 times smaller than the cloud.',
+  init(r) { const p = [];
+    for (let i = 0; i < 500; i++) p.push(gauss(r) * .09, gauss(r) * .09, 0);
+    for (let i = 0; i < 1200; i++) { const a = r() * TAU, d = .55 + gauss(r) * .16; p.push(Math.cos(a) * d, Math.sin(a) * d, 1); }
+    [0, 1.05, 2.1].forEach(ax => { for (let i = 0; i < 700; i++) { const sg = r() < .5 ? -1 : 1, l = sg * (.42 + gauss(r) * .12), w = gauss(r) * .14 * (1 - Math.abs(l) * .5); p.push(Math.cos(ax) * l - Math.sin(ax) * w, Math.sin(ax) * l + Math.cos(ax) * w, 2); } });
+    return { p: new Float32Array(p) }; },
+  draw(g, R, t, D) {
+    glow(g, 0, 0, R * 1.1, [110, 90, 220], .22);
+    const cols = ['rgba(220,245,255,.5)', 'rgba(110,210,235,.35)', 'rgba(200,120,255,.32)'], sz = Math.max(1, Math.min(R * .006, 2.5 * U)), P = D.p;
+    for (let c = 0; c < 3; c++) { g.fillStyle = cols[c]; for (let i = 0; i < P.length; i += 3) { if (P[i + 2] !== c) continue; const jx = Math.sin(t * 2 + i) * .01, x = (P[i] + jx) * R, y = P[i + 1] * R; if (Math.abs(x) > DIAG || Math.abs(y) > DIAG) continue; g.fillRect(x, y, sz, sz); } }
+    label(g, R * .55, -R * .1, '2s and 2p electron orbitals'); label(g, 0, 0, 'nucleus: far too small to see', { align: 'right' });
+  } },
+{ name: 'The atomic nucleus', size: '5 femtometres', e: -14.27, bg: [3, 3, 8], fin: [-3.8, -2.2], fout: [.2, .6],
+  fact: 'Six protons and six neutrons bound by the strong force. The nucleus holds 99.97% of the atom\'s mass in a sliver of its volume.',
+  init(r) {
+    let p = Array.from({ length: 12 }, () => [gauss(r), gauss(r), gauss(r)]);
+    for (let it = 0; it < 120; it++) { for (let i = 0; i < 12; i++) { for (let j = 0; j < 12; j++) { if (i === j) continue; const d = [p[i][0] - p[j][0], p[i][1] - p[j][1], p[i][2] - p[j][2]], l = Math.hypot(...d) || 1e-3; if (l < 1.65) for (let k = 0; k < 3; k++) p[i][k] += d[k] / l * (1.65 - l) * .25; } for (let k = 0; k < 3; k++) p[i][k] *= .97; } }
+    let fi = 0; p.forEach((q, i) => { if (q[2] > p[fi][2]) fi = i; });
+    const f = p[fi]; const nodes = p.map((q, i) => [q[0] - f[0], q[1] - f[1], q[2], 0]);
+    let np = 1; nodes[fi][3] = 1; nodes.forEach((n, i) => { if (i !== fi && np < 6 && i % 2 === 0) { n[3] = 1; np++; } });
+    nodes.sort((a, b) => a[2] - b[2]);
+    return { nodes, cx: -f[0], cy: -f[1] };
+  },
+  draw(g, R, t, D, s) {
+    const fm = 1e-15 * s;
+    glow(g, D.cx * fm, D.cy * fm, 3.5 * fm, [255, 120, 90], .25);
+    D.nodes.forEach((n, i) => sphere(g, (n[0] + .04 * Math.sin(t * 3 + i)) * fm, (n[1] + .04 * Math.cos(t * 2.6 + i)) * fm, .84 * fm, n[3] ? [228, 72, 82] : [120, 140, 172]));
+    const nt = D.nodes.find(n => !n[3]);
+    label(g, 0, 0, 'proton'); if (nt) label(g, nt[0] * fm, nt[1] * fm, 'neutron', { align: 'right' });
+  } },
+{ name: 'A proton', size: '1.7 femtometres', e: -14.77, bg: [5, 2, 8], fout: [.7, 1.3],
+  fact: 'Two up quarks and one down quark bound by gluons. Most of a proton\'s mass comes from the energy of that binding, not from the quarks.',
+  init() { return { q: [[0, 0, [255, 80, 80], 'up'], [-.5, .3, [80, 230, 120], 'up'], [.36, .42, [90, 150, 255], 'down']] }; },
+  draw(g, R, t, D) {
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, R); gr.addColorStop(0, 'rgba(255,90,90,.2)'); gr.addColorStop(1, 'rgba(255,60,80,.06)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(255,150,150,.3)'; g.lineWidth = Math.max(1, R * .006); g.stroke();
+    for (let i = 0; i < 26; i++) { const ph = t * 1.5 + i * .37, cy = Math.floor(ph), lo = ph - cy, a = hash2(i, cy, 91) * TAU, d = Math.sqrt(hash2(i, cy, 92)) * .9, al = Math.sin(Math.PI * lo) * .8, x = Math.cos(a) * d * R, y = Math.sin(a) * d * R; glow(g, x - R * .02, y, R * .02, [255, 230, 150], al); glow(g, x + R * .02, y, R * .02, [150, 220, 255], al); }
+    g.strokeStyle = 'rgba(255,215,120,.75)'; g.lineWidth = Math.max(1, R * .008);
+    for (let a = 0; a < 3; a++) { const p = D.q[a], q = D.q[(a + 1) % 3], dx = (q[0] - p[0]) * R, dy = (q[1] - p[1]) * R, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L; g.beginPath(); for (let i = 0; i <= 60; i++) { const f = i / 60, w = Math.sin(f * TAU * 7 + t * 8) * R * .025; const x = p[0] * R + dx * f + nx * w, y = p[1] * R + dy * f + ny * w; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+    D.q.forEach(q => { glow(g, q[0] * R, q[1] * R, R * .14, q[2], .7); glow(g, q[0] * R, q[1] * R, R * .045, [255, 255, 255], 1); });
+    label(g, 0, 0, 'up quark'); label(g, D.q[1][0] * R, D.q[1][1] * R, 'up quark', { align: 'right' }); label(g, D.q[2][0] * R, D.q[2][1] * R, 'down quark'); label(g, -R * .15, R * .15, 'gluon field', { a: .8, align: 'right' });
+  } },
+{ name: 'A quark', size: 'Under 10⁻¹⁸ m: no size ever measured', e: -16.3, bg: [2, 1, 4],
+  fact: 'No experiment has found any size at all. As far as we can tell, quarks are true points: the smallest thing we know of.',
+  init() { return {}; },
+  draw(g, R, t) {
+    const dir = [-.857, .514];
+    for (let i = 1; i <= 14; i++) glow(g, dir[0] * i * R * .5, dir[1] * i * R * .5, R * .35, [255, 200, 110], .12);
+    for (let i = 0; i < 140; i++) { const ph = t * 2 + i * .21, cy = Math.floor(ph), lo = ph - cy, a = hash2(i, cy, 95) * TAU, d = .3 + hash2(i, cy, 96) * 3; glow(g, Math.cos(a) * d * R, Math.sin(a) * d * R, R * .04 * (1 + lo), [180, 200, 255], Math.sin(Math.PI * lo) * .6); }
+    glow(g, 0, 0, R * 1.3, [255, 60, 70], .35); glow(g, 0, 0, R * .45, [255, 150, 150], .8); glow(g, 0, 0, R * .12, [255, 255, 255], 1);
+    label(g, 0, 0, 'up quark · point-like'); label(g, dir[0] * R * 2.2, dir[1] * R * 2.2, 'gluon flux tube', { align: 'right', a: .85 });
+  } }
+];
+const PLANETS = [['Mercury', .387, 2.1, [170, 160, 150], 2.44e6], ['Venus', .723, -2.4, [230, 200, 150], 6.05e6], ['Earth', 1, 0, [80, 140, 230], 6.37e6], ['Mars', 1.524, .9, [210, 110, 70], 3.39e6], ['Jupiter', 5.2, -1.2, [220, 180, 140], 6.99e7], ['Saturn', 9.54, 2.6, [230, 205, 150], 5.82e7], ['Uranus', 19.2, -.4, [160, 220, 230], 2.54e7], ['Neptune', 30.07, 1.7, [90, 130, 240], 2.46e7]];
+function ridge(k, th, s) { const rk = k * .00048 * (1 + .06 * Math.sin(3 * th + k * .4)) * (1 + .16 * Math.cos(th - .6)); return [Math.cos(th) * rk * s, Math.sin(th) * rk * s]; }
+// the city layer draws its texture
+LAYERS[12].draw = (g, R, t, D) => { drawTex(g, D.tex, R * 1.3); label(g, 0, 0, 'park · 1 km', { align: 'right' }); label(g, R * .06, R * .28, 'river', { a: .85 }); };
+
+const N = LAYERS.length, E = LAYERS.map(l => l.e);
+const T0 = 1.2, STEP = 2, TOTAL = T0 + (N - 1) * STEP + 1.8;
+
+/* monotone cubic camera path through the layer sizes */
+const dl = E.slice(0, -1).map((e, i) => E[i + 1] - e), Mk = E.map((_, i) => i === 0 ? dl[0] : i === N - 1 ? dl[N - 2] : (dl[i - 1] + dl[i]) / 2);
+for (let i = 0; i < N - 1; i++) { const a = Mk[i] / dl[i], b = Mk[i + 1] / dl[i], h = a * a + b * b; if (h > 9) { const tt = 3 / Math.sqrt(h); Mk[i] = tt * a * dl[i]; Mk[i + 1] = tt * b * dl[i]; } }
+function camE(f) {
+  if (f <= 0) return E[0] + Mk[0] * f;
+  if (f >= N - 1) return E[N - 1] + Mk[N - 1] * (f - N + 1);
+  const i = Math.floor(f), t = f - i, t2 = t * t, t3 = t2 * t;
+  return (2 * t3 - 3 * t2 + 1) * E[i] + (t3 - 2 * t2 + t) * Mk[i] + (-2 * t3 + 3 * t2) * E[i + 1] + (t3 - t2) * Mk[i + 1];
+}
+
+/* ---------- screen-space stars and vignette ---------- */
+const SST = makeStars(rng(7), 320, 1);
+let VIG = null;
+function buildVignette() { VIG = document.createElement('canvas'); VIG.width = W; VIG.height = H; const x = VIG.getContext('2d'); const gr = x.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, DIAG * 1.05); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.5)'); x.fillStyle = gr; x.fillRect(0, 0, W, H); }
+
+/* ---------- formatting ---------- */
+const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+const sup = n => String(n).split('').map(c => SUP[c]).join('');
+function sci(m) { let n = Math.floor(Math.log10(m)), v = m / 10 ** n; if (v >= 9.95) { v = 1; n++; } return `${v.toFixed(1)} × 10${sup(n)} m`; }
+const UNITS = [['billion ly', LY * 1e9, 1], ['million ly', LY * 1e6, 1], ['ly', LY, .1], ['AU', AU, .05], ['km', 1e3, 1], ['m', 1, 1], ['cm', .01, 1], ['mm', .001, 1], ['µm', 1e-6, 1], ['nm', 1e-9, 1], ['pm', 1e-12, 1], ['fm', 1e-15, 1], ['am', 1e-18, 0]];
+const unitFor = m => UNITS.find(u => m >= u[1] * u[2]) || UNITS[UNITS.length - 1];
+const fmtV = v => v >= 100 ? Math.round(v).toLocaleString('en-US') : v >= 10 ? v.toFixed(0) : v.toPrecision(2).replace(/\.0$/, '');
+function human(m) { const u = unitFor(m); return `≈ ${fmtV(m / u[1])} ${u[0]}`; }
+
+const wrapCache = {};
+function wrap(g, text, maxW, key) { if (wrapCache[key]) return wrapCache[key]; const words = text.split(' '), lines = []; let cur = ''; words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }); if (cur) lines.push(cur); return (wrapCache[key] = lines); }
+
+/* ---------- frame ---------- */
+function render(t) {
+  const f = (t - T0) / STEP, c = camE(f);
+  CAM = c; S = .5 * H * 10 ** -c; ROT = -c * .06;
+  const g = ctx; g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
+  const k0 = clamp(Math.floor(f), 0, N - 1), k1 = clamp(k0 + 1, 0, N - 1), bg = f < 0 ? LAYERS[0].bg : mix(LAYERS[k0].bg, LAYERS[k1].bg, smooth(c01(f - k0)));
+  g.fillStyle = rgba(bg, 1); g.fillRect(0, 0, W, H);
+  const space = 1 - sstep(10.2, 11.1, f);
+  if (space > 0) for (let i = 0; i < SST.length; i += 4) { const b = SST[i + 2], sz = (.6 + b * 1.6) * U; g.fillStyle = rgba(STARCOL[SST[i + 3]], (.15 + .55 * b) * space); g.fillRect((SST[i] * .5 + .5) * W, (SST[i + 1] * .5 + .5) * H, sz, sz); }
+  g.save(); g.translate(W / 2, H / 2); g.rotate(ROT);
+  for (let i = 0; i < N; i++) {
+    const L = LAYERS[i], d = L.e - c, fi = L.fin || [-2.4, -1.5], fo = L.fout || [1.1, 2];
+    const a = sstep(fi[0], fi[1], d) * (1 - sstep(fo[0], fo[1], d)); if (a < .004) continue;
+    LA = c01((.7 - Math.abs(d)) / .3);
+    g.save(); g.globalAlpha = a; L.draw(g, .25 * H * 10 ** d, t, L.data, S); g.restore();
+  }
+  g.restore();
+  g.drawImage(VIG, 0, 0);
+  hud(g, f, t);
+}
+
+function hud(g, f, t) {
+  const u = U, m = 46 * u;
+  let gr = g.createLinearGradient(0, H * .5, 0, H); gr.addColorStop(0, 'rgba(4,5,8,0)'); gr.addColorStop(1, 'rgba(4,5,8,.78)'); g.fillStyle = gr; g.fillRect(0, H * .5, W, H * .5);
+  gr = g.createLinearGradient(0, 0, 0, H * .22); gr.addColorStop(0, 'rgba(4,5,8,.6)'); gr.addColorStop(1, 'rgba(4,5,8,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H * .22);
+  const k = clamp(Math.round(f), 0, N - 1), L = LAYERS[k];
+  let ta = c01((.5 - Math.abs(f - k)) / .16); if (f < 0) ta = c01((f + .45) / .25);
+  g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  if (ta > 0) {
+    g.save(); g.globalAlpha = ta; const dy = (1 - ta) * 10 * u;
+    g.font = `italic 400 ${Math.round(24 * u)}px Newsreader, Georgia, serif`;
+    const lines = wrap(g, L.fact, W * .5, k + ':' + W), lh = 31 * u;
+    let y = H - m - (lines.length - 1) * lh + dy;
+    g.fillStyle = 'rgba(226,230,238,.92)'; lines.forEach((ln, i) => g.fillText(ln, m, y + i * lh));
+    y -= 42 * u; g.font = `500 ${Math.round(17 * u)}px "JetBrains Mono", monospace`; g.fillStyle = '#f2b544'; g.fillText(L.size, m, y);
+    y -= 26 * u; g.font = `700 ${Math.round(56 * u)}px "Bricolage Grotesque", system-ui, sans-serif`; g.fillStyle = '#f3f5f9'; g.fillText(L.name, m, y);
+    y -= 60 * u; g.font = `500 ${Math.round(14 * u)}px "JetBrains Mono", monospace`; g.fillStyle = 'rgba(200,206,218,.8)'; g.fillText(`LAYER ${String(k + 1).padStart(2, '0')} / ${N}`, m, y);
+    g.restore();
+  }
+  const ea = c01(1 - Math.abs(f - 26.5) / .32);
+  if (ea > 0) { g.save(); g.globalAlpha = ea; g.textAlign = 'center'; g.font = `italic 400 ${Math.round(34 * u)}px Newsreader, Georgia, serif`; g.fillStyle = 'rgba(226,230,238,.9)'; g.fillText('Empty space. If the atom were a stadium,', W / 2, H / 2 - 8 * u); g.fillText('the nucleus would be a pea on the centre spot.', W / 2, H / 2 + 36 * u); g.restore(); g.textAlign = 'left'; }
+  // progress ticks
+  for (let i = 0; i < N; i++) { const x = m + i * 9 * u, on = i < f + .5; g.fillStyle = i === k && ta > .2 ? '#f2b544' : on ? 'rgba(242,181,68,.55)' : 'rgba(200,206,218,.25)'; g.fillRect(x, m - 14 * u, 3 * u, i === k ? 18 * u : 12 * u); }
+  g.font = `500 ${Math.round(13 * u)}px "JetBrains Mono", monospace`; g.fillStyle = 'rgba(200,206,218,.75)'; g.fillText('POWERS OF TEN', m, m + 22 * u);
+  // field of view
+  const vw = W / S; g.textAlign = 'right'; const rx = W - m;
+  g.fillStyle = 'rgba(200,206,218,.75)'; g.fillText('FIELD OF VIEW', rx, m - 2 * u);
+  g.font = `500 ${Math.round(24 * u)}px "JetBrains Mono", monospace`; g.fillStyle = '#f3f5f9'; g.fillText(sci(vw), rx, m + 27 * u);
+  g.font = `400 ${Math.round(15 * u)}px "JetBrains Mono", monospace`; g.fillStyle = 'rgba(200,206,218,.8)'; g.fillText(human(vw), rx, m + 50 * u);
+  // scale bar
+  const target = .14 * W / S, un = unitFor(target), v = target / un[1], p = 10 ** Math.floor(Math.log10(v)), nice = v / p >= 5 ? 5 * p : v / p >= 2 ? 2 * p : p, px = nice * un[1] * S, by = m + 78 * u;
+  g.strokeStyle = 'rgba(243,245,249,.9)'; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(rx - px, by - 6 * u); g.lineTo(rx - px, by); g.lineTo(rx, by); g.lineTo(rx, by - 6 * u); g.stroke();
+  g.font = `500 ${Math.round(14 * u)}px "JetBrains Mono", monospace`; g.fillStyle = '#f2b544'; g.textAlign = 'center'; g.fillText(`${fmtV(nice)} ${un[0]}`, rx - px / 2, by + 20 * u);
+}
+
+/* ---------- sizing ---------- */
+function setSize(w, h) { W = w; H = h; cv.width = W; cv.height = H; U = H / 900; DIAG = Math.hypot(W, H) / 2 + 4; buildVignette(); for (const k in wrapCache) delete wrapCache[k]; }
+function fit() { if (exportMode) return; const r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2); const w = Math.min(1920, Math.max(480, Math.round(r.width * dpr))); if (w !== W) setSize(w, Math.round(w * 9 / 16)); }
+
+/* ---------- UI ---------- */
+let t = 0, playing = true, speed = 1, loop = false, last = 0, ready = false;
+const $ = id => document.getElementById(id);
+const playBtn = $('play'), track = $('track'), fill = $('fill'), knob = $('knob'), timeEl = $('time'), list = $('list');
+const mmss = s => { s = Math.max(0, Math.round(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const keyTime = i => T0 + i * STEP;
+LAYERS.forEach((L, i) => { const tk = document.createElement('div'); tk.className = 'tick'; tk.style.left = (keyTime(i) / TOTAL * 100) + '%'; $('ticks').appendChild(tk);
+  const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><span class="nm"></span><span class="sz"></span>`; b.querySelector('.nm').textContent = L.name; b.querySelector('.sz').textContent = L.size; b.addEventListener('click', () => seek(keyTime(i))); li.appendChild(b); list.appendChild(li); });
+const ticks = [...document.querySelectorAll('.tick')], items = [...list.querySelectorAll('button')];
+let lastK = -1;
+function syncUI() {
+  const p = t / TOTAL * 100; fill.style.width = p + '%'; knob.style.left = p + '%'; track.setAttribute('aria-valuenow', t.toFixed(1));
+  timeEl.textContent = `${mmss(t)} / ${mmss(TOTAL)}`;
+  const k = clamp(Math.round((t - T0) / STEP), 0, N - 1);
+  ticks.forEach((tk, i) => tk.classList.toggle('on', keyTime(i) <= t + .01));
+  if (k !== lastK) { items.forEach((b, i) => b.setAttribute('aria-current', i === k ? 'true' : 'false')); lastK = k; }
+}
+function setPlaying(p) { playing = p; playBtn.textContent = p ? 'Pause' : (t >= TOTAL - .01 ? 'Replay' : 'Play'); }
+function seek(v) { t = clamp(v, 0, TOTAL); if (!playing) draw(); syncUI(); if (t < TOTAL) setPlaying(playing); }
+function draw() { if (ready) render(t); }
+playBtn.addEventListener('click', () => { if (t >= TOTAL - .01) t = 0; setPlaying(!playing); });
+cv.addEventListener('click', () => playBtn.click());
+$('restart').addEventListener('click', () => { t = 0; setPlaying(true); });
+$('speed').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; speed = +b.dataset.v; [...$('speed').children].forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); });
+$('loop').addEventListener('click', e => { loop = !loop; e.currentTarget.setAttribute('aria-pressed', String(loop)); e.currentTarget.textContent = 'Loop: ' + (loop ? 'on' : 'off'); });
+$('fs').addEventListener('click', () => { const st = $('stage'); try { (document.fullscreenElement ? document.exitFullscreen() : st.requestFullscreen()).catch(() => {}); } catch (e) {} });
+let dragging = false;
+const scrub = e => { const r = track.getBoundingClientRect(); seek(c01((e.clientX - r.left) / r.width) * TOTAL); };
+track.addEventListener('pointerdown', e => { dragging = true; track.setPointerCapture(e.pointerId); scrub(e); });
+track.addEventListener('pointermove', e => { if (dragging) scrub(e); });
+track.addEventListener('pointerup', () => { dragging = false; });
+const stepLayer = dir => { const k = clamp(Math.round((t - T0) / STEP) + dir, 0, N - 1); seek(keyTime(k)); };
+track.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { stepLayer(1); e.preventDefault(); } if (e.key === 'ArrowLeft') { stepLayer(-1); e.preventDefault(); } });
+document.addEventListener('keydown', e => { if (e.target.closest && e.target.closest('button, .track')) return; if (e.code === 'Space') { e.preventDefault(); playBtn.click(); } if (e.key === 'ArrowRight') stepLayer(1); if (e.key === 'ArrowLeft') stepLayer(-1); });
+
+function frame(now) {
+  const dt = Math.min(.1, (now - (last || now)) / 1000); last = now;
+  if (!exportMode) {
+    fit();
+    if (playing && !dragging) { t += dt * speed; if (t >= TOTAL) { if (loop) t = 0; else { t = TOTAL; setPlaying(false); } } }
+    render(t); syncUI();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  try { await Promise.race([Promise.all(['700 56px "Bricolage Grotesque"', '500 16px "JetBrains Mono"', 'italic 400 24px Newsreader'].map(f => document.fonts.load(f))), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
+  LAYERS.forEach((L, i) => { L.data = L.init(rng(1000 + i * 77)); });
+  setSize(1600, 900); fit(); ready = true;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) setPlaying(false);
+  requestAnimationFrame(frame);
+}
+// hooks for offline video export
+window.__zoom = { TOTAL, render: tt => render(tt), setSize: (w, h) => { exportMode = true; setSize(w, h); }, canvas: cv, whenReady: () => new Promise(r => { const chk = () => ready ? r() : setTimeout(chk, 50); chk(); }) };
+boot();
+})();
+</script>
+
+</body></html>
