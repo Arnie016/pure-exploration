@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hollow Bloom</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; color: #e8e4da; user-select: none; }
+  canvas { display: block; transition: filter 0.35s; }
+  canvas.listen { filter: saturate(0.12) contrast(0.85) brightness(0.8); }
+  #fade { position: fixed; inset: 0; background: #000; pointer-events: none; opacity: 1; transition: opacity 0.8s; z-index: 5; }
+  #hurt { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(90,0,0,0.75) 100%); opacity: 0; transition: opacity 0.3s; }
+  #objective { position: fixed; left: 42px; top: 38px; font-size: 13px; letter-spacing: 0.28em; text-transform: uppercase; opacity: 0; transition: opacity 1.4s; text-shadow: 0 1px 6px #000; }
+  #objective small { display: block; font-size: 10px; letter-spacing: 0.3em; opacity: 0.55; margin-bottom: 6px; }
+  #hud { position: fixed; left: 42px; bottom: 36px; display: flex; align-items: flex-end; gap: 14px; opacity: 0.85; }
+  #hp { width: 120px; height: 5px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
+  #hp div { height: 100%; background: #d8d2c0; width: 100%; transition: width 0.3s, background 0.3s; }
+  #ammo { position: fixed; right: 48px; bottom: 36px; font-size: 26px; font-weight: 300; opacity: 0; transition: opacity 0.4s; text-shadow: 0 1px 6px #000; }
+  #ammo span { font-size: 14px; opacity: 0.6; }
+  #inv { position: fixed; right: 48px; bottom: 76px; font-size: 11px; letter-spacing: 0.15em; text-align: right; opacity: 0; transition: opacity 0.6s; line-height: 1.8; text-shadow: 0 1px 4px #000; }
+  #prompt { position: fixed; left: 50%; bottom: 22%; transform: translateX(-50%); font-size: 13px; letter-spacing: 0.15em; opacity: 0; transition: opacity 0.25s; text-shadow: 0 1px 6px #000; }
+  #prompt b { display: inline-block; border: 1px solid rgba(255,255,255,0.6); padding: 1px 7px; margin-right: 8px; border-radius: 3px; }
+  #toast { position: fixed; left: 42px; bottom: 60px; font-size: 12px; letter-spacing: 0.12em; opacity: 0; transition: opacity 0.5s; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; opacity: 0; transition: opacity 0.2s; }
+  #cross::before, #cross::after { content: ""; position: absolute; background: rgba(255,255,255,0.85); }
+  #cross::before { left: 10px; top: 0; width: 2px; height: 22px; clip-path: polygon(0 0,100% 0,100% 30%,0 30%,0 70%,100% 70%,100% 100%,0 100%); }
+  #cross::after { top: 10px; left: 0; height: 2px; width: 22px; clip-path: polygon(0 0,30% 0,30% 100%,0 100%,0 0,70% 0,100% 0,100% 100%,70% 100%,70% 0); }
+  #struggle { position: fixed; left: 50%; top: 62%; transform: translateX(-50%); text-align: center; font-size: 14px; letter-spacing: 0.25em; opacity: 0; }
+  #struggle .bar { width: 220px; height: 6px; background: rgba(255,255,255,0.2); margin: 10px auto 0; }
+  #struggle .bar div { height: 100%; background: #fff; width: 0; }
+  #title { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 60%, #1c1a16 0%, #050504 70%); cursor: pointer; }
+  #title h1 { font-weight: 200; letter-spacing: 0.6em; font-size: 46px; margin: 0 0 8px; padding-left: 0.6em; }
+  #title .sub { letter-spacing: 0.35em; font-size: 11px; opacity: 0.5; margin-bottom: 48px; }
+  #title .keys { display: grid; grid-template-columns: auto auto; gap: 6px 26px; font-size: 12px; opacity: 0.75; letter-spacing: 0.08em; }
+  #title .keys b { text-align: right; font-weight: 500; opacity: 0.9; }
+  #title .go { margin-top: 44px; letter-spacing: 0.4em; font-size: 12px; animation: pulse 2.4s infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+  #end { position: fixed; inset: 0; z-index: 11; display: none; flex-direction: column; align-items: center; justify-content: center; background: #000; }
+  #end h1 { font-weight: 200; letter-spacing: 0.6em; font-size: 40px; opacity: 0; transition: opacity 3s; padding-left: 0.6em; }
+  #end p { font-size: 11px; letter-spacing: 0.3em; opacity: 0; transition: opacity 3s 2s; }
+  #sub { position: fixed; left: 50%; bottom: 12%; transform: translateX(-50%); font-size: 15px; opacity: 0; transition: opacity 0.6s; text-shadow: 0 1px 6px #000; font-style: italic; }
+
+#trailer {position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:30}
+#skip {display:none;position:fixed;top:88px;right:28px;z-index:31;background:#171c17;color:#eee;border:1px solid #a49b7c;border-radius:8px;padding:12px;cursor:pointer}
+#weapon {position:fixed;right:32px;bottom:32px;z-index:6;font-size:24px} #weapon i{display:block;font-size:11px;font-style:normal;letter-spacing:.15em}
+#pack{display:none;position:fixed;right:28px;top:80px;width:min(380px,85vw);background:#141b17eb;border:1px solid #74765c;padding:20px;z-index:8}
+#packItems{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.slot b{display:block}.empty{opacity:.35}.recipe{padding:10px 0;display:flex;gap:8px}.recipe span{font-size:11px}.ok{color:#dfce9b}
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three/build/three.module.js", "three/addons/": "./vendor/three/examples/jsm/" } }</script>
+<script defer src="/world-audio.js"></script></head>
+<body>
+<div id="hurt"></div>
+<div id="objective"><small>objective</small><span></span></div>
+<div id="hud"><div id="hp"><div></div></div></div>
+<div id="toast"></div>
+<div id="inv"></div>
+<div id="ammo">4 <span>/ 2</span></div>
+<div id="cross"></div>
+<div id="prompt"></div>
+<div id="sub"></div>
+<div id="struggle">STRUGGLE — MASH <b>F</b><div class="bar"><div></div></div></div>
+<div id="fade"></div>
+<div id="title">
+  <h1>HOLLOW BLOOM</h1>
+  <div class="sub">A SURVIVAL HORROR VERTICAL SLICE</div>
+  <div class="keys">
+    <b>WASD</b><span>move</span><b>SHIFT</b><span>run</span><b>C</b><span>crouch (quiet)</span>
+    <b>RIGHT MOUSE</b><span>aim</span><b>LEFT MOUSE</b><span>fire (while aiming) · knife otherwise</span>
+    <b>F</b><span>knife · takedown from behind · struggle</span><b>G</b><span>throw bottle / brick</span>
+    <b>R</b><span>reload</span><b>H</b><span>use health kit</span><b>TAB</b><span>backpack · 1 / 2 / 3 to craft</span>
+    <b>SPACE</b><span>dodge</span><b>E</b><span>interact / pick up</span><b>HOLD Q</b><span>listen</span>
+    <b>L</b><span>flashlight</span><b>X</b><span>swap shoulder</span>
+  </div>
+  <div style="width:240px;height:2px;background:#333;margin:24px"><div id="loadbar" style="height:100%;width:0;background:#d8d2c0"></div></div><div id="loading" role="status">PREPARING THE CITY…</div><video id="trailer" src="assets/trailer.mp4" playsinline preload="none" style="display:none"></video>
+</div>
+<button id="skip">Skip opening film</button><div id="weapon"></div><section id="pack"><h2>Backpack</h2><p>Press Tab to close · 1 / 2 / 3 to craft</p><div id="packItems"></div><div id="packCraft"></div></section><div id="end"><h1>HOLLOW BLOOM</h1><p>THANK YOU FOR PLAYING · PRESS ENTER</p></div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

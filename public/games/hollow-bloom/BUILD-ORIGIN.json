@@ -1,0 +1,11 @@
+{
+  "title": "Hollow Bloom",
+  "edition": "Survival horror vertical slice",
+  "source": "User-authored Hollow Bloom build, September 30 2026",
+  "adaptations": [
+    "Bundled local Three.js r160 with MIT license",
+    "Repaired missing loading, backpack, weapon and opening-film controls",
+    "Connected Pure Exploration master sound toggle"
+  ],
+  "input": "Desktop keyboard and mouse"
+}
