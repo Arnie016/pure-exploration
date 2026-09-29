@@ -127,8 +127,8 @@ export function gardenArchitecture(parent:T.Group){
  const spark=new T.Mesh(new T.OctahedronGeometry(.18),warm);spark.position.set(0,2.14,0);court.add(spark);
  const courtTitle=textSprite('DISCOVERIES COURT','#ecd6ac',4.9);courtTitle.position.set(0,3.05,2.86);court.add(courtTitle);
  const courtHint=textSprite('LEADERBOARD','#cdbf9e',3.2);courtHint.position.set(0,2.55,2.87);court.add(courtHint);
- const viewSign=textSprite('VIEWS · 30D  —','#e2cfaa',2.35),favoriteSign=textSprite('FAVORITES  —','#e2cfaa',2.35);
- viewSign.position.set(-2.06,1.47,-.3);favoriteSign.position.set(2.06,1.47,-.3);court.add(viewSign,favoriteSign);
+ const viewSign=textSprite('VIEWS · 30D  —','#e2cfaa',1.7),favoriteSign=textSprite('FAVORITES  —','#e2cfaa',1.7);
+ viewSign.position.set(-1.55,1.55,-1.9);favoriteSign.position.set(1.55,1.55,-1.9);court.add(viewSign,favoriteSign);
  const leaderboardPickables:T.Object3D[]=[];court.traverse(o=>{o.userData.leaderboard=true;if(o instanceof T.Mesh||o instanceof T.Sprite)leaderboardPickables.push(o);});
  let countKey='';
  const updateCounts=(counts:{views:number|null;favorites:number|null})=>{const format=(value:number|null)=>value===null?'—':new Intl.NumberFormat(undefined,{notation:'compact',maximumFractionDigits:1}).format(value),views=`VIEWS · 30D  ${format(counts.views)}`,favorites=`FAVORITES  ${format(counts.favorites)}`,key=views+'|'+favorites;if(key===countKey)return;countKey=key;

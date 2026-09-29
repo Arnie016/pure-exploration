@@ -13,6 +13,18 @@ export default function ExternalWorld({project}:{project:Project}){
  const frame=useRef<HTMLIFrameElement|null>(null);const embedded=project.embed==='frame';
  useEffect(()=>{if(!embedded)return;const poll=setInterval(()=>{try{const d=frame.current?.contentDocument;if(d&&d.URL!=='about:blank'&&d.readyState!=='loading'&&d.body?.childElementCount){setPhase('loaded');clearInterval(poll);}}catch{/* Cross-origin worlds use the frame load event. */}},300);const timer=setTimeout(()=>{clearInterval(poll);setPhase(p=>p==='loaded'?p:'slow');},18000);return()=>{clearTimeout(timer);clearInterval(poll);};},[attempt,embedded]);
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),4500);return()=>clearTimeout(timer);},[notice]);
+ // Keep the pirate world's informational HUD quiet while retaining sailing controls.
+ useEffect(()=>{
+  if(project.id!=='tides'||phase!=='loaded')return;
+  const doc=frame.current?.contentDocument;if(!doc)return;
+  const style=doc.createElement('style');style.textContent=`#hud-layer .topbar,#heading-ribbon,#crew-chat{transition:opacity .6s}.pe-hub-rest #hud-layer .topbar:not(:hover):not(:focus-within),.pe-hub-rest #heading-ribbon:not(:hover),.pe-hub-rest #crew-chat:not(:hover):not(:focus-within){opacity:.2}@media(prefers-reduced-motion:reduce){#hud-layer .topbar,#heading-ribbon,#crew-chat{transition:none}}`;doc.head.appendChild(style);
+  const sync=()=>doc.documentElement.classList.toggle('pe-hub-rest',document.body.classList.contains('hud-resting'));
+  const wake=()=>window.dispatchEvent(new Event('pe-hud-wake'));
+  const edge=(e:PointerEvent)=>{const h=doc.defaultView?.innerHeight||0;if(e.clientY<110||e.clientY>h-110)wake();};
+  const key=(e:KeyboardEvent)=>{if(e.key==='Tab'||e.key==='Escape')wake();};
+  const observer=new MutationObserver(sync);observer.observe(document.body,{attributes:true,attributeFilter:['class']});sync();doc.addEventListener('pointermove',edge,{passive:true});doc.addEventListener('keydown',key);
+  return()=>{observer.disconnect();style.remove();doc.documentElement.classList.remove('pe-hub-rest');doc.removeEventListener('pointermove',edge);doc.removeEventListener('keydown',key);};
+ },[project.id,phase,attempt]);
  const onFavorite=async(id:string)=>{try{const saved=await favorite(id);setNotice(saved?'A little wonder, saved.':'Removed from your favorites.');}catch(e){setNotice((e as Error).message);}};
  const guides:Record<string,{start:string;keys:string;goal:string}>={
  'plate-engine':{start:'Drag to orbit the Earth cutaway, then follow the eight stops from mantle currents to an island volcano.',keys:'Drag: orbit · Scroll or pinch: zoom · Arrow keys: orbit the focused scene · + / −: zoom · Use the stop buttons and pause control to explore',goal:'Try Break the megathrust to see a quake and tsunami. Change mantle heat, then visit the Arc to compare the volcano forecast. Distances and time are compressed for this illustrative model.'},

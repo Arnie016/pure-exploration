@@ -11,3 +11,5 @@
 @media(prefers-reduced-motion:reduce){.hud-resting .world-dock{transition:none}}
 
 .world-utilities .tree-utility{position:relative;color:#e8d0a6}.tree-utility>i{position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:#f1cc83;box-shadow:0 0 7px #f1cc8370}.world-frame-tools{transition:opacity .6s}.hud-resting .world-frame-tools:not(.expanded){opacity:.16}.hud-resting .world-frame-tools:hover,.hud-resting .world-frame-tools:focus-within{opacity:1}@media(max-width:600px){.world-utilities{gap:3px}.world-utilities button{width:28px!important;height:30px!important}.capture-float{top:57px!important;left:auto;right:14px;transform:none}.capture-status{left:auto;right:0;transform:none}}
+
+@media(max-width:600px){.embedded-world .world-dock{bottom:94px!important}.embedded-world .portal-shortcut{bottom:94px!important}}
