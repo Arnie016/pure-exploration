@@ -1,14 +1,41 @@
-import*as T from'three';import{kit,material,textSprite}from'./three-kit';import{shrinePortals,SHRINE_RADIUS}from'./garden-shrines';
+import*as T from'three';import{kit,material,textSprite}from'./three-kit';import{shrinePortals,SHRINE_RADIUS}from'./garden-shrines';import{gardenWater}from'./garden-water';import{gardenArchitecture,gardenArchitectureObstacles,gardenArchitectureClearings,gardenPavilions,gardenLotusBeds}from'./garden-architecture';
 /** Original environment. A 10× wider walkable footprint gives 100× the area. */
-export function landscape(scene:T.Scene){const motionClock={value:0};const world=new T.Group();scene.add(world);const{box,cyl,ball,rod}=kit(world),basalt=material(0x1c3439,.92),moss=material(0x315a48,.92),bark=material(0x4d5146),silver=material(0x648d89,.3,.7),gold=material(0xb5a272,.32,.6),water=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:motionClock},vertexShader:`uniform float time;varying vec3 vWorld;void main(){vec3 p=position;p.y+=sin(p.x*.42+time*.35)*sin(p.z*.32-time*.22)*.035;vec4 w=modelMatrix*vec4(p,1.);vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,fragmentShader:`uniform float time;varying vec3 vWorld;void main(){float w=sin(vWorld.x*.9+time*.65+sin(vWorld.z*.38))*sin(vWorld.z*1.3-time*.42);float ripple=pow(.5+.5*w,12.);float band=pow(.5+.5*sin(length(vWorld.xz-vec2(0.,-47.))*.72-time*.5),18.)*.11;vec3 c=mix(vec3(.025,.12,.15),vec3(.23,.46,.43),ripple*.52+band);gl_FragColor=vec4(c,.88);}`}),glow=new T.MeshBasicMaterial({color:0x83d4d0});
+export function landscape(scene:T.Scene){const motionClock={value:0};const world=new T.Group();scene.add(world);const{box,cyl,ball,rod}=kit(world),basalt=material(0x1c3439,.92),moss=material(0x315a48,.92),bark=material(0x4d5146),silver=material(0x648d89,.3,.7),gold=material(0xb5a272,.32,.6),waterFx=gardenWater(motionClock),water=waterFx.surface,glow=new T.MeshBasicMaterial({color:0x83d4d0});
+ const architecture=gardenArchitecture(world);
  cyl(0,-1.15,0,120,1.8,basalt,120,128);cyl(0,-.23,0,119,.04,material(0x18302e,.96),119,128);const lake=cyl(0,-.15,-54,25,.06,water,25,96);lake.scale.x=1.65;
- // Two waterfalls step from the sky gardens into a broad lake.
- const flow=motionClock;const cascade=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:flow},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec2 vUv;uniform float time;void main(){float strands=sin(vUv.x*89.+sin(vUv.y*19.+time*2.)*.3)*.5+.5;float falls=sin(vUv.y*75.+time*9.+vUv.x*11.)*.5+.5;float edge=smoothstep(0.,.07,vUv.x)*smoothstep(1.,.93,vUv.x);vec3 c=mix(vec3(.16,.47,.51),vec3(.67,.92,.88),strands*.55+falls*.22);gl_FragColor=vec4(c,edge*(.43+strands*.28));}`});
- const falls:T.Mesh[]=[];for(const sign of[-1,1]){for(let t=0;t<4;t++){const x=sign*(38+t*7),z=-48-t*5,h=4+t*3;const rock=cyl(x,h/2-.2,z,10-t, h,basalt,7-t*.6,9);rock.rotation.y=t*.4;cyl(x,h+.05,z,7-t*.6,.1,moss,7-t*.6,32);const sheet=box(x,h/2,z+10-t+.12,4.1,h,.14,cascade);const basin=cyl(x,.02,z+11-t,3.4,.08,water,3.4,48);basin.scale.z=.6;falls.push(sheet);for(let j=0;j<8;j++){const strand=box(x-1.7+j*.48,h/2,z+10.16-t,.025,h,.01,glow);strand.material=new T.MeshBasicMaterial({color:0x95d9d3,transparent:true,opacity:.18});falls.push(strand);}for(let j=0;j<4;j++)ball(x-2+j*1.4,h+.3,z-2,1.8,moss);}}
+ // Each cascade has a sculpted spill lip, a single moving sheet and a wet catch basin.
+ const wetStone=material(0x112b30,.24,.22),falls:T.Mesh[]=[];const impactFoam=new T.InstancedMesh(new T.CircleGeometry(3.55,48),waterFx.impact,8),impactObject=new T.Object3D();impactFoam.name='cascade-impact-foam';impactFoam.frustumCulled=false;world.add(impactFoam);let impactIndex=0;
+ const sheetGeometry=new T.PlaneGeometry(4.1,1,14,24);
+ for(const sign of[-1,1])for(let tier=0;tier<4;tier++){
+  const x=sign*(38+tier*7),z=-48-tier*5,h=4+tier*3,lipZ=z+10-tier;
+  const rock=cyl(x,h/2-.2,z,10-tier,h,basalt,7-tier*.6,9);rock.rotation.y=tier*.4;
+  cyl(x,h+.05,z,7-tier*.6,.1,moss,7-tier*.6,32);
+  // Dark glossy stone immediately under the stream makes the water's path legible.
+  box(x,h/2,lipZ-.05,4.55,h,.16,wetStone);box(x,h+.04,lipZ-.16,4.9,.2,.9,wetStone);
+  for(const side of[-1,1])box(x+side*2.4,h+.24,lipZ-.4,.3,.42,1.65,basalt);
+  box(x,h+.15,lipZ-1.6,4.5,.06,2.7,water);
+  const sheet=new T.Mesh(sheetGeometry,waterFx.curtain);sheet.position.set(x,h/2,lipZ+.13);sheet.scale.y=h;sheet.name='waterfall-sheet';world.add(sheet);falls.push(sheet);
+  const basin=cyl(x,.02,lipZ+.8,3.4,.08,water,3.4,48);basin.scale.z=.68;
+  impactObject.position.set(x,.078,lipZ+.8);impactObject.rotation.x=-Math.PI/2;impactObject.scale.set(1,.68,1);impactObject.updateMatrix();impactFoam.setMatrixAt(impactIndex++,impactObject.matrix);
+  for(let j=0;j<4;j++)ball(x-2+j*1.4,h+.3,z-2,1.8,moss);
+ }
  // Rings of paths and cultivated terraces connect the central sanctuary to the landscape.
  for(const radius of[15,SHRINE_RADIUS,52,83]){const path=new T.Mesh(new T.RingGeometry(radius-1.5,radius+1.5,180),material(0x3d5a57));path.rotation.x=-Math.PI/2;path.position.y=-.12;world.add(path);const seam=new T.Mesh(new T.TorusGeometry(radius+.8,.025,6,200),glow);seam.rotation.x=Math.PI/2;seam.position.y=-.09;world.add(seam);}
  // Every active world receives a clear approach; empty catalog slots remain garden.
  for(const portal of shrinePortals){const a=Math.atan2(portal.x,portal.z),middle=(12+SHRINE_RADIUS)/2,length=SHRINE_RADIUS-12;const bridge=box(Math.sin(a)*middle,-.1,Math.cos(a)*middle,3.4,.14,length,material(0x415651,.68,.16));bridge.rotation.y=a;for(const side of[-1,1])rod(new T.Vector3(Math.sin(a)*12+Math.cos(a)*side*1.45,-.02,Math.cos(a)*12-Math.sin(a)*side*1.45),new T.Vector3(Math.sin(a)*(SHRINE_RADIUS-3.6)+Math.cos(a)*side*1.45,-.02,Math.cos(a)*(SHRINE_RADIUS-3.6)-Math.sin(a)*side*1.45),.024,gold);}
+ // Two open pavilions have a continuous avenue from the inner ring to the outer promenade.
+ for(const p of gardenPavilions){const a=Math.atan2(p.x,p.z),distance=Math.hypot(p.x,p.z),length=distance-SHRINE_RADIUS-2.6;const avenue=box(Math.sin(a)*(SHRINE_RADIUS+length/2),-.1,Math.cos(a)*(SHRINE_RADIUS+length/2),2.35,.07,length,material(0x415651,.68,.16));avenue.rotation.y=a;}
+ // Muted rose and saffron lotuses are the garden's only planted accent; all petals share one draw.
+ const petals=new T.InstancedMesh(new T.SphereGeometry(1,8,5),material(0xffffff,.72,.08),120),lotusLeaves=new T.InstancedMesh(new T.SphereGeometry(1,10,4),material(0x476f56,.83),24),lotusHearts=new T.InstancedMesh(new T.SphereGeometry(1,8,5),gold,24),lotus=new T.Object3D();let flowerIndex=0,petalIndex=0;
+ petals.name='promenade-lotus-petals';lotusLeaves.name='promenade-lotus-leaves';lotusHearts.name='promenade-lotus-hearts';
+ for(const bed of gardenLotusBeds){cyl(bed.x,-.11,bed.z,2.7,.1,basalt,2.7,40);cyl(bed.x,-.046,bed.z,2.57,.02,water,2.57,40);
+  for(let j=0;j<12;j++){const a=j*2.399,radius=.5+Math.sqrt(j/12)*1.5,x=bed.x+Math.sin(a)*radius,z=bed.z+Math.cos(a)*radius;
+   lotus.position.set(x,-.008,z);lotus.rotation.set(0,a,0);lotus.scale.set(.38,.018,.3);lotus.updateMatrix();lotusLeaves.setMatrixAt(flowerIndex,lotus.matrix);
+   lotus.position.y=.1;lotus.scale.set(.065,.05,.065);lotus.updateMatrix();lotusHearts.setMatrixAt(flowerIndex++,lotus.matrix);
+   for(let k=0;k<5;k++){const angle=k*Math.PI*2/5+a;lotus.position.set(x+Math.sin(angle)*.1,.065,z+Math.cos(angle)*.1);lotus.rotation.set(.32,angle,0);lotus.scale.set(.06,.055,.18);lotus.updateMatrix();petals.setMatrixAt(petalIndex,lotus.matrix);petals.setColorAt(petalIndex++,new T.Color(j%3===0?0xc99562:0xb789a2));}
+  }
+ }
+ for(const mesh of[petals,lotusLeaves,lotusHearts]){mesh.computeBoundingSphere();world.add(mesh);}
  // Inlaid basalt segments make the constellation readable from both camera heights.
  const tesserae=new T.InstancedMesh(new T.BoxGeometry(1,.14,1),material(0x223d40,.63,.35),192),tile=new T.Object3D();for(let i=0;i<192;i++){const a=i/192*Math.PI*2;tile.position.set(Math.sin(a)*(SHRINE_RADIUS-4.1),-.06,Math.cos(a)*(SHRINE_RADIUS-4.1));tile.rotation.y=a;tile.scale.set(.28,1,1.35);tile.updateMatrix();tesserae.setMatrixAt(i,tile.matrix);}world.add(tesserae);
  // Low garden islands sit between the avenues, preserving a wide path to every shrine.
@@ -16,9 +43,9 @@ export function landscape(scene:T.Scene){const motionClock={value:0};const world
  for(let i=0;i<shrinePortals.length;i++){const a=Math.PI+(i+.5)/shrinePortals.length*Math.PI*2,r=22,x=Math.sin(a)*r,z=Math.cos(a)*r;const island=cyl(x,-.025,z,3.1,.18,basalt,3.1,32);island.scale.z=.7;for(let j=0;j<36;j++){const f=j*2.399,radius=.3+Math.sqrt(j/36)*2.65;fern.position.set(x+Math.sin(f)*radius,.22+(j%5)*.085,z+Math.cos(f)*radius*.67);fern.rotation.set(.12,f,.25);fern.scale.set(.38,.55+(j%3)*.2,.19);fern.updateMatrix();ferns.setMatrixAt(fernIndex++,fern.matrix);}const lamp=box(x,.57,z,.16,1.1,.16,silver);box(x,1.15,z,.21,.12,.21,glow);}
  world.add(ferns);
  // Efficient groves with instanced trunks and layered canopies.
- const trunks=new T.InstancedMesh(new T.CylinderGeometry(.25,.4,4,7),bark,170),crowns=new T.InstancedMesh(new T.SphereGeometry(1,12,7),moss,510),d=new T.Object3D();let seed=721;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};for(let i=0;i<170;i++){let x=0,z=0;do{const a=rand()*Math.PI*2,r=49+rand()*59;x=Math.cos(a)*r;z=Math.sin(a)*r;}while((Math.abs(x)<53&&z<5&&z>-69)||Math.abs(x)<4||Math.abs(z)<4);const s=.7+rand()*.9;d.position.set(x,1.7*s,z);d.scale.set(s,s,s);d.updateMatrix();trunks.setMatrixAt(i,d.matrix);for(let k=0;k<3;k++){d.position.set(x+Math.sin(k*2.4),s*(3.7+k*.7),z+Math.cos(k*2.4));d.scale.set(2.6*s,1.2*s,2.6*s);d.updateMatrix();crowns.setMatrixAt(i*3+k,d.matrix);}}world.add(trunks,crowns);
+ const trunks=new T.InstancedMesh(new T.CylinderGeometry(.25,.4,4,7),bark,170),crowns=new T.InstancedMesh(new T.SphereGeometry(1,12,7),moss,510),d=new T.Object3D();let seed=721;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};for(let i=0;i<170;i++){let x=0,z=0;do{const a=rand()*Math.PI*2,r=49+rand()*59;x=Math.cos(a)*r;z=Math.sin(a)*r;}while((Math.abs(x)<53&&z<5&&z>-69)||Math.abs(x)<4||Math.abs(z)<4||gardenArchitectureClearings.some(p=>Math.hypot(x-p.x,z-p.z)<7));const s=.7+rand()*.9;d.position.set(x,1.7*s,z);d.scale.set(s,s,s);d.updateMatrix();trunks.setMatrixAt(i,d.matrix);for(let k=0;k<3;k++){d.position.set(x+Math.sin(k*2.4),s*(3.7+k*.7),z+Math.cos(k*2.4));d.scale.set(2.6*s,1.2*s,2.6*s);d.updateMatrix();crowns.setMatrixAt(i*3+k,d.matrix);}}world.add(trunks,crowns);
  // Poseidon-inspired guardian, sculpted from original primitives: armour, crest and trident.
- const statue=new T.Group();statue.position.set(0,0,-47);world.add(statue);const s=kit(statue);s.cyl(0,.6,0,4,1.2,basalt,3.7);s.cyl(0,1.24,0,3.7,.05,gold);for(const x of[-.75,.75]){s.box(x,2,0,.72,1.8,.85,silver);s.box(x,1.4,.3,1,.5,1.4,basalt);}s.cyl(0,4.1,0,1.4,2.5,silver,.85,8);s.ball(0,6.1,0,.82,silver);s.box(0,6,.69,.8,.2,.07,glow);for(const x of[-1.4,1.4]){s.ball(x,4.9,0,.8,gold);s.rod(new T.Vector3(x,4.8,0),new T.Vector3(x*1.5,3.7,.2),.31,silver);}for(let i=-2;i<=2;i++){const crown=new T.Mesh(new T.ConeGeometry(.14,1+Math.abs(i)*.15,4),gold);crown.position.set(i*.3,7.02,.05);statue.add(crown);}s.rod(new T.Vector3(2.2,1,.2),new T.Vector3(2.2,8.5,.2),.075,gold);for(const dx of[-.65,0,.65]){s.rod(new T.Vector3(2.2,7.5,.2),new T.Vector3(2.2+dx,8.3,.2),.065,gold);s.rod(new T.Vector3(2.2+dx,8.3,.2),new T.Vector3(2.2+dx,9,.2),.065,glow);}const name=textSprite('THE TIDAL GUARDIAN','#e3d9b4',5.6);name.position.set(0,10,0);statue.add(name);
+ const statue=new T.Group();statue.position.set(0,0,-47);statue.scale.setScalar(1.45);world.add(statue);const s=kit(statue);s.cyl(0,.6,0,4,1.2,basalt,3.7);s.cyl(0,1.24,0,3.7,.05,gold);for(const x of[-.75,.75]){s.box(x,2,0,.72,1.8,.85,silver);s.box(x,1.4,.3,1,.5,1.4,basalt);}s.cyl(0,4.1,0,1.4,2.5,silver,.85,8);s.ball(0,6.1,0,.82,silver);s.box(0,6,.69,.8,.2,.07,glow);for(const x of[-1.4,1.4]){s.ball(x,4.9,0,.8,gold);s.rod(new T.Vector3(x,4.8,0),new T.Vector3(x*1.5,3.7,.2),.31,silver);}for(let i=-2;i<=2;i++){const crown=new T.Mesh(new T.ConeGeometry(.14,1+Math.abs(i)*.15,4),gold);crown.position.set(i*.3,7.02,.05);statue.add(crown);}s.rod(new T.Vector3(2.2,1,.2),new T.Vector3(2.2,8.5,.2),.075,gold);for(const dx of[-.65,0,.65]){s.rod(new T.Vector3(2.2,7.5,.2),new T.Vector3(2.2+dx,8.3,.2),.065,gold);s.rod(new T.Vector3(2.2+dx,8.3,.2),new T.Vector3(2.2+dx,9,.2),.065,glow);}const name=textSprite('THE TIDAL GUARDIAN','#e3d9b4',5.6);name.position.set(0,10,0);statue.add(name);
  // Solar arches and quiet technology embedded in the park.
  for(let i=0;i<12;i++){const a=i*Math.PI/6,x=Math.cos(a)*65,z=Math.sin(a)*65;cyl(x,2,z,.12,4,silver);const panel=box(x,4.2,z,6,.1,3,material(0x284751,.25,.5));panel.rotation.z=.16;for(let k=0;k<6;k++)box(x-2.5+k,4.26,z,.03,.03,2.7,glow);}
  // A distant broken moon-ring frames the waterfalls without adding another destination.
@@ -29,20 +56,21 @@ export function landscape(scene:T.Scene){const motionClock={value:0};const world
  // A single soft-particle pass gathers rising mist at the actual waterfall feet.
  const mistGeo=new T.BufferGeometry(),pts=[];for(let i=0;i<640;i++)pts.push(rand(),rand(),i%8);mistGeo.setAttribute('position',new T.Float32BufferAttribute(pts,3));
  const mist=new T.Points(mistGeo,new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,uniforms:{time:motionClock},vertexShader:`uniform float time;varying float alpha;void main(){float tier=mod(position.z,4.);float side=position.z<4.?-1.:1.;float life=fract(position.x+time*.045);float angle=position.y*6.28318;float spread=.7+life*3.;vec3 p=vec3(side*(38.+tier*7.)+cos(angle)*spread,.12+sin(life*3.14159)*(1.+position.y*2.),-37.-tier*6.+sin(angle)*spread*.6);vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp((120.+life*180.)/-mv.z,1.,30.);alpha=sin(life*3.14159)*.16;}`,fragmentShader:`varying float alpha;void main(){float r=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(.55,.88,.83,exp(-r*r*5.)*alpha);}`}));mist.frustumCulled=false;world.add(mist);
- // Low, luminous wave fronts spread from each cascade without individual particle meshes.
- const ripples=new T.InstancedMesh(new T.RingGeometry(.9,1,48),new T.MeshBasicMaterial({color:0x80b9b2,transparent:true,opacity:.13,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending}),24),rippleObject=new T.Object3D();world.add(ripples);ripples.instanceMatrix.setUsage(T.DynamicDrawUsage);
-
- let ripplesReady=false;return(t:number,motion:boolean)=>{if(!motion&&ripplesReady)return;const stamp=motion?t:0;flow.value=stamp*.001;falls.forEach((f,i)=>{if(i%9!==0)(f.material as T.MeshBasicMaterial).opacity=.09+.12*(.5+.5*Math.sin(stamp*.003+i));});for(let i=0;i<24;i++){const tier=Math.floor(i/3)%4,side=i<12?-1:1,phase=(stamp*.00013+i/3)%1;rippleObject.position.set(side*(38+tier*7),.09,-37-tier*6);rippleObject.rotation.x=-Math.PI/2;rippleObject.scale.setScalar(.5+phase*3.2);rippleObject.updateMatrix();ripples.setMatrixAt(i,rippleObject.matrix);}ripples.instanceMatrix.needsUpdate=true;ripplesReady=true;};
+ // One shared clock freezes in place for reduced motion; no animation reset or catch-up jump.
+ let previous:number|null=null;
+ const animate=(t:number,motion:boolean)=>{const dt=previous===null?0:Math.max(0,Math.min(.06,(t-previous)/1000));previous=t;if(motion)motionClock.value+=dt;architecture.animate(dt,motion);};
+ return Object.assign(animate,{waterMaterial:water,dispose:architecture.dispose});
 }
 
 // Collision footprints stay independent of decorative meshes and camera detail.
 export type GardenPoint={x:number;z:number};
 type Obstacle={x:number;z:number;r:number}|{x:number;z:number;halfX:number;halfZ:number};
 export const gardenObstacles:Obstacle[]=[
+ ...gardenArchitectureObstacles,
  ...shrinePortals.flatMap(p=>{const a=Math.atan2(-p.x,-p.z);return[-1,1].map(sign=>({x:p.x+Math.cos(a)*sign*2.85,z:p.z-Math.sin(a)*sign*2.85,r:.61}));}),
  {x:0,z:0,r:3.62}, {x:-4,z:-1,r:1.65},{x:4.3,z:1,r:1.5},{x:-.7,z:4.4,r:1.2},{x:4.9,z:-8.5,r:1.35},{x:-5,z:-8.2,r:1.35},
  {x:-8,z:-6.85,halfX:1.35,halfZ:1.1},{x:8,z:-6.85,halfX:1.35,halfZ:1.1},
- {x:-5,z:4,halfX:1.25,halfZ:.85},{x:5,z:4,halfX:1.25,halfZ:.85},{x:0,z:-47,r:4.12},
+ {x:-5,z:4,halfX:1.25,halfZ:.85},{x:5,z:4,halfX:1.25,halfZ:.85},{x:0,z:-47,r:5.95},
  ...[-1,1].flatMap(sign=>Array.from({length:4},(_,tier)=>({x:sign*(38+tier*7),z:-48-tier*5,r:10-tier})))
 ];
 const actorRadius=.36;

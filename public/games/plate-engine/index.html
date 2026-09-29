@@ -1,0 +1,2215 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plate Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#080a0d;
+  --panel:rgba(11,14,19,.82);
+  --panel-2:rgba(255,255,255,.05);
+  --panel-3:rgba(255,255,255,.09);
+  --line:rgba(255,255,255,.08);
+  --line-2:rgba(255,255,255,.16);
+  --text:#efece6;
+  --text-2:#c6c9cc;
+  --muted:#8c949c;
+  --accent:#ffa24c;
+  --accent-2:#ffd08a;
+  --accent-ink:#1b1006;
+  --cold:#7ccbff;
+  --quake:#ff6166;
+  --gold:#e8b75a;
+  --display:"Big Shoulders Display","Arial Narrow","Roboto Condensed",Impact,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;line-height:1.45;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#app{position:relative;height:100%;overflow:hidden;background:radial-gradient(115% 85% at 56% 44%,#1a232e 0%,#0d1117 52%,#06080a 100%)}
+#stage{position:absolute;inset:0}
+#gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outline:none}
+#gl.dragging{cursor:grabbing}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);box-shadow:0 12px 40px rgba(0,0,0,.38)}
+.lbl{font:500 10px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- story card ---------- */
+#story{position:absolute;left:18px;top:18px;width:350px;max-height:calc(100% - 36px);overflow:auto;padding:14px 15px 15px;scrollbar-width:thin}
+.story-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.story-top .lbl b{color:var(--accent);font-weight:600}
+.nav{display:flex;gap:4px}
+.nav button{width:28px;height:26px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-2);cursor:pointer;display:grid;place-items:center;padding:0}
+.nav button:hover{background:var(--panel-3)}
+.nav svg{width:12px;height:12px}
+.stations{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px}
+.stations button{display:flex;gap:5px;align-items:baseline;min-width:0;padding:6px 6px;border-radius:7px;border:1px solid transparent;background:var(--panel-2);cursor:pointer;font:500 10px/1.15 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);text-align:left;white-space:nowrap;overflow:hidden}
+.stations button b{color:var(--muted);font-weight:600}
+.stations button:hover{background:var(--panel-3)}
+.stations button[aria-selected="true"]{border-color:rgba(255,162,76,.6);background:rgba(255,162,76,.13);color:var(--text)}
+.stations button[aria-selected="true"] b{color:var(--accent)}
+#st-title{font:800 40px/.92 var(--display);letter-spacing:.005em;text-transform:uppercase;margin:14px 0 8px;color:var(--accent-2);text-wrap:balance}
+#st-body{margin:0;color:var(--text-2);font-size:13.5px;line-height:1.5}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0 10px}
+.tile{background:var(--panel-2);border-radius:9px;padding:8px 9px 9px;min-width:0}
+.tile .k{font:500 9px/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v{font:600 18px/1.1 var(--mono);font-variant-numeric:tabular-nums;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .v small{font-size:10.5px;color:var(--muted);font-weight:500;margin-left:2px}
+.meter{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:7px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .2s linear}
+.narrative{background:var(--panel-2);border-radius:10px;padding:10px 11px;font-size:13px;line-height:1.5;color:var(--text-2);margin:0 0 10px}
+.hot{color:var(--accent);font-weight:700}
+.cold{color:var(--cold);font-weight:700}
+.qk{color:var(--quake);font-weight:700}
+.gd{color:var(--gold);font-weight:700}
+.action{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,162,76,.55);background:rgba(255,162,76,.12);color:var(--accent-2);font:600 11px/1.1 var(--mono);letter-spacing:.09em;text-transform:uppercase;cursor:pointer;text-align:left}
+.action:hover{background:rgba(255,162,76,.22)}
+.action svg{flex:none;width:14px;height:14px}
+
+#story.collapsed #story-body{display:none}
+#story.collapsed #st-title{margin-bottom:0;font-size:30px}
+.fold svg{transition:transform .2s}
+.collapsed .fold svg{transform:rotate(180deg)}
+
+/* ---------- controls ---------- */
+#controls{position:absolute;right:18px;top:18px;width:320px;padding:11px 12px 12px}
+.ctl-top{display:grid;grid-template-columns:30px 1fr 30px;gap:10px;align-items:center}
+#ctl-body{display:grid;gap:12px;margin-top:10px}
+#controls.collapsed{width:250px}
+#controls.collapsed #ctl-body{display:none}
+.ctl-row{display:grid;gap:6px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl-head output{font:600 11.5px/1 var(--mono);color:var(--text);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:linear-gradient(90deg,var(--fill,var(--accent)) var(--pct,50%),rgba(255,255,255,.12) var(--pct,50%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:rgba(255,255,255,.12)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:3px;background:var(--fill,var(--accent))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#f5efe6;border:3px solid var(--fill,var(--accent));margin-top:-5.5px;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:#f5efe6;border:3px solid var(--fill,var(--accent))}
+.time-ctl{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:center}
+.icon-btn{width:30px;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);display:grid;place-items:center;cursor:pointer;padding:0}
+.icon-btn:hover{background:var(--panel-3)}
+.icon-btn svg{width:12px;height:12px}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chips button,.seg button,.toggles button{border:1px solid var(--line-2);background:var(--panel-2);border-radius:999px;padding:5px 9px;font:500 10.5px/1.1 var(--mono);color:var(--text-2);cursor:pointer;white-space:nowrap}
+.chips button:hover,.seg button:hover,.toggles button:hover{background:var(--panel-3)}
+.chips button[aria-pressed="true"],.seg button[aria-pressed="true"],.toggles button[aria-pressed="true"]{background:rgba(255,162,76,.16);border-color:rgba(255,162,76,.65);color:var(--text)}
+.seg,.toggles{display:flex;gap:5px;flex-wrap:wrap}
+.readout{display:flex;justify-content:space-between;gap:10px;font:500 10.5px/1.3 var(--mono);color:var(--muted)}
+.readout b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.readout .fld{display:inline-flex;align-items:center;gap:5px}
+.readout .fld i{width:8px;height:8px;border-radius:2px;display:inline-block;background:var(--gold)}
+.hint{font:400 10.5px/1.35 var(--mono);color:var(--muted);margin:0}
+
+/* ---------- seismograph ---------- */
+#seismo{position:absolute;right:18px;bottom:16px;width:320px;padding:10px 12px 10px}
+.seis-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+#seis-info{font:600 10.5px/1.2 var(--mono);color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+#seis-canvas{display:block;width:100%;height:70px;border-radius:7px;background:rgba(0,0,0,.28)}
+.seis-foot{font:400 10px/1.35 var(--mono);color:var(--muted);margin-top:6px}
+
+.scale-note{position:absolute;left:18px;bottom:14px;margin:0;font:400 10px/1.3 var(--mono);letter-spacing:.04em;color:rgba(220,225,230,.55);pointer-events:none;max-width:60%}
+
+/* ---------- 3D labels ---------- */
+.tag{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform;transition:opacity .25s}
+.tag .pill{display:inline-flex;gap:6px;align-items:center;padding:4px 8px 4px 7px;border-radius:999px;background:rgba(8,10,13,.8);border:1px solid rgba(255,255,255,.14);font:500 10.5px/1.15 var(--mono);color:var(--text);box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.tag .pill i{width:6px;height:6px;border-radius:50%;background:var(--dot,#fff);flex:none}
+.tag .pill em{font-style:normal;color:var(--muted)}
+.tag .stem{display:block;width:1px;height:16px;margin:0 auto;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.12))}
+.tag .foot{display:block;width:5px;height:5px;border-radius:50%;margin:-1px auto 0;background:rgba(255,255,255,.8)}
+.tag.hidden{opacity:0}
+.callout{position:absolute;left:0;top:0;pointer-events:none;will-change:transform;text-align:center;transition:opacity .4s}
+.callout .mag{font:900 54px/.9 var(--display);color:#ff7277;text-shadow:0 0 18px rgba(255,70,80,.55),0 2px 0 rgba(0,0,0,.4);letter-spacing:.01em}
+.callout .sub{font:600 10.5px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#ffd2d3;margin-top:4px}
+.callout.vol .mag{color:#ffb35c;text-shadow:0 0 18px rgba(255,140,40,.55),0 2px 0 rgba(0,0,0,.4)}
+.callout.vol .sub{color:#ffe2bd}
+#toast{position:absolute;left:50%;top:18px;transform:translate(-50%,-8px);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;background:rgba(10,12,15,.88);border:1px solid var(--line-2);border-radius:999px;padding:7px 14px;font:600 11px/1.2 var(--mono);letter-spacing:.06em;color:var(--text);white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast b{color:var(--quake)}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--text-2)}
+
+@media (max-width: 1279px){
+  #story{width:318px;left:14px;top:14px}
+  #st-title{font-size:34px}
+  #controls{width:292px;right:14px;top:14px}
+  #controls.collapsed{width:236px}
+  #seismo{width:280px;right:14px;bottom:14px}
+  #st-body{font-size:13px}
+}
+@media (max-width: 860px){
+  body{overflow:auto}
+  #app{height:auto;min-height:100%;overflow:visible;display:flex;flex-direction:column;gap:12px;padding-bottom:18px}
+  #stage{position:relative;height:60vh;min-height:340px;max-height:620px;flex:none}
+  #story,#controls,#controls.collapsed,#seismo{position:static;width:auto;margin-inline:16px;max-height:none}
+  #toast{top:10px}
+  .scale-note{left:16px;bottom:8px;max-width:calc(100% - 32px)}
+  #st-title{font-size:34px}
+  .tag .pill{font-size:9.5px;padding:3px 7px 3px 6px}
+  .callout .mag{font-size:40px}
+}
+@media (prefers-reduced-motion: reduce){
+  .meter i,#toast,.tag,.callout{transition:none}
+}
+</style>
+
+<div id="app">
+  <div id="stage">
+    <canvas id="gl" tabindex="0" aria-label="3D slice of Earth showing plates, mantle convection, faults and volcanoes. Drag to rotate, scroll or pinch to zoom, right-drag to pan, double-click to reset the view."></canvas>
+    <div id="labels" aria-hidden="true"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <p class="scale-note">Not to scale · crust and ocean drawn about 5× thicker · ground motion exaggerated · section shows the top 660 km</p>
+  </div>
+
+  <aside id="story" class="panel" aria-label="Guided tour">
+    <div class="story-top">
+      <span class="lbl" id="st-eyebrow">Plate Engine · stop <b>1</b> of 8</span>
+      <div class="nav">
+        <button id="prev" aria-label="Previous stop"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 2 3.5 6l4 4"/></svg></button>
+        <button id="next" aria-label="Next stop"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 2l4 4-4 4"/></svg></button>
+        <button id="story-toggle" class="fold" aria-expanded="true" aria-controls="story-body" aria-label="Hide explanation"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg></button>
+      </div>
+    </div>
+    <div class="stations" id="stations" role="tablist" aria-label="Tour stops"></div>
+    <h1 id="st-title">Heat below, quakes above</h1>
+    <div id="story-body">
+      <p id="st-body"></p>
+      <div class="tiles" id="st-tiles"></div>
+      <p class="narrative" id="st-narr"></p>
+      <button class="action" id="st-action"><span id="st-action-text">Break the megathrust</span><svg viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.8v10.4L12 7z"/></svg></button>
+    </div>
+  </aside>
+
+  <section id="controls" class="panel" aria-label="Simulation controls">
+    <div class="ctl-top">
+      <button class="icon-btn" id="play" aria-label="Pause"><svg id="play-ico" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="2.8" height="9" rx=".6"/><rect x="7.2" y="1.5" width="2.8" height="9" rx=".6"/></svg></button>
+      <div class="ctl-head"><label class="lbl" for="warp">Time warp</label><output id="warp-out" for="warp">10 yr/s</output></div>
+      <button class="icon-btn fold" id="ctl-toggle" aria-expanded="true" aria-controls="ctl-body" aria-label="Hide controls"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg></button>
+    </div>
+    <div id="ctl-body">
+      <div class="ctl-row">
+        <input type="range" id="warp" min="0" max="1000" step="1" value="154" style="--fill:var(--cold)" aria-label="Time warp">
+        <div class="chips" id="warp-chips">
+          <button data-warp="10">Quakes · 10 yr/s</button>
+          <button data-warp="20000">Eruptions · 20 kyr/s</button>
+          <button data-warp="1000000">Drift · 1 Myr/s</button>
+        </div>
+        <div class="readout"><span>Elapsed <b id="elapsed">0 yr</b></span><span class="fld">Field <i id="field-sw"></i><b id="field">Normal</b></span></div>
+      </div>
+      <div class="ctl-row">
+        <div class="ctl-head"><label class="lbl" for="heat">Mantle heat</label><output id="heat-out" for="heat">1.00×</output></div>
+        <input type="range" id="heat" min="0.3" max="2" step="0.01" value="1">
+        <p class="hint" id="heat-hint"></p>
+      </div>
+      <div class="ctl-row">
+        <div class="ctl-head"><label class="lbl" for="grip">Fault grip</label><output id="grip-out" for="grip">Normal</output></div>
+        <input type="range" id="grip" min="0.5" max="1.6" step="0.01" value="1" style="--fill:var(--quake)">
+        <p class="hint" id="grip-hint"></p>
+      </div>
+      <div class="ctl-row">
+        <div class="ctl-head"><label class="lbl" for="magma">Magma supply</label><output id="magma-out" for="magma">1.00×</output></div>
+        <input type="range" id="magma" min="0.3" max="3" step="0.01" value="1" style="--fill:var(--hot,#ff8a3d)">
+        <p class="hint" id="magma-hint"></p>
+      </div>
+      <div class="ctl-row">
+        <span class="lbl">View</span>
+        <div class="seg" id="views">
+          <button data-view="3d" aria-pressed="true">3D block</button>
+          <button data-view="section" aria-pressed="false">Cross-section</button>
+          <button data-view="map" aria-pressed="false">Map</button>
+        </div>
+      </div>
+      <div class="ctl-row">
+        <span class="lbl">Overlays</span>
+        <div class="toggles">
+          <button id="t-stripes" aria-pressed="true">Magnetic stripes</button>
+          <button id="t-heat" aria-pressed="false">Heat map</button>
+          <button id="t-labels" aria-pressed="true">Labels</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="seismo" class="panel" aria-label="Seismograph">
+    <div class="seis-head"><span class="lbl">Seismograph</span><span id="seis-info">listening…</span></div>
+    <canvas id="seis-canvas"></canvas>
+    <div class="seis-foot">P waves arrive first, S waves next. Distance ≈ 8 km × the S−P gap in seconds.</div>
+  </section>
+</div>
+
+<script src="./vendor/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+if (!window.THREE) { document.getElementById('stage').insertAdjacentHTML('beforeend', '<div class="nogl">The 3D engine could not load. Check your connection and reload.</div>'); return; }
+
+/* =====================================================================
+   helpers
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
+const sq = v => v * v;
+const easeOutBack = t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = (n, d = 1) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtInt = n => Math.round(n).toLocaleString('en-US');
+function fmtYears(y) {
+  if (y < 1e4) return fmtInt(y) + ' yr';
+  if (y < 1e6) return fmt(y / 1e3, y < 1e5 ? 1 : 0) + ' kyr';
+  return fmt(y / 1e6, y < 1e7 ? 2 : 1) + ' Myr';
+}
+function fmtWarp(w) {
+  if (w < 1000) return (w < 10 ? fmt(w, 1) : fmtInt(w)) + ' yr/s';
+  if (w < 1e6) return fmt(w / 1e3, w < 1e4 ? 1 : 0) + ' kyr/s';
+  return fmt(w / 1e6, 1) + ' Myr/s';
+}
+
+/* =====================================================================
+   world geometry (1 unit ≈ 100 km across; the top is exaggerated)
+   ===================================================================== */
+const P = {
+  X0: -10, X1: 10, Z0: -4, Z1: 4, YBOT: -7.3,
+  ridgeA: -5.0, ridgeB: -4.2, zT: 1.0,
+  xb: 1.8, R: 2.6, th: 46 * Math.PI / 180,
+  crustT: 0.2, xTr: 2.9, xCoast: 4.0, moho: -1.25,
+  v1: [5.3, 4.0], v2: [5.45, 0.35], v3: [5.2, -2.6],
+  xF: 6.6, vc: [8.0, 4.0],
+  xH: -1.5, zH: 2.3,
+  zFence: 2.45, seis: [9.3, -1.3],
+  y410: -4.93,
+};
+const sf = D => -0.28 - 0.2 * Math.sqrt(Math.max(D, 0));
+const plateThick = D => Math.min(0.9, 0.1 + 0.3 * Math.sqrt(Math.max(D, 0)));
+P.yb = sf(P.xb - P.ridgeA);
+P.sinT = Math.sin(P.th); P.cosT = Math.cos(P.th); P.tanT = Math.tan(P.th);
+P.xa = P.xb + P.R * P.sinT; P.ya = P.yb - P.R * (1 - P.cosT);
+P.slabT = plateThick(P.xb - P.ridgeA);
+P.cy = P.yb - P.R;
+P.rb = P.R - P.slabT;
+P.xab = P.xb + P.rb * P.sinT; P.yab = P.cy + P.rb * P.cosT;
+
+function plateTopA(x) {
+  if (x <= P.xb) return sf(x - P.ridgeA);
+  const dx = x - P.xb;
+  if (dx <= P.R * P.sinT) return P.cy + Math.sqrt(P.R * P.R - dx * dx);
+  return P.ya - (x - P.xa) * P.tanT;
+}
+P.yTr = plateTopA(P.xTr);
+function slabTopX(y) {
+  if (y >= P.ya) { const k = y - P.cy; return P.xb + Math.sqrt(Math.max(0, P.R * P.R - k * k)); }
+  return P.xa + (P.ya - y) / P.tanT;
+}
+function slabBotY(x) {
+  if (x <= P.xb) { const D = x - P.ridgeA; return sf(D) - plateThick(D); }
+  const dx = x - P.xb;
+  if (dx <= P.rb * P.sinT) return P.cy + Math.sqrt(P.rb * P.rb - dx * dx);
+  return P.yab - (x - P.xab) * P.tanT;
+}
+function slabBotX(y) {
+  if (y >= P.yab) { const k = y - P.cy; return P.xb + Math.sqrt(Math.max(0, P.rb * P.rb - k * k)); }
+  return P.xab + (P.yab - y) / P.tanT;
+}
+P.xMainMax = slabBotX(P.YBOT);
+const Lc = x => -1.62 - 0.5 * sstep(4.5, 8.5, x);
+const leftBase = x => { const D = P.ridgeA - x; return sf(D) - plateThick(D); };
+
+/* ---- value noise (terrain relief) ---- */
+function hash2(i, j) { const h = Math.sin(i * 127.1 + j * 311.7) * 43758.5453; return h - Math.floor(h); }
+function vnoise(x, y) {
+  const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = hash2(i, j), b = hash2(i + 1, j), c = hash2(i, j + 1), d = hash2(i + 1, j + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const fbm = (x, y) => 0.55 * vnoise(x, y) + 0.3 * vnoise(x * 2.1 + 5.2, y * 2.1 + 1.3) + 0.15 * vnoise(x * 4.3 + 9.1, y * 4.3 + 7.7);
+
+function cone(x, z, c, H, Rv, pw) {
+  const r = Math.hypot(x - c[0], z - c[1]);
+  if (r >= Rv) return 0;
+  return H * Math.pow(1 - r / Rv, pw) - H * 0.05 * Math.exp(-r * r / 0.004);
+}
+function oceanH(x, z, rX) {
+  const D = Math.abs(x - rX);
+  let y = sf(D);
+  y += 0.03 * Math.exp(-D * D / 0.04) - 0.018 * Math.exp(-D * D / 0.0012);
+  y += 0.010 * Math.sin(D * 24 + 1.6 * Math.sin(z * 0.8 + D)) * sstep(0.12, 0.7, D) * (1 - sstep(P.xb - 0.6, P.xb, x));
+  if (x > rX) {
+    y += (P.yb - sf(P.xb - rX)) * sstep(P.xb - 2.5, P.xb, x);
+    if (x > P.xb) y = plateTopA(x);
+  }
+  return y;
+}
+function landBase(x, z) { // continental surface without volcanoes
+  let y;
+  if (x < 3.6) y = lerp(P.yTr, -0.17, sstep(P.xTr, 3.6, x));
+  else if (x < 4.05) y = lerp(-0.17, 0.018, sstep(3.6, 4.05, x));
+  else y = 0.018 + 0.16 * sstep(4.05, 5.3, x);
+  const land = sstep(3.95, 4.6, x);
+  y += land * 0.09 * (fbm(x * 0.6 + 3.1, z * 0.6 - 1.7) - 0.35);
+  y += (1 - land) * sstep(P.xTr, 3.4, x) * 0.018 * Math.sin(z * 5.0 + x * 3.0);
+  y -= land * 0.05 * Math.exp(-sq((x - P.xF) / 0.1));
+  return y;
+}
+function volcanoes(x, z) {
+  return cone(x, z, P.v1, 1.38, 1.05, 1.6) + cone(x, z, P.v2, 1.0, 0.85, 1.6) + cone(x, z, P.v3, 0.82, 0.72, 1.5) + cone(x, z, P.vc, 0.42, 1.4, 1.3);
+}
+function baseH(x, z) {
+  if (x >= P.xTr) return landBase(x, z) + volcanoes(x, z);
+  const w = sstep(P.zT - 0.05, P.zT + 0.05, z);
+  const a = oceanH(x, z, P.ridgeA);
+  if (w >= 1) return a;
+  const b = oceanH(x, z, P.ridgeB);
+  return b + (a - b) * w;
+}
+function baseLand0(x, z) { return x >= P.xTr ? landBase(x, z) : baseH(x, z); }
+
+/* =====================================================================
+   simulation state
+   ===================================================================== */
+const POL_N = 1024, POL_DMAX = 20;
+const WAVE = { vp: 5.2, vs: 3.0, vr: 2.6, ts: 1.5 };
+const S = {
+  years: 0, disp: 0, heat: 1, grip: 1, magma: 1, warp: 10, playing: true,
+  polarity: 1, revs: [], nextRev: 0, fieldSince: 0,
+  quakes: 0,
+  mega: { def: 0, thr: 8, count: 0, lastYear: -1, lastM: 0 },
+  ss: { def: 0, thr: 3.4, offset: 0, count: 0, lastYear: -1, lastM: 0, broken: false, quakesSinceBuild: 0 },
+  arc: { fill: 0.62, thr: 1, count: 0, lastYear: -1 },
+  cal: { fill: 0.55, cone: 1, collapse: 0, lake: 0, ash: 0, inflate: 0, state: 'recharging', count: 0, lastYear: -1 },
+  islands: [], lastIsland: 0,
+  tf: { next: 0 },
+};
+const plateV = () => 5.0 * S.heat;            // cm/yr (half-spreading rate = subduction rate)
+const unitsPerYr = () => plateV() * 1e-7;     // 1 unit = 100 km = 1e7 cm
+const newMegaThr = () => 8 * S.grip * rand(0.85, 1.15);
+const newSsThr = () => 3.4 * S.grip * rand(0.85, 1.15);
+const revInterval = () => Math.max(40e3, -Math.log(1 - Math.random()) * 330e3);
+
+(function initState() {
+  // magnetic reversal history, stored in plate-displacement space
+  let sig = -780e3 * 5e-7;
+  while (sig > -POL_DMAX - 1) { S.revs.unshift(sig); sig -= revInterval() * 5e-7; }
+  S.nextRev = revInterval() + 150e3;
+  S.fieldSince = -780e3;
+  S.mega.thr = 8; S.mega.def = 8 - 3.0;           // first megathrust rupture ~6 s after load
+  S.ss.thr = 3.4; S.ss.def = 3.4 - 2.3;           // fault lab snaps ~11 s after load
+  S.tf.next = rand(30, 90);
+  // hotspot chain already in place
+  for (let k = 6; k >= 0; k--) S.islands.push(makeIsland(-(k * 0.62 + 0.12)));
+  S.lastIsland = -0.12;
+})();
+function makeIsland(birth) { return { birth, peak: rand(0.42, 0.62), rad: rand(0.33, 0.42), zj: rand(-0.18, 0.18) }; }
+
+function islandState(isl) {
+  const d = S.disp - isl.birth;
+  const x = P.xH + d;
+  const floorY = baseH(x, P.zH + isl.zj);
+  let amp = (isl.peak - floorY) * sstep(0, 0.25, d) - 0.3 * Math.pow(Math.max(d - 0.1, 0), 0.75);
+  amp *= 1 - sstep(1.7, 2.75, x);
+  const r = isl.rad * (1 + 0.1 * Math.min(d, 2.5));
+  return { x, z: P.zH + isl.zj, amp: Math.max(0, amp), r, d, top: floorY + Math.max(0, amp) };
+}
+
+/* dynamic surface displacement — mirrored exactly in GLSL (dynDef / dynAdd) */
+const DYN = { cone: 1, collapse: 0, inflate: 0, ash: 0, mega: 0, rip: [0, 0, 0, 0], isl: [] };
+function dynDef(x, z) {
+  const rc = Math.hypot(x - P.vc[0], z - P.vc[1]);
+  let d = -DYN.collapse * 0.5 * (1 - sstep(0.47, 0.6, rc));
+  d += DYN.inflate * 0.10 * Math.exp(-rc * rc / 0.64);
+  d += DYN.mega * (-0.11 * Math.exp(-sq((x - 3.45) / 0.42)) + 0.05 * Math.exp(-sq((x - 4.9) / 0.7)));
+  return d;
+}
+function dynAdd(x, z, withIslands = true) {
+  const rc = Math.hypot(x - P.vc[0], z - P.vc[1]);
+  let a = DYN.cone * 0.5 * Math.pow(Math.max(0, 1 - rc / 0.85), 1.5);
+  if (withIslands) for (const s of DYN.isl) { if (s.amp > 0) { const r = Math.hypot(x - s.x, z - s.z) / s.r; if (r < 1) a += s.amp * Math.pow(1 - r, 1.35); } }
+  return a;
+}
+const groundH = (x, z) => baseH(x, z) + dynDef(x, z) + dynAdd(x, z);
+
+/* =====================================================================
+   GLSL (constants generated from the same numbers the JS uses)
+   ===================================================================== */
+const f = n => { const s = (+n).toFixed(5); return s; };
+const v3 = hex => { const c = parseInt(hex.slice(1), 16); return `vec3(${f(((c >> 16) & 255) / 255)},${f(((c >> 8) & 255) / 255)},${f((c & 255) / 255)})`; };
+const PAL = {
+  WATER_TOP: '#2d86ad', WATER_DEEP: '#0e3656', WATER_SHALLOW: '#5fd3c9', WATER_MID: '#2689b8', WATER_DEEPS: '#0d3d63', SKY_REFL: '#9fc6dc',
+  SEAFLOOR_YOUNG: '#4a4f58', SEAFLOOR_OLD: '#5b5a55', STRIPE_N: '#e3ae55', STRIPE_R: '#35506e',
+  BASALT: '#30343c', GABBRO: '#3d4048', PLATE_MANTLE: '#5d6c62', SLAB_COLD: '#4c6c85',
+  ASTHENO: '#8c7143', MANTLE_UP: '#636d40', MANTLE_DEEP: '#474937', TZONE: '#4a423a', HOT_GLOW: '#ef7a2c',
+  MAGMA: '#ff6a1f', MAGMA_HOT: '#ffd46b',
+  SED_A: '#caa97c', SED_B: '#b18f68', UPPER_CRUST: '#c09a7b', LOWER_CRUST: '#8e7664', CONT_LITHO: '#646c56', PLUTON: '#dcc0a6',
+  PRISM_A: '#a08c66', PRISM_B: '#8a7756', EDIFICE_A: '#5d5550', EDIFICE_B: '#76695f',
+  GRASS_A: '#6e8f4b', GRASS_B: '#89a45a', DRY_GRASS: '#b8a970', SAND: '#dcc68f', VOLC_ROCK: '#7c6f64', VOLC_ROCK_DARK: '#4f4843', SNOW: '#eef2f4',
+  MARGIN_DEEP: '#6f6b58', SHELF_SAND: '#b2a57c', ASH: '#8e8b86', CALDERA_FLOOR: '#4d4945',
+  FAULT_DARK: '#271f19', QUAKE_RED: '#ff4d4f', SYMBOL: '#f4ecdf', P_WAVE: '#d6ecff', S_WAVE: '#ffb44d',
+  AMB_HI: '#9ea7b3', AMB_LO: '#5b544c', SUN: '#8e867a',
+};
+const LIGHT = new THREE.Vector3(-0.45, 0.82, 0.38).normalize();
+const GLSL_CONST = [
+  ['X0', P.X0], ['X1', P.X1], ['Z0', P.Z0], ['Z1', P.Z1], ['Y_BOT', P.YBOT],
+  ['RIDGE_A', P.ridgeA], ['RIDGE_B', P.ridgeB], ['Z_T', P.zT],
+  ['XB', P.xb], ['YBEND', P.yb], ['BEND_R', P.R], ['BEND_TH', P.th], ['SIN_TH', P.sinT], ['COS_TH', P.cosT],
+  ['XA', P.xa], ['YA', P.ya], ['SLAB_T', P.slabT],
+  ['CRUST_T', P.crustT], ['X_TR', P.xTr], ['X_COAST', P.xCoast], ['MOHO', P.moho],
+  ['X_F', P.xF], ['X_H', P.xH], ['Z_H', P.zH], ['Y410', P.y410], ['POL_DMAX', POL_DMAX],
+  ['VP', WAVE.vp], ['VS', WAVE.vs], ['VR', WAVE.vr], ['TS_SPEED', WAVE.ts],
+].map(([k, v]) => `const float ${k} = ${f(v)};`).concat([
+  `const vec2 V1 = vec2(${f(P.v1[0])}, ${f(P.v1[1])});`,
+  `const vec2 VC = vec2(${f(P.vc[0])}, ${f(P.vc[1])});`,
+  `const vec3 LIGHT = vec3(${f(LIGHT.x)}, ${f(LIGHT.y)}, ${f(LIGHT.z)});`,
+], Object.entries(PAL).map(([k, h]) => `const vec3 ${k} = ${v3(h)};`)).join('\n');
+
+const GLSL_FUNCS = /* glsl */`
+float sq(float v){ return v*v; }
+float sfD(float D){ return -0.28 - 0.2*sqrt(max(D, 0.0)); }
+float plateThick(float D){ return min(0.9, 0.1 + 0.3*sqrt(max(D, 0.0))); }
+float ridgeX(float z){ return z > Z_T ? RIDGE_A : RIDGE_B; }
+float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx)*0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y)*p3.z); }
+float vnoise(vec2 p){ vec2 i = floor(p); vec2 fr = fract(p); vec2 u = fr*fr*(3.0 - 2.0*fr);
+  return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y); }
+`;
+const GLSL_DYN = /* glsl */`
+uniform vec4 uCal;
+uniform float uMegaDef;
+uniform vec4 uRip;
+#ifdef WITH_ISLANDS
+uniform vec4 uIsl[8];
+#endif
+float dynDef(vec2 q){
+  float rc = length(q - VC);
+  float d = -uCal.y*0.5*(1.0 - smoothstep(0.47, 0.6, rc));
+  d += uCal.z*0.10*exp(-rc*rc/0.64);
+  d += uMegaDef*(-0.11*exp(-sq((q.x - 3.45)/0.42)) + 0.05*exp(-sq((q.x - 4.9)/0.7)));
+  if (uRip.w > 0.0) { float r = length(q - uRip.xy); float k = r - VR*uRip.z; d += uRip.w*0.035*sin(k*11.0)*exp(-k*k*2.5); }
+  return d;
+}
+float dynAdd(vec2 q){
+  float rc = length(q - VC);
+  float a = uCal.x*0.5*pow(max(0.0, 1.0 - rc/0.85), 1.5);
+  #ifdef WITH_ISLANDS
+  for (int i = 0; i < 8; i++) { vec4 s = uIsl[i]; if (s.z > 0.0) { float r = length(q - s.xy)/s.w; a += s.z*pow(max(0.0, 1.0 - r), 1.35); } }
+  #endif
+  return a;
+}
+`;
+const HEAD = GLSL_CONST + '\n' + GLSL_FUNCS;
+
+/* ---------- terrain (top surface) ---------- */
+const TERRAIN_VS = '#define WITH_ISLANDS\n' + HEAD + GLSL_DYN + /* glsl */`
+varying vec3 vPos; varying float vH0; varying float vAdd;
+void main(){
+  vec3 p = position;
+  float add = dynAdd(p.xz);
+  p.y += dynDef(p.xz) + add;
+  vH0 = position.y; vAdd = add; vPos = p;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+}`;
+const TERRAIN_FS = HEAD + /* glsl */`
+uniform float uTime; uniform sampler2D uPolTex; uniform float uStripes;
+uniform vec4 uCal; uniform vec2 uArc; uniform vec4 uQuake; uniform float uQuakeAmp;
+uniform vec4 uMegaRup; uniform vec4 uSsRup; uniform float uTfFlash;
+varying vec3 vPos; varying float vH0; varying float vAdd;
+void main(){
+  vec3 N = normalize(cross(dFdx(vPos), dFdy(vPos)));
+  if (N.y < 0.0) N = -N;
+  float h = vPos.y, x = vPos.x, z = vPos.z;
+  float rX = ridgeX(z);
+  float nz = vnoise(vPos.xz*3.1);
+  vec3 col; float emis = 0.0;
+  if (h < -0.012) {
+    if (x < X_TR + 0.02 && vAdd < 0.04) {
+      float D = abs(x - rX);
+      if (x > XB) D = (XB - rX) + (x - XB)*1.08;
+      float pol = texture2D(uPolTex, vec2(clamp(D/POL_DMAX, 0.0, 1.0), 0.5)).r;
+      vec3 fl = mix(SEAFLOOR_YOUNG, SEAFLOOR_OLD, smoothstep(0.3, 6.0, D));
+      vec3 st = pol > 0.5 ? STRIPE_N : STRIPE_R;
+      col = mix(fl, st, uStripes*0.8);
+      col *= 0.9 + 0.1*nz;
+      float rg = exp(-D*D/0.0012);
+      col = mix(col, MAGMA_HOT, rg*(0.65 + 0.35*sin(uTime*1.7 + z*2.1)));
+      emis += rg;
+      float fz = 1.0 - smoothstep(0.01, 0.026, abs(z - Z_T));
+      float act = step(RIDGE_A, x)*step(x, RIDGE_B);
+      col = mix(col, vec3(0.07, 0.08, 0.09), fz*mix(0.3, 0.85, act)*step(x, X_TR - 0.15));
+      col = mix(col, QUAKE_RED, fz*act*uTfFlash); emis += fz*act*uTfFlash;
+    } else if (x >= X_TR) {
+      col = mix(MARGIN_DEEP, SHELF_SAND, smoothstep(-0.7, -0.04, h));
+    } else {
+      col = mix(VOLC_ROCK_DARK, SEAFLOOR_OLD, 0.35);
+    }
+  } else {
+    float slope = 1.0 - N.y;
+    vec3 grass = mix(GRASS_A, GRASS_B, nz);
+    grass = mix(grass, DRY_GRASS, smoothstep(0.58, 0.82, vnoise(vPos.xz*1.2 + 7.0))*0.7);
+    col = grass;
+    col = mix(SAND, col, smoothstep(0.012, 0.05, h));
+    float rock = max(smoothstep(0.3, 0.55, slope), smoothstep(0.62, 0.9, h + 0.08*nz));
+    col = mix(col, mix(VOLC_ROCK, VOLC_ROCK_DARK, nz), rock);
+    col = mix(col, SNOW, smoothstep(1.13, 1.2, h + 0.05*nz));
+    if (x < X_TR) col = mix(col, VOLC_ROCK_DARK, smoothstep(0.35, 0.05, h)*0.0);
+    float ft = (1.0 - smoothstep(0.012, 0.026, abs(x - X_F)))*step(4.4, x);
+    col = mix(col, FAULT_DARK, ft*0.85);
+  }
+  float rc = length(vPos.xz - VC);
+  col = mix(col, ASH, uCal.w*0.78*exp(-rc*rc/2.6)*step(-0.012, h));
+  col = mix(col, CALDERA_FLOOR, uCal.y*(1.0 - smoothstep(0.42, 0.56, rc)));
+  vec2 dv = vPos.xz - V1; float r1 = length(dv);
+  float crater = 1.0 - smoothstep(0.03, 0.1, r1);
+  float lavaCh = smoothstep(0.8, 0.98, sin(atan(dv.y, dv.x)*7.0 + 0.9 + nz*1.5))*(1.0 - smoothstep(0.15, 0.8, r1))*uArc.y;
+  float lava = max(crater*max(uArc.y, 0.35*smoothstep(0.7, 1.0, uArc.x)), lavaCh);
+  col = mix(col, MAGMA_HOT, lava); emis += lava;
+  if (uMegaRup.z > 0.0) {
+    float band = smoothstep(X_TR - 0.35, X_TR, x)*(1.0 - smoothstep(3.9, 4.3, x));
+    float fr = 1.0 - smoothstep(uMegaRup.y - 0.4, uMegaRup.y, abs(z - uMegaRup.x));
+    col = mix(col, QUAKE_RED, band*fr*uMegaRup.z*0.8); emis += band*fr*uMegaRup.z;
+  }
+  if (uSsRup.z > 0.0) {
+    float tr = (1.0 - smoothstep(0.015, 0.06, abs(x - X_F)))*step(4.4, x);
+    float fr2 = 1.0 - smoothstep(uSsRup.y - 0.25, uSsRup.y, abs(z - uSsRup.x));
+    col = mix(col, QUAKE_RED, tr*fr2*uSsRup.z); emis += tr*fr2*uSsRup.z;
+  }
+  float lam = max(dot(N, LIGHT), 0.0);
+  float hemi = 0.5 + 0.5*N.y;
+  vec3 lit = col*(mix(AMB_LO, AMB_HI, hemi) + SUN*lam*0.9);
+  lit = mix(lit, col*1.2, clamp(emis, 0.0, 1.0));
+  if (uQuake.w >= 0.0) {
+    float r = length(vPos.xz - uQuake.xz);
+    float k = r - VR*uQuake.w;
+    float ring = exp(-k*k/0.006)*exp(-uQuake.w*0.4)*uQuakeAmp;
+    lit = mix(lit, vec3(1.0, 0.93, 0.86), ring*0.45);
+  }
+  gl_FragColor = vec4(lit, 1.0);
+}`;
+
+/* ---------- cut faces (cross-sections) ---------- */
+const FACE_VS = HEAD + GLSL_DYN + /* glsl */`
+attribute float aT; attribute float aTop0; attribute float aBase0;
+uniform float uLakeY;
+varying vec3 vPos; varying float vTop0; varying float vBase0;
+void main(){
+  vec3 p = position;
+  float top = aTop0 + dynDef(p.xz) + dynAdd(p.xz);
+  float faceTop = (aTop0 < 0.0 && p.x < X_COAST) ? max(top, 0.0) : top;
+  if (p.z > Z1 - 0.01 && abs(p.x - VC.x) < 0.52) faceTop = max(faceTop, uLakeY);
+  p.y = mix(Y_BOT, faceTop, aT);
+  vTop0 = aTop0; vBase0 = aBase0; vPos = p;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+}`;
+const FACE_FS = HEAD + GLSL_DYN + /* glsl */`
+uniform float uTime; uniform sampler2D uPolTex; uniform float uStripes; uniform float uHeatMap;
+uniform vec2 uArc; uniform vec3 uCalX; uniform float uLakeY;
+uniform float uMegaStress; uniform float uMegaFlash; uniform float uSsFlash;
+uniform vec4 uQuake; uniform float uQuakeAmp; uniform float uHeat; uniform float uShade;
+varying vec3 vPos; varying float vTop0; varying float vBase0;
+
+vec3 thermal(float T){
+  float t = clamp(T/1500.0, 0.0, 1.1);
+  vec3 c = mix(vec3(0.10, 0.15, 0.36), vec3(0.15, 0.44, 0.72), smoothstep(0.0, 0.3, t));
+  c = mix(c, vec3(0.52, 0.72, 0.56), smoothstep(0.3, 0.55, t));
+  c = mix(c, vec3(0.96, 0.78, 0.30), smoothstep(0.55, 0.8, t));
+  c = mix(c, vec3(0.94, 0.40, 0.14), smoothstep(0.8, 0.93, t));
+  c = mix(c, vec3(1.0, 0.93, 0.74), smoothstep(0.95, 1.08, t));
+  return c;
+}
+vec3 plateBend(vec2 p, float rX){
+  float D0 = XB - rX;
+  vec2 c = vec2(XB, YBEND - BEND_R);
+  vec2 d = p - c;
+  float phi = atan(d.x, d.y);
+  if (phi <= BEND_TH) return vec3(D0 + BEND_R*phi, BEND_R - length(d), SLAB_T);
+  vec2 q = p - vec2(XA, YA);
+  return vec3(D0 + BEND_R*BEND_TH + dot(q, vec2(COS_TH, -SIN_TH)), dot(q, vec2(-SIN_TH, -COS_TH)), SLAB_T);
+}
+void main(){
+  float x = vPos.x, y = vPos.y, z = vPos.z;
+  bool front = z > Z1 - 0.01;
+  float rX = ridgeX(z);
+  float dDef = dynDef(vPos.xz);
+  float dAdd = dynAdd(vPos.xz);
+  float surf0 = vTop0 + dDef;
+  float top = surf0 + dAdd;
+  bool oceanCol = vTop0 < 0.0 && x < X_COAST;
+  vec3 col = vec3(0.0); float emis = 0.0; float T = 0.0; bool water = false;
+
+  if (oceanCol && y > top) {
+    water = true;
+    float dd = clamp(-y/1.1, 0.0, 1.0);
+    col = mix(WATER_TOP, WATER_DEEP, dd);
+    col += 0.035*sin(x*9.0 + y*14.0 + uTime*0.8)*(1.0 - dd);
+    col = mix(col, vec3(0.8, 0.93, 1.0), (1.0 - smoothstep(0.0, 0.025, -y))*0.5);
+  } else if (!oceanCol && y > top + 0.002) {
+    water = true;
+    col = mix(WATER_TOP, WATER_DEEP, 0.35);
+  } else if (y > surf0 && dAdd > 0.002) {
+    col = mix(EDIFICE_A, EDIFICE_B, step(0.5, fract((top - y)*26.0)));
+    T = 120.0;
+  } else {
+    float w = smoothstep(surf0 - 1.2, surf0, y);
+    if (front) {
+      float rcf = abs(x - VC.x);
+      if (rcf < 0.62 && uCal.y > 0.001) {
+        float szc = 0.3 + 0.7*uCalX.x;
+        float chTop = -0.85 + 0.25*szc;
+        float wr = (y - dDef > chTop) ? 1.0 : 0.0;
+        w = mix(w, wr, 1.0 - smoothstep(0.5, 0.6, rcf));
+      }
+    }
+    float y0 = y - dDef*w;
+    vec2 p = vec2(x, y0);
+    bool rightSide = x >= rX;
+    vec3 pc;
+    if (!rightSide) { float Dl = rX - x; pc = vec3(Dl, vTop0 - y0, plateThick(Dl)); }
+    else if (x < XB) { float Dr = x - rX; pc = vec3(Dr, vTop0 - y0, plateThick(Dr)); }
+    else pc = plateBend(p, rX);
+    float D = pc.x, n = pc.y, th = pc.z;
+    float s0 = rightSide ? D - (XB - rX) : -1.0;
+    float heatUp = s0 > 0.0 ? smoothstep(0.6, 9.5, s0) : 0.0;
+    float Tm = 1300.0 + 70.0*clamp((-y0 - 1.6)/5.7, 0.0, 1.0);
+
+    if (n >= 0.0 && n <= th) {
+      float fn = n/th;
+      T = mix(Tm*pow(fn, 0.7), Tm, heatUp*0.85);
+      if (n < CRUST_T) {
+        float pol = texture2D(uPolTex, vec2(clamp(D/POL_DMAX, 0.0, 1.0), 0.5)).r;
+        vec3 bas = mix(BASALT, GABBRO, smoothstep(0.07, 0.19, n));
+        vec3 stc = pol > 0.5 ? STRIPE_N : STRIPE_R;
+        col = mix(bas, stc, uStripes*(0.85 - 0.4*smoothstep(0.08, 0.2, n)));
+        col *= 0.93 + 0.07*vnoise(p*vec2(26.0, 70.0));
+        col = mix(col, SLAB_COLD, heatUp*0.55);
+      } else {
+        vec3 pm = mix(PLATE_MANTLE, SLAB_COLD, s0 > 0.0 ? clamp(s0/2.5, 0.0, 1.0) : 0.0);
+        col = mix(pm, MANTLE_UP, heatUp*heatUp);
+        col *= 0.96 + 0.04*sin(n*70.0);
+      }
+    } else if (rightSide && n < 0.0 && x > X_TR - 0.05) {
+      float lc = -1.62 - 0.5*smoothstep(4.5, 8.5, x);
+      float xbs = 3.25 + (-y0)*0.33;
+      float dsurf = vTop0 - y0;
+      if (y0 >= MOHO && x < xbs) {
+        float fold = sin((x*2.2 - y0*7.0) + 0.9*sin(y0*9.0 + x*3.0));
+        col = mix(PRISM_A, PRISM_B, smoothstep(-0.2, 0.2, fold));
+        T = 40.0 + 500.0*clamp(dsurf/1.2, 0.0, 1.0);
+      } else if (y0 >= MOHO) {
+        if (y0 > vBase0 + 0.001 && vTop0 - vBase0 > 0.02) {
+          col = mix(EDIFICE_A, EDIFICE_B, step(0.55, fract((vTop0 - y0)*22.0 + 0.3*sin(x*6.0))));
+        } else if (vBase0 - y0 < 0.09) {
+          col = mix(SED_A, SED_B, step(0.5, fract((vBase0 - y0)*40.0)));
+        } else if (y0 > -0.62) {
+          col = UPPER_CRUST*(0.95 + 0.05*vnoise(p*14.0));
+        } else {
+          col = LOWER_CRUST*(0.95 + 0.05*vnoise(p*10.0));
+        }
+        float pl = min(length((p - vec2(4.55, -0.55))/vec2(0.28, 0.13)), length((p - vec2(6.2, -0.82))/vec2(0.3, 0.12)));
+        col = mix(col, PLUTON, 1.0 - smoothstep(0.9, 1.0, pl));
+        T = 15.0 + (Tm - 15.0)*clamp(dsurf/(vTop0 - lc), 0.0, 1.0);
+      } else if (y0 >= lc) {
+        col = CONT_LITHO*(0.95 + 0.05*sin(y0*50.0));
+        T = 15.0 + (Tm - 15.0)*clamp(dsurf/(vTop0 - lc), 0.0, 1.0);
+      } else {
+        T = Tm + 40.0 - 420.0*exp(n/0.3);
+        col = mix(ASTHENO, MANTLE_UP, smoothstep(2.6, 4.2, -y0));
+      }
+    } else {
+      T = Tm;
+      T += 120.0*exp(-sq((x - rX)/1.0))*smoothstep(Y_BOT + 0.3, -1.2, y0);
+      float pb = sfD(X_H - rX) - plateThick(X_H - rX);
+      float stem = exp(-sq((x - X_H)/0.3))*step(y0, pb);
+      float head = exp(-sq((x - X_H)/1.35) - sq((y0 - (pb - 0.33))/0.38));
+      T += 240.0*stem + 170.0*head;
+      if (s0 > 0.0) T -= 320.0*exp(-(n - th)/0.3)*(1.0 - heatUp);
+      col = mix(ASTHENO, MANTLE_UP, smoothstep(2.3, 3.9, -y0));
+      col = mix(col, MANTLE_DEEP, smoothstep(4.0, 6.5, -y0));
+      col = mix(col, TZONE, step(y0, Y410)*0.45);
+      col *= 0.96 + 0.04*vnoise(p*6.0 + vec2(0.0, uTime*0.05));
+    }
+    float glow = smoothstep(1360.0, 1560.0, T);
+    col = mix(col, HOT_GLOW, glow*0.72);
+    emis += glow*0.3;
+
+    /* ridge: decompression melting */
+    {
+      float dx = abs(x - rX);
+      float dr = -0.30 - y0;
+      float halfW = 0.05 + 0.42*clamp(dr/1.1, 0.0, 1.0);
+      float m = (1.0 - smoothstep(halfW*0.55, halfW, dx))*smoothstep(0.06, 0.28, dr)*(1.0 - smoothstep(0.95, 1.35, dr));
+      float lens = (1.0 - smoothstep(0.14, 0.2, dx))*exp(-sq((dr - 0.2)/0.022));
+      float dike = (1.0 - smoothstep(0.007, 0.014, dx))*step(-0.02, dr)*(1.0 - step(0.2, dr));
+      float spk = 0.6 + 0.4*sin(uTime*1.3 + y0*9.0 + x*4.0);
+      float mm = max(m*0.55*spk, max(lens, dike*0.85));
+      col = mix(col, mix(MAGMA, MAGMA_HOT, clamp(lens + dike*0.5, 0.0, 1.0)), mm); emis += mm*0.8;
+      T = mix(T, max(T, 1250.0), mm);
+    }
+    if (front) {
+      /* arc: flux-melting zone above the slab */
+      float mz = length((p - vec2(5.1, -2.55))/vec2(0.52, 0.4));
+      float melt = (1.0 - smoothstep(0.55, 1.0, mz))*step(n, 0.0)*step(y0, -1.62 - 0.5*smoothstep(4.5, 8.5, x));
+      float spk2 = smoothstep(0.5, 0.85, vnoise(p*16.0 + vec2(0.0, -uTime*0.35)));
+      col = mix(col, MAGMA, melt*(0.22 + 0.6*spk2)); emis += melt*spk2*0.5;
+      float py = clamp((y0 + 2.25)/1.45, 0.0, 1.0);
+      float px = mix(5.1, V1.x, smoothstep(0.0, 1.0, py)) + 0.045*sin(y0*7.0 + 1.3);
+      float path = (1.0 - smoothstep(0.01, 0.026, abs(x - px)))*step(-2.3, y0)*step(y0, -0.84);
+      float drip = 0.5 + 0.5*sin(y0*11.0 - uTime*2.4*uHeat);
+      col = mix(col, MAGMA, path*(0.45 + 0.45*drip)); emis += path*drip*0.6;
+      /* arc magma chamber + conduit */
+      float sz = 0.55 + 0.45*uArc.x;
+      vec2 cc = vec2(V1.x, -0.72);
+      float q = length((p - cc)/vec2(0.42*sz, 0.15*sz));
+      float ins = 1.0 - smoothstep(0.9, 1.0, q);
+      vec3 mc = mix(MAGMA, MAGMA_HOT, clamp(clamp(1.0 - q*q, 0.0, 1.0)*0.7 + 0.3*sin(uTime*1.7 + x*22.0)*sin(y0*38.0 - uTime*1.2), 0.0, 1.0));
+      col = mix(col, mc, ins); emis += ins*(0.6 + 0.4*uArc.y);
+      col *= 1.0 - 0.4*exp(-sq((q - 1.02)/0.07));
+      float cx = V1.x + 0.012*sin(y*18.0);
+      float cw = 0.014 + 0.012*uArc.y;
+      float cond = (1.0 - smoothstep(cw*0.55, cw, abs(x - cx)))*step(cc.y + 0.1*sz, y)*step(y, top + 0.01);
+      float pulse = 0.5 + 0.5*sin(y*14.0 - uTime*(3.0 + 7.0*uArc.y));
+      float con = mix(0.2 + 0.55*smoothstep(0.55, 1.0, uArc.x), 1.0, uArc.y);
+      col = mix(col, mix(MAGMA, MAGMA_HOT, pulse), cond*con); emis += cond*con*0.8;
+      /* caldera chamber, feeder and ring faults */
+      float szc = 0.3 + 0.7*uCalX.x;
+      vec2 c2 = vec2(VC.x, -0.85);
+      float q2 = length((p - c2)/vec2(0.78*szc, 0.25*szc));
+      float on2 = step(0.02, uCalX.x);
+      float ins2 = (1.0 - smoothstep(0.9, 1.0, q2))*on2;
+      vec3 mc2 = mix(MAGMA, MAGMA_HOT, clamp(clamp(1.0 - q2*q2, 0.0, 1.0)*0.6 + 0.25*sin(uTime*1.1 + x*16.0)*sin(y0*30.0 + uTime), 0.0, 1.0));
+      col = mix(col, mc2, ins2); emis += ins2*0.7;
+      col *= 1.0 - 0.4*exp(-sq((q2 - 1.02)/0.07))*on2;
+      float fx = VC.x - 0.25 + 0.05*sin(y0*6.0);
+      float feed = (1.0 - smoothstep(0.008, 0.02, abs(x - fx)))*step(-1.9, y0)*step(y0, -0.85 - 0.2*szc);
+      col = mix(col, MAGMA, feed*0.6); emis += feed*0.4;
+      float ringOn = max(step(0.02, uCal.y)*0.8, uCalX.y);
+      if (ringOn > 0.0) {
+        float rr = 0.5 + 0.06*(y + 0.85);
+        float rf = (1.0 - smoothstep(0.005, 0.013, min(abs(x - (VC.x - rr)), abs(x - (VC.x + rr)))))*step(-0.9, y)*step(y, top + 0.01);
+        col = mix(col, FAULT_DARK, rf*0.8*ringOn);
+        col = mix(col, QUAKE_RED, rf*uCalX.y); emis += rf*uCalX.y;
+      }
+      /* strike-slip fault plane with motion symbols */
+      float fdep = vTop0 - y0;
+      float fl = (1.0 - smoothstep(0.004, 0.011, abs(x - X_F)))*step(-0.03, fdep)*(1.0 - smoothstep(1.0, 1.25, fdep));
+      col = mix(col, FAULT_DARK, fl*0.9);
+      col = mix(col, QUAKE_RED, fl*uSsFlash); emis += fl*uSsFlash;
+      vec2 sw = p - vec2(X_F - 0.3, -0.3);
+      vec2 se = p - vec2(X_F + 0.3, -0.3);
+      float cr = 0.065;
+      float ringW = 1.0 - smoothstep(0.008, 0.014, abs(length(sw) - cr));
+      float ringE = 1.0 - smoothstep(0.008, 0.014, abs(length(se) - cr));
+      float crossW = (1.0 - smoothstep(0.006, 0.011, min(abs(sw.x - sw.y), abs(sw.x + sw.y))*0.7071))*step(length(sw), cr);
+      float dotE = 1.0 - smoothstep(0.016, 0.024, length(se));
+      col = mix(col, SYMBOL, max(max(ringW, crossW), max(ringE, dotE))*0.9);
+    }
+    /* megathrust: the locked plate interface */
+    if (rightSide && s0 > -0.2 && x > X_TR - 0.05) {
+      float onIf = 1.0 - smoothstep(0.006, 0.017, abs(n));
+      float seis = step(-1.72, y0);
+      float dash = step(0.45, fract(s0*7.0));
+      vec3 lcol = mix(vec3(0.42, 0.14, 0.12), QUAKE_RED, uMegaStress);
+      col = mix(col, lcol, onIf*seis*(0.55 + 0.45*dash));
+      col = mix(col, vec3(1.0, 0.86, 0.72), onIf*seis*uMegaFlash); emis += onIf*seis*uMegaFlash*1.5;
+      col = mix(col, vec3(0.62, 0.72, 0.8), onIf*(1.0 - seis)*0.25);
+    }
+    float l410 = (1.0 - smoothstep(0.004, 0.012, abs(y - Y410)))*step(0.5, fract(x*2.5));
+    col = mix(col, vec3(0.85, 0.8, 0.7), l410*0.22);
+    if (!oceanCol) {
+      float soil = 1.0 - smoothstep(0.0, 0.035, top - y);
+      col = mix(col, vTop0 > 1.05 ? SNOW : (vTop0 > 0.62 ? VOLC_ROCK : GRASS_A), soil*0.9);
+    }
+  }
+  if (uHeatMap > 0.001 && !water) {
+    vec3 hc = thermal(T);
+    float tf = T/200.0;
+    float iso = 1.0 - smoothstep(0.0, 1.4*fwidth(tf), abs(fract(tf + 0.5) - 0.5));
+    hc = mix(hc, vec3(1.0), iso*0.4*step(50.0, T));
+    col = mix(col, hc, uHeatMap);
+  }
+  if (uQuake.w >= 0.0) {
+    float r3 = distance(vPos, uQuake.xyz);
+    float fade = exp(-uQuake.w*0.35)*uQuakeAmp;
+    float kp = r3 - VP*uQuake.w; float ks = r3 - VS*uQuake.w;
+    col = mix(col, P_WAVE, exp(-kp*kp/0.0025)*fade*0.75);
+    col = mix(col, S_WAVE, exp(-ks*ks/0.008)*fade*0.7);
+    col = mix(col, vec3(1.0), exp(-sq(r3/0.07))*exp(-uQuake.w*1.5)*uQuakeAmp);
+  }
+  col *= uShade*(0.88 + 0.12*smoothstep(Y_BOT, 0.0, y));
+  col = mix(col, col*1.3 + 0.05, clamp(emis, 0.0, 1.0)*0.5);
+  col += (hash12(gl_FragCoord.xy) - 0.5)*0.014;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+/* ---------- water ---------- */
+const WATER_VS = '#define WITH_ISLANDS\n' + HEAD + GLSL_DYN + /* glsl */`
+attribute float aH0;
+uniform float uTime; uniform vec4 uTsu; uniform float uTsuAmp;
+varying vec3 vPos; varying float vDepth; varying float vCrest;
+float tsunami(vec2 q){
+  if (uTsu.w < 0.0) return 0.0;
+  float t = uTsu.w;
+  float r = TS_SPEED*t;
+  float dx = q.x - uTsu.x;
+  float zmask = 1.0 - smoothstep(uTsu.z, uTsu.z + 0.6 + 0.5*r, abs(q.y - uTsu.y));
+  float a = uTsuAmp*exp(-t*0.1);
+  float sea = exp(-sq((dx + r)/0.3)) - 0.4*exp(-sq((dx + r + 0.4)/0.26));
+  float land = (exp(-sq((dx - r*0.8)/0.22)) - 0.3*exp(-sq((dx - r*0.8 - 0.3)/0.2)))*(1.0 - smoothstep(X_COAST - 0.15, X_COAST + 0.1, q.x));
+  float src = exp(-sq(dx/0.35))*(1.0 - smoothstep(0.0, 0.7, t));
+  return a*(sea + land + src)*zmask;
+}
+void main(){
+  vec3 p = position;
+  float floorY = aH0 + dynDef(p.xz) + dynAdd(p.xz);
+  float ts = tsunami(p.xz);
+  p.y = ts + 0.006*sin(p.x*3.0 + uTime*1.2)*sin(p.z*2.5 - uTime*0.9);
+  vDepth = p.y - floorY; vCrest = max(ts, 0.0)/max(uTsuAmp, 0.001);
+  vPos = p;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+}`;
+const WATER_FS = HEAD + /* glsl */`
+uniform float uTime; uniform float uWaterAlpha;
+varying vec3 vPos; varying float vDepth; varying float vCrest;
+void main(){
+  float d = vDepth;
+  if (d < -0.004) discard;
+  vec3 col = mix(WATER_SHALLOW, WATER_MID, smoothstep(0.0, 0.14, d));
+  col = mix(col, WATER_DEEPS, smoothstep(0.14, 0.85, d));
+  float alpha = mix(0.42, 0.74, smoothstep(0.0, 0.6, d))*uWaterAlpha;
+  vec3 N = normalize(cross(dFdx(vPos), dFdy(vPos)));
+  if (N.y < 0.0) N = -N;
+  N = normalize(N + vec3(0.05*sin(vPos.x*14.0 + uTime*1.6), 0.0, 0.05*sin(vPos.z*12.0 - uTime*1.3)));
+  vec3 V = normalize(cameraPosition - vPos);
+  float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+  col = mix(col, SKY_REFL, fres*0.45);
+  vec3 H = normalize(LIGHT + V);
+  col += pow(max(dot(N, H), 0.0), 120.0)*0.55;
+  float foam = 1.0 - smoothstep(0.0, 0.03, d);
+  col = mix(col, vec3(0.93, 0.97, 1.0), foam*0.75*(0.6 + 0.4*sin(uTime*2.0 + vPos.z*7.0 + vPos.x*5.0)));
+  alpha = max(alpha, foam*0.8);
+  col = mix(col, vec3(0.9, 0.97, 1.0), clamp(vCrest, 0.0, 1.0)*0.7);
+  alpha = max(alpha, clamp(vCrest, 0.0, 1.0)*0.9);
+  gl_FragColor = vec4(col, alpha);
+}`;
+const LAKE_FS = /* glsl */`
+uniform float uTime; varying vec3 vPos;
+void main(){ float s = 0.5 + 0.5*sin(vPos.x*18.0 + uTime*1.4)*sin(vPos.z*15.0 - uTime);
+  gl_FragColor = vec4(mix(vec3(0.19, 0.53, 0.64), vec3(0.42, 0.74, 0.8), s*0.35), 0.86); }`;
+const SIMPLE_VS = /* glsl */`varying vec3 vPos; varying vec2 vUv; void main(){ vUv = uv; vec4 w = modelMatrix*vec4(position, 1.0); vPos = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
+const SHADOW_FS = /* glsl */`varying vec2 vUv; void main(){ vec2 q = (vUv - 0.5)*vec2(2.0, 2.0); float d = length(q*vec2(1.0, 1.25)); gl_FragColor = vec4(0.0, 0.0, 0.0, 0.55*(1.0 - smoothstep(0.35, 1.0, d))); }`;
+const ARROW_FS = /* glsl */`
+uniform float uTime; uniform float uSpeed; varying vec2 vUv;
+void main(){
+  float u = vUv.x; float yc = abs(vUv.y - 0.5)*2.0;
+  float shaft = step(u, 0.76)*step(yc, 0.34);
+  float head = step(0.76, u)*step(yc, (1.0 - u)/0.24);
+  float shape = max(shaft, head);
+  float ch = fract((u - yc*0.1)*7.0 - uTime*uSpeed);
+  float chev = smoothstep(0.0, 0.12, ch)*(1.0 - smoothstep(0.4, 0.55, ch));
+  float a = shape*(0.2 + 0.4*chev*step(u, 0.76) + 0.25*head);
+  if (a < 0.01) discard;
+  gl_FragColor = vec4(0.96, 0.98, 1.0, a);
+}`;
+const STREAK_VS = /* glsl */`
+attribute vec3 iPos; attribute vec2 iVel; attribute vec4 iCol;
+uniform float uLen; uniform float uWid;
+varying vec2 vUv; varying vec4 vCol;
+void main(){
+  float sp = length(iVel);
+  vec2 dir = sp > 1e-5 ? iVel/sp : vec2(1.0, 0.0);
+  vec2 nrm = vec2(-dir.y, dir.x);
+  float len = uLen*(0.3 + min(sp, 1.4)*0.9);
+  vec2 off = dir*position.x*len + nrm*position.y*uWid;
+  vUv = position.xy*2.0; vCol = iCol;
+  gl_Position = projectionMatrix*viewMatrix*vec4(iPos + vec3(off, 0.0), 1.0);
+}`;
+const STREAK_FS = /* glsl */`
+varying vec2 vUv; varying vec4 vCol;
+void main(){
+  float a = (1.0 - vUv.y*vUv.y)*smoothstep(-1.0, 0.1, vUv.x)*(1.0 - smoothstep(0.55, 1.0, vUv.x))*vCol.a;
+  if (a < 0.004) discard;
+  gl_FragColor = vec4(vCol.rgb, a);
+}`;
+const POINTS_VS = /* glsl */`
+attribute float aSize; attribute vec4 aColor;
+uniform float uScale;
+varying vec4 vColor;
+void main(){ vec4 mv = modelViewMatrix*vec4(position, 1.0); gl_PointSize = clamp(aSize*uScale/max(-mv.z, 0.1), 0.0, 220.0); gl_Position = projectionMatrix*mv; vColor = aColor; }`;
+const POINTS_FS = /* glsl */`
+varying vec4 vColor;
+void main(){ float r = length(gl_PointCoord - 0.5)*2.0; float a = (1.0 - smoothstep(0.45, 1.0, r))*vColor.a; if (a < 0.01) discard; gl_FragColor = vec4(vColor.rgb, a); }`;
+const DOTS_FS = /* glsl */`
+varying vec4 vColor;
+void main(){ float r = length(gl_PointCoord - 0.5)*2.0; if (r > 1.0) discard;
+  float ring = smoothstep(0.62, 0.78, r)*(1.0 - smoothstep(0.86, 1.0, r));
+  vec3 c = mix(vColor.rgb, vec3(0.05), ring*0.8);
+  gl_FragColor = vec4(c, vColor.a*(1.0 - smoothstep(0.9, 1.0, r))); }`;
+
+/* =====================================================================
+   renderer & scene
+   ===================================================================== */
+const stage = $('#stage');
+const canvas = $('#gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+} catch (e) {
+  stage.insertAdjacentHTML('beforeend', '<div class="nogl">This simulation needs WebGL, which your browser has turned off.</div>');
+  return;
+}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x000000, 0);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 500);
+scene.add(new THREE.HemisphereLight(0xcfdcf0, 0x4a4036, 2.1));
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.4);
+sun.position.copy(LIGHT).multiplyScalar(20);
+scene.add(sun);
+
+const polData = new Uint8Array(POL_N * 4);
+const polTex = new THREE.DataTexture(polData, POL_N, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
+polTex.magFilter = polTex.minFilter = THREE.NearestFilter;
+polTex.generateMipmaps = false;
+function updatePolTex() {
+  const rev = S.revs;
+  let k = rev.length - 1, pol = S.polarity;
+  for (let i = 0; i < POL_N; i++) {
+    const sigma = S.disp - (i / (POL_N - 1)) * POL_DMAX;
+    while (k >= 0 && rev[k] > sigma) { pol = -pol; k--; }
+    const v = pol > 0 ? 255 : 0;
+    polData[i * 4] = v; polData[i * 4 + 1] = v; polData[i * 4 + 2] = v; polData[i * 4 + 3] = 255;
+  }
+  polTex.needsUpdate = true;
+}
+updatePolTex();
+
+const V4 = () => new THREE.Vector4();
+const U = {
+  uTime: { value: 0 }, uPolTex: { value: polTex }, uStripes: { value: 1 }, uHeatMap: { value: 0 },
+  uCal: { value: new THREE.Vector4(1, 0, 0, 0) }, uCalX: { value: new THREE.Vector3(0.55, 0, 0) }, uLakeY: { value: -99 },
+  uArc: { value: new THREE.Vector2(0.6, 0) }, uMegaDef: { value: 0 }, uMegaStress: { value: 0 }, uMegaFlash: { value: 0 },
+  uSsFlash: { value: 0 }, uQuake: { value: new THREE.Vector4(0, 0, 0, -1) }, uQuakeAmp: { value: 0 },
+  uRip: { value: V4() }, uIsl: { value: Array.from({ length: 8 }, V4) }, uMegaRup: { value: V4() }, uSsRup: { value: V4() },
+  uTfFlash: { value: 0 }, uHeat: { value: 1 }, uTsu: { value: new THREE.Vector4(0, 0, 0, -1) }, uTsuAmp: { value: 0 }, uWaterAlpha: { value: 1 },
+};
+const EXT = { derivatives: true };
+
+/* ---------- terrain ---------- */
+const NX = 240, NZ = 96;
+const colX = new Float32Array(NX + 1), rowZ = new Float32Array(NZ + 1);
+for (let i = 0; i <= NX; i++) colX[i] = P.X0 + (P.X1 - P.X0) * i / NX;
+for (let j = 0; j <= NZ; j++) rowZ[j] = P.Z0 + (P.Z1 - P.Z0) * j / NZ;
+{
+  const pos = new Float32Array((NX + 1) * (NZ + 1) * 3);
+  let o = 0;
+  for (let j = 0; j <= NZ; j++) for (let i = 0; i <= NX; i++) { pos[o++] = colX[i]; pos[o++] = baseH(colX[i], rowZ[j]); pos[o++] = rowZ[j]; }
+  const idx = [];
+  for (let j = 0; j < NZ; j++) for (let i = 0; i < NX; i++) {
+    const a = j * (NX + 1) + i, b = a + 1, c = a + NX + 1, d = c + 1;
+    idx.push(a, c, b, b, c, d);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  const m = new THREE.ShaderMaterial({ uniforms: U, vertexShader: TERRAIN_VS, fragmentShader: TERRAIN_FS, extensions: EXT });
+  const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false;
+  scene.add(mesh);
+}
+
+/* ---------- cut faces ---------- */
+function buildFace(samples, shade) {
+  const ROWS = 90, nc = samples.length;
+  const pos = new Float32Array(nc * (ROWS + 1) * 3), aT = new Float32Array(nc * (ROWS + 1)), aTop = new Float32Array(nc * (ROWS + 1)), aBase = new Float32Array(nc * (ROWS + 1));
+  let o = 0;
+  for (let c = 0; c < nc; c++) {
+    const s = samples[c];
+    for (let r = 0; r <= ROWS; r++) {
+      const t = 1 - Math.pow(1 - r / ROWS, 1.35);
+      pos[o * 3] = s.x; pos[o * 3 + 1] = 0; pos[o * 3 + 2] = s.z;
+      aT[o] = t; aTop[o] = s.top; aBase[o] = s.base; o++;
+    }
+  }
+  const idx = [];
+  for (let c = 0; c < nc - 1; c++) for (let r = 0; r < ROWS; r++) {
+    const a = c * (ROWS + 1) + r, b = a + 1, cc = a + ROWS + 1, d = cc + 1;
+    idx.push(a, cc, b, b, cc, d);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aT', new THREE.BufferAttribute(aT, 1));
+  g.setAttribute('aTop0', new THREE.BufferAttribute(aTop, 1));
+  g.setAttribute('aBase0', new THREE.BufferAttribute(aBase, 1));
+  g.setIndex(idx);
+  const m = new THREE.ShaderMaterial({ uniforms: Object.assign({}, U, { uShade: { value: shade } }), vertexShader: FACE_VS, fragmentShader: FACE_FS, extensions: EXT, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false;
+  scene.add(mesh);
+  return mesh;
+}
+const sampleAt = (x, z) => ({ x, z, top: baseH(x, z), base: baseLand0(x, z) });
+buildFace(Array.from(colX, x => sampleAt(x, P.Z1)), 1.0);
+buildFace(Array.from(colX, x => sampleAt(x, P.Z0)), 0.62);
+buildFace(Array.from(rowZ, z => sampleAt(P.X1, z)), 0.8);
+buildFace(Array.from(rowZ, z => sampleAt(P.X0, z)), 0.74);
+{ // bottom
+  const g = new THREE.PlaneGeometry(P.X1 - P.X0, P.Z1 - P.Z0); g.rotateX(Math.PI / 2); g.translate(0, P.YBOT, 0);
+  scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x15130f })));
+}
+{ // soft shadow under the block
+  const g = new THREE.PlaneGeometry(34, 17); g.rotateX(-Math.PI / 2); g.translate(0.3, P.YBOT - 0.25, 0.6);
+  const m = new THREE.ShaderMaterial({ vertexShader: SIMPLE_VS, fragmentShader: SHADOW_FS, transparent: true, depthWrite: false });
+  scene.add(new THREE.Mesh(g, m));
+}
+
+/* ---------- water ---------- */
+{
+  const x1 = P.xCoast + 0.5, nx = 172, nz = NZ;
+  const pos = new Float32Array((nx + 1) * (nz + 1) * 3), h0 = new Float32Array((nx + 1) * (nz + 1));
+  let o = 0;
+  for (let j = 0; j <= nz; j++) for (let i = 0; i <= nx; i++) {
+    const x = P.X0 + (x1 - P.X0) * i / nx, z = rowZ[j];
+    pos[o * 3] = x; pos[o * 3 + 1] = 0; pos[o * 3 + 2] = z; h0[o] = baseH(x, z); o++;
+  }
+  const idx = [];
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('aH0', new THREE.BufferAttribute(h0, 1));
+  g.setIndex(idx);
+  const m = new THREE.ShaderMaterial({ uniforms: U, vertexShader: WATER_VS, fragmentShader: WATER_FS, transparent: true, depthWrite: false, extensions: EXT });
+  const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 5;
+  scene.add(mesh);
+}
+/* caldera lake: a half disc that stops at the front face */
+const lake = (() => {
+  const seg = 28, pos = [0, 0, 0];
+  for (let k = 0; k <= seg; k++) { const a = Math.PI + Math.PI * k / seg; pos.push(Math.cos(a) * 0.55, 0, Math.sin(a) * 0.55); }
+  const idx = []; for (let k = 1; k <= seg; k++) idx.push(0, k, k + 1);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  const m = new THREE.ShaderMaterial({ uniforms: U, vertexShader: SIMPLE_VS, fragmentShader: LAKE_FS, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+  const mesh = new THREE.Mesh(g, m); mesh.position.set(P.vc[0], -99, P.vc[1]); mesh.visible = false; mesh.renderOrder = 6;
+  scene.add(mesh); return mesh;
+})();
+
+/* ---------- plate-motion arrows ---------- */
+const arrows = [];
+function addArrow(cx, cz, len, dir) {
+  const g = new THREE.PlaneGeometry(len, 0.5); g.rotateX(-Math.PI / 2);
+  if (dir < 0) g.rotateY(Math.PI);
+  const m = new THREE.ShaderMaterial({ uniforms: { uTime: U.uTime, uSpeed: { value: 0.5 } }, vertexShader: SIMPLE_VS, fragmentShader: ARROW_FS, transparent: true, depthWrite: false });
+  const mesh = new THREE.Mesh(g, m); mesh.position.set(cx, 0.035, cz); mesh.renderOrder = 7;
+  scene.add(mesh); arrows.push(mesh);
+}
+addArrow(-7.7, -2.7, 2.0, -1);
+addArrow(-1.0, -2.7, 2.6, 1);
+
+/* ---------- trees, rocks, fence, seismometer ---------- */
+const trees = (() => {
+  const cone = new THREE.ConeGeometry(0.075, 0.22, 6); cone.translate(0, 0.16, 0);
+  const trunk = new THREE.CylinderGeometry(0.012, 0.014, 0.07, 5); trunk.translate(0, 0.035, 0);
+  const a = cone.toNonIndexed(), b = trunk.toNonIndexed();
+  const pos = new Float32Array(a.attributes.position.array.length + b.attributes.position.array.length);
+  pos.set(a.attributes.position.array, 0); pos.set(b.attributes.position.array, a.attributes.position.array.length);
+  const col = new Float32Array(pos.length);
+  for (let i = 0; i < pos.length / 3; i++) { const isTrunk = i >= a.attributes.position.count; col.set(isTrunk ? [0.36, 0.26, 0.18] : [1, 1, 1], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals();
+  const spots = [];
+  let tries = 0;
+  while (spots.length < 460 && tries < 20000) {
+    tries++;
+    const x = rand(4.3, 9.92), z = rand(-3.92, 3.92);
+    const h = baseH(x, z);
+    if (h < 0.05 || h > 0.78) continue;
+    const sl = Math.hypot(baseH(x + 0.05, z) - baseH(x - 0.05, z), baseH(x, z + 0.05) - baseH(x, z - 0.05)) / 0.1;
+    if (sl > 0.75) continue;
+    if (Math.abs(x - P.xF) < 0.14) continue;
+    if (Math.hypot(x - P.vc[0], z - P.vc[1]) < 1.08) continue;
+    if (Math.hypot(x - P.v1[0], z - P.v1[1]) < 0.62) continue;
+    if (Math.abs(z - P.zFence) < 0.14 && x > 5.6 && x < 7.6) continue;
+    if (Math.hypot(x - P.seis[0], z - P.seis[1]) < 0.3) continue;
+    if (vnoise(x * 1.3 + 2, z * 1.3 - 3) < 0.38 && Math.random() < 0.7) continue;
+    spots.push([x, z, rand(0.7, 1.35)]);
+  }
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const im = new THREE.InstancedMesh(g, mat, spots.length);
+  const dummy = new THREE.Object3D(); const c = new THREE.Color();
+  const greens = ['#355f36', '#3f6b3a', '#4d7a3f', '#2f5534', '#5a8446'];
+  spots.forEach((s, i) => {
+    dummy.position.set(s[0], baseH(s[0], s[1]) - 0.01, s[1]); dummy.rotation.y = rand(0, 6.28); dummy.scale.setScalar(s[2]); dummy.updateMatrix();
+    im.setMatrixAt(i, dummy.matrix); c.set(greens[i % greens.length]); im.setColorAt(i, c);
+  });
+  im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true;
+  scene.add(im);
+  return { im, spots, base: spots.map((_, i) => greens[i % greens.length]), ashed: 0 };
+})();
+{
+  const g = new THREE.IcosahedronGeometry(0.05, 0);
+  const mat = new THREE.MeshLambertMaterial({ color: 0x7a7068, flatShading: true });
+  const n = 70, im = new THREE.InstancedMesh(g, mat, n), dummy = new THREE.Object3D();
+  for (let i = 0; i < n; i++) {
+    let x, z, h, k = 0;
+    do { x = rand(3.9, 9.9); z = rand(-3.9, 3.9); h = baseH(x, z); k++; } while ((h < 0.02 || Math.hypot(x - P.vc[0], z - P.vc[1]) < 1.0) && k < 50);
+    dummy.position.set(x, h, z); dummy.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3)); dummy.scale.set(rand(0.6, 1.6), rand(0.5, 1.1), rand(0.6, 1.6)); dummy.updateMatrix();
+    im.setMatrixAt(i, dummy.matrix);
+  }
+  scene.add(im);
+}
+const fence = (() => {
+  const N = 19, xs = Array.from({ length: N }, (_, i) => lerp(5.75, 7.45, i / (N - 1)));
+  const postG = new THREE.BoxGeometry(0.02, 0.13, 0.02); postG.translate(0, 0.065, 0);
+  const railG = new THREE.BoxGeometry(1, 0.013, 0.013);
+  const mat = new THREE.MeshLambertMaterial({ color: 0xf1e7d6 });
+  const posts = new THREE.InstancedMesh(postG, mat, N), rails = new THREE.InstancedMesh(railG, mat, (N - 1) * 2);
+  posts.frustumCulled = rails.frustumCulled = false;
+  scene.add(posts, rails);
+  return { N, xs, posts, rails, pts: xs.map(x => new THREE.Vector3(x, 0, P.zFence)), dummy: new THREE.Object3D(), snap: 1, preDef: 0, offset0: 0 };
+})();
+const seismometer = (() => {
+  const g = new THREE.Group();
+  const hut = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, 0.12), new THREE.MeshLambertMaterial({ color: 0xe9e4da }));
+  hut.position.y = 0.045;
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.07, 4), new THREE.MeshLambertMaterial({ color: 0xd24b43 }));
+  roof.position.y = 0.125; roof.rotation.y = Math.PI / 4;
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 4), new THREE.MeshLambertMaterial({ color: 0xcfcfcf }));
+  mast.position.set(0.06, 0.2, 0);
+  g.add(hut, roof, mast);
+  g.position.set(P.seis[0], baseH(P.seis[0], P.seis[1]), P.seis[1]);
+  scene.add(g); return g;
+})();
+
+/* =====================================================================
+   particles: mantle convection, melt, effects, hypocentre dots
+   ===================================================================== */
+function makeStreaks(count, len, wid) {
+  const g = new THREE.InstancedBufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], 3));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  const iPos = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
+  const iVel = new THREE.InstancedBufferAttribute(new Float32Array(count * 2), 2);
+  const iCol = new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4);
+  [iPos, iVel, iCol].forEach(a => a.setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('iPos', iPos); g.setAttribute('iVel', iVel); g.setAttribute('iCol', iCol);
+  g.instanceCount = count;
+  const m = new THREE.ShaderMaterial({ uniforms: { uLen: { value: len }, uWid: { value: wid } }, vertexShader: STREAK_VS, fragmentShader: STREAK_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.renderOrder = 8;
+  scene.add(mesh);
+  return { mesh, iPos, iVel, iCol, count };
+}
+
+/* stream-function convection: ridge→slab main cell, a cell left of the ridge,
+   corner flow in the mantle wedge, and a plume jet */
+const HMAX = 6.0;
+const FLOW = { A: 1.05, plume: 0.26 };
+function psi(x, y) {
+  if (y < P.YBOT || x < P.X0 || x > P.X1) return 0;
+  const A = FLOW.A;
+  if (x < P.ridgeA) {
+    const top = leftBase(x); if (y > top) return 0;
+    const H = top - P.YBOT, xi = (x - P.X0) / (P.ridgeA - P.X0), eta = (y - P.YBOT) / H;
+    return A * 0.8 * Math.sin(Math.PI * xi) * Math.sin(Math.PI * eta) * (H / HMAX);
+  }
+  if (x <= P.xMainMax) {
+    const topM = slabBotY(x);
+    if (y <= topM) {
+      const H = topM - P.YBOT, xi = (x - P.ridgeA) / (P.xMainMax - P.ridgeA), eta = (y - P.YBOT) / H;
+      const se = Math.sin(Math.PI * eta) * (H / HMAX);
+      const dx = x - P.xH;
+      return -A * Math.sin(Math.PI * xi) * se - A * FLOW.plume * Math.tanh(dx / 0.22) * Math.exp(-dx * dx / 3.2) * se;
+    }
+  }
+  const xl = slabTopX(y), top = Lc(x);
+  if (x >= xl && y <= top) {
+    const W = P.X1 - xl, H = top - P.YBOT, xi = (x - xl) / W, eta = (y - P.YBOT) / H;
+    return A * 0.75 * Math.sin(Math.PI * xi) * Math.sin(Math.PI * eta) * (H / HMAX) * (W / 6.0);
+  }
+  return 0;
+}
+function inMantle(x, y) {
+  if (y < P.YBOT || x < P.X0 || x > P.X1) return false;
+  if (x < P.ridgeA) return y < leftBase(x) - 0.03;
+  if (x <= P.xMainMax && y < slabBotY(x) - 0.03) return true;
+  return x > slabTopX(y) + 0.03 && y < Lc(x) - 0.03;
+}
+const tmpV = [0, 0];
+function flowVel(x, y) {
+  const h = 0.015;
+  tmpV[0] = (psi(x, y + h) - psi(x, y - h)) / (2 * h);
+  tmpV[1] = -(psi(x + h, y) - psi(x - h, y)) / (2 * h);
+  return tmpV;
+}
+
+const conv = makeStreaks(3000, 0.2, 0.03);
+const cvx = new Float32Array(conv.count), cvy = new Float32Array(conv.count), cva = new Float32Array(conv.count), cvl = new Float32Array(conv.count);
+function spawnConv(i, anyAge) {
+  let x, y, k = 0;
+  do { x = rand(P.X0 + 0.05, P.X1 - 0.05); y = rand(P.YBOT + 0.03, -0.9); k++; } while (!inMantle(x, y) && k < 60);
+  cvx[i] = x; cvy[i] = y; cvl[i] = rand(3.5, 9); cva[i] = anyAge ? rand(0, cvl[i]) : 0;
+}
+for (let i = 0; i < conv.count; i++) spawnConv(i, true);
+function particleTemp(x, y, vy) {
+  let t = 0.42 + 0.34 * clamp(vy / 0.45, -1, 1);
+  t += 0.45 * Math.exp(-sq((x - P.xH) / 0.35)) * (y < -1.2 ? 1 : 0);
+  t += 0.18 * Math.exp(-sq((x - P.ridgeA) / 0.9));
+  if (x > P.xb) { const xl = slabTopX(y), xb2 = slabBotX(y); const dd = Math.min(Math.abs(x - xl), Math.abs(x - xb2)); t -= 0.3 * Math.exp(-dd / 0.35); }
+  return clamp(t, 0, 1);
+}
+function heatColor(t, out, o) {
+  // cold, sinking rock → blue; hot, rising rock → orange → yellow
+  let r, g, b;
+  if (t < 0.45) { const k = t / 0.45; r = lerp(0.36, 0.86, k); g = lerp(0.68, 0.8, k); b = lerp(1.0, 0.74, k); }
+  else if (t < 0.72) { const k = (t - 0.45) / 0.27; r = lerp(0.86, 1.0, k); g = lerp(0.8, 0.52, k); b = lerp(0.74, 0.16, k); }
+  else { const k = (t - 0.72) / 0.28; r = 1.0; g = lerp(0.52, 0.92, k); b = lerp(0.16, 0.55, k); }
+  out[o] = r; out[o + 1] = g; out[o + 2] = b;
+}
+function updateConv(dt) {
+  const sp = 0.55 + 0.45 * S.heat;
+  const P3 = conv.iPos.array, V2 = conv.iVel.array, C4 = conv.iCol.array;
+  for (let i = 0; i < conv.count; i++) {
+    let x = cvx[i], y = cvy[i];
+    const v = flowVel(x, y);
+    const vx = v[0] * sp, vy = v[1] * sp;
+    x += vx * dt; y += vy * dt;
+    cva[i] += dt;
+    if (cva[i] > cvl[i] || !inMantle(x, y)) { spawnConv(i, false); x = cvx[i]; y = cvy[i]; }
+    else { cvx[i] = x; cvy[i] = y; }
+    P3[i * 3] = x; P3[i * 3 + 1] = y; P3[i * 3 + 2] = P.Z1 + 0.012;
+    V2[i * 2] = vx; V2[i * 2 + 1] = vy;
+    const t = particleTemp(x, y, vy);
+    heatColor(t, C4, i * 4);
+    const life = cva[i] / cvl[i];
+    C4[i * 4 + 3] = (0.55 + 0.4 * Math.abs(t - 0.45) * 2) * sstep(0, 0.12, life) * (1 - sstep(0.8, 1, life));
+  }
+  conv.iPos.needsUpdate = conv.iVel.needsUpdate = conv.iCol.needsUpdate = true;
+}
+
+/* water released by the slab → flux melt → magma rising to the arc chamber; plus ridge melt */
+const melt = makeStreaks(150, 0.05, 0.05);
+const ml = Array.from({ length: melt.count }, () => ({ x: 0, y: 0, ph: 0, t: 0, kind: 0 }));
+function spawnMelt(p, any) {
+  if (Math.random() < 0.8) {
+    p.kind = 0; const y = rand(-3.4, -2.45); p.y = y; p.x = slabTopX(y) + 0.03; p.ph = 0;
+  } else {
+    p.kind = 1; p.x = P.ridgeA + rand(-0.35, 0.35); p.y = rand(-1.35, -0.9); p.ph = 1;
+  }
+  p.t = any ? rand(0, 3) : 0;
+  if (any && p.kind === 0) { p.y += rand(0, 1.5); p.ph = p.y > -2.35 ? 1 : 0; }
+}
+ml.forEach(p => spawnMelt(p, true));
+function updateMelt(dt) {
+  const k = 0.55 + 0.45 * S.heat;
+  const P3 = melt.iPos.array, V2 = melt.iVel.array, C4 = melt.iCol.array;
+  ml.forEach((p, i) => {
+    let vx, vy;
+    if (p.kind === 0) {
+      if (p.ph === 0) { vx = 0.12; vy = 0.3; if (p.y > -2.35 || Math.hypot((p.x - 5.1) / 0.52, (p.y + 2.55) / 0.4) < 0.7) p.ph = 1; }
+      else { const py = clamp((p.y + 2.25) / 1.45, 0, 1); const tx = lerp(5.1, P.v1[0], sstep(0, 1, py)) + 0.045 * Math.sin(p.y * 7 + 1.3); vx = (tx - p.x) * 2.2; vy = 0.24; }
+      if (p.y > -0.82) spawnMelt(p, false);
+    } else {
+      vx = (P.ridgeA - p.x) * 0.9; vy = 0.28;
+      if (p.y > -0.47) spawnMelt(p, false);
+    }
+    p.x += vx * k * dt; p.y += vy * k * dt; p.t += dt;
+    P3[i * 3] = p.x; P3[i * 3 + 1] = p.y; P3[i * 3 + 2] = P.Z1 + 0.014;
+    V2[i * 2] = vx * 0.1; V2[i * 2 + 1] = vy * 0.1;
+    const fade = sstep(0, 0.4, p.t);
+    if (p.ph === 0) { C4[i * 4] = 0.55; C4[i * 4 + 1] = 0.85; C4[i * 4 + 2] = 1.0; C4[i * 4 + 3] = 0.9 * fade; }
+    else { C4[i * 4] = 1.0; C4[i * 4 + 1] = 0.62; C4[i * 4 + 2] = 0.2; C4[i * 4 + 3] = 0.95 * fade; }
+  });
+  melt.iPos.needsUpdate = melt.iVel.needsUpdate = melt.iCol.needsUpdate = true;
+}
+
+/* ash / glow / dots as point sprites */
+function makePoints(count, blending, fs) {
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3), col = new Float32Array(count * 4), size = new Float32Array(count);
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('aColor', new THREE.BufferAttribute(col, 4).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('aSize', new THREE.BufferAttribute(size, 1).setUsage(THREE.DynamicDrawUsage));
+  const m = new THREE.ShaderMaterial({ uniforms: { uScale: { value: 500 } }, vertexShader: POINTS_VS, fragmentShader: fs || POINTS_FS, transparent: true, depthWrite: false, blending });
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = 9;
+  scene.add(pts);
+  return { pts, pos, col, size, count, vel: new Float32Array(count * 3), age: new Float32Array(count), life: new Float32Array(count), kind: new Uint8Array(count), alive: new Uint8Array(count), ptr: 0, s0: new Float32Array(count), s1: new Float32Array(count) };
+}
+const ash = makePoints(2200, THREE.NormalBlending);
+const glow = makePoints(1000, THREE.AdditiveBlending);
+const dots = makePoints(700, THREE.NormalBlending, DOTS_FS);
+dots.pts.renderOrder = 10;
+function emit(sys, kind, x, y, z, vx, vy, vz, life, s0, s1) {
+  let i = sys.ptr;
+  for (let k = 0; k < sys.count; k++) { const j = (sys.ptr + k) % sys.count; if (!sys.alive[j]) { i = j; break; } }
+  sys.ptr = (i + 1) % sys.count;
+  sys.alive[i] = 1; sys.kind[i] = kind; sys.age[i] = 0; sys.life[i] = life; sys.s0[i] = s0; sys.s1[i] = s1;
+  sys.pos[i * 3] = x; sys.pos[i * 3 + 1] = y; sys.pos[i * 3 + 2] = z;
+  sys.vel[i * 3] = vx; sys.vel[i * 3 + 1] = vy; sys.vel[i * 3 + 2] = vz;
+  return i;
+}
+// kinds: 0 ash column, 1 umbrella, 2 pyroclastic flow, 3 steam | glow: 10 bomb, 11 fountain spark, 12 island lava
+function updateAsh(dt) {
+  const A = ash;
+  for (let i = 0; i < A.count; i++) {
+    if (!A.alive[i]) { A.col[i * 4 + 3] = 0; A.size[i] = 0; continue; }
+    A.age[i] += dt; const t = A.age[i] / A.life[i];
+    if (t >= 1) { A.alive[i] = 0; A.col[i * 4 + 3] = 0; A.size[i] = 0; continue; }
+    const k = A.kind[i], o = i * 3;
+    if (k === 2) {
+      A.vel[o] *= 1 - dt * 0.9; A.vel[o + 2] *= 1 - dt * 0.9;
+      A.pos[o] += A.vel[o] * dt; A.pos[o + 2] += A.vel[o + 2] * dt;
+      A.pos[o + 1] = groundH(A.pos[o], clamp(A.pos[o + 2], P.Z0, P.Z1)) + 0.05 + t * 0.25;
+    } else {
+      if (k === 0) { A.vel[o + 1] *= 1 - dt * 0.28; if (A.pos[o + 1] > A.s1[i]) { A.kind[i] = 1; } }
+      if (k === 1) { A.vel[o + 1] *= 1 - dt * 2.5; A.vel[o] += (-0.22 - A.vel[o]) * dt * 0.5; A.vel[o + 2] += (-0.3 - A.vel[o + 2]) * dt * 0.5; }
+      if (k === 3) { A.vel[o] += -0.05 * dt; }
+      A.pos[o] += A.vel[o] * dt; A.pos[o + 1] += A.vel[o + 1] * dt; A.pos[o + 2] += A.vel[o + 2] * dt;
+    }
+    const grow = A.s0[i] * (1 + t * (k === 1 ? 3.2 : k === 3 ? 2.5 : 1.8));
+    A.size[i] = grow;
+    let r, g, b, a;
+    if (k === 3) { r = g = b = 0.92; a = 0.28 * (1 - t) * sstep(0, 0.15, t); }
+    else if (k === 2) { r = 0.52; g = 0.47; b = 0.42; a = 0.6 * (1 - t) * sstep(0, 0.1, t); }
+    else { const c = lerp(0.3, 0.56, t); r = c + 0.02; g = c; b = c - 0.02; a = 0.62 * (1 - t) * sstep(0, 0.08, t); }
+    A.col[i * 4] = r; A.col[i * 4 + 1] = g; A.col[i * 4 + 2] = b; A.col[i * 4 + 3] = a;
+  }
+  A.pts.geometry.attributes.position.needsUpdate = true; A.pts.geometry.attributes.aColor.needsUpdate = true; A.pts.geometry.attributes.aSize.needsUpdate = true;
+}
+function updateGlow(dt) {
+  const G = glow;
+  for (let i = 0; i < G.count; i++) {
+    if (!G.alive[i]) { G.col[i * 4 + 3] = 0; G.size[i] = 0; continue; }
+    G.age[i] += dt; const t = G.age[i] / G.life[i];
+    if (t >= 1) { G.alive[i] = 0; G.col[i * 4 + 3] = 0; G.size[i] = 0; continue; }
+    const o = i * 3;
+    G.vel[o + 1] -= 2.4 * dt;
+    G.pos[o] += G.vel[o] * dt; G.pos[o + 1] += G.vel[o + 1] * dt; G.pos[o + 2] += G.vel[o + 2] * dt;
+    const gh = groundH(clamp(G.pos[o], P.X0, P.X1), clamp(G.pos[o + 2], P.Z0, P.Z1));
+    if (G.pos[o + 1] < gh) { G.pos[o + 1] = gh; G.vel[o] *= 0.3; G.vel[o + 1] = 0; G.vel[o + 2] *= 0.3; }
+    G.size[i] = G.s0[i] * (1 - 0.5 * t);
+    G.col[i * 4] = 1.0; G.col[i * 4 + 1] = lerp(0.85, 0.35, t); G.col[i * 4 + 2] = lerp(0.45, 0.08, t); G.col[i * 4 + 3] = 0.95 * (1 - t);
+  }
+  G.pts.geometry.attributes.position.needsUpdate = true; G.pts.geometry.attributes.aColor.needsUpdate = true; G.pts.geometry.attributes.aSize.needsUpdate = true;
+}
+/* hypocentres projected onto the section (the way seismologists plot them) */
+function depthKm(y) {
+  const d = -y;
+  if (d <= 1.25) return d / 1.25 * 35;
+  if (d <= 2.0) return 35 + (d - 1.25) / 0.75 * 65;
+  return 100 + (d - 2.0) / 5.3 * 560;
+}
+function addDot(x, y, M, life = 26) {
+  const i = emit(dots, 0, x, y, P.Z1 + 0.02, 0, 0, 0, life, 0.035 + 0.02 * Math.max(0, M - 4), 0);
+  const km = depthKm(y);
+  let c = km < 70 ? [1.0, 0.36, 0.36] : km < 300 ? [1.0, 0.78, 0.34] : [0.43, 0.83, 1.0];
+  dots.col.set(c, i * 4);
+  return i;
+}
+function updateDots(dt) {
+  const D = dots;
+  for (let i = 0; i < D.count; i++) {
+    if (!D.alive[i]) { D.col[i * 4 + 3] = 0; D.size[i] = 0; continue; }
+    D.age[i] += dt; const t = D.age[i] / D.life[i];
+    if (t >= 1) { D.alive[i] = 0; D.col[i * 4 + 3] = 0; D.size[i] = 0; continue; }
+    D.col[i * 4 + 3] = 0.95 * (1 - sstep(0.6, 1, t));
+    D.size[i] = D.s0[i] * (1 + 1.2 * Math.exp(-D.age[i] * 6));
+  }
+  D.pts.geometry.attributes.position.needsUpdate = true; D.pts.geometry.attributes.aColor.needsUpdate = true; D.pts.geometry.attributes.aSize.needsUpdate = true;
+}
+function randomSlabQuake() {
+  // background intraslab / Benioff-zone events
+  const u = Math.random();
+  const sMax = 9.0;
+  let s = u < 0.8 ? Math.pow(Math.random(), 1.6) * sMax * 0.62 : rand(0.75, 1.0) * sMax;
+  const D0 = P.xb - P.ridgeA;
+  let x, y;
+  const bendLen = P.R * P.th;
+  if (s < bendLen) { const phi = s / P.R; const n = rand(0.02, 0.45); x = P.xb + (P.R - n) * Math.sin(phi); y = P.cy + (P.R - n) * Math.cos(phi); }
+  else { const q = s - bendLen; const n = rand(0.02, 0.45); x = P.xa + q * P.cosT - n * P.sinT; y = P.ya - q * P.sinT - n * P.cosT; }
+  if (x > P.xTr - 0.1 && y > P.YBOT + 0.05) addDot(x, y, 4 + Math.min(3, -Math.log10(Math.random())), 20);
+  return D0;
+}
+
+/* =====================================================================
+   events: earthquakes, tsunami, eruptions
+   ===================================================================== */
+const EV = { q: null, tsu: null, arc: null, cal: null, shake: 0, snap: null, lastCine: { mega: -99, ss: -99, arc: -99 }, flicker: { mega: 0, ss: 0 } };
+let tNow = 0;
+const seisStation = () => new THREE.Vector3(P.seis[0], groundH(P.seis[0], P.seis[1]), P.seis[1]);
+function magFromSlip(slip, L, W) { const M0 = 3e10 * L * W * Math.max(slip, 0.05); return (2 / 3) * (Math.log10(M0) - 9.1); }
+const cinematicOK = () => S.warp <= 400;
+
+function startQuake(kind, hypo, M, extra) {
+  const amp = clamp((M - 5) / 4, 0.2, 1);
+  const st = seisStation();
+  const dist = st.distanceTo(new THREE.Vector3(hypo[0], hypo[1], hypo[2]));
+  const q = { kind, hypo, M, t: 0, dur: 6, amp, dist, extra: extra || {} };
+  EV.q = q;
+  seisPacket(M, dist, 'quake');
+  if (!reduceMotion) EV.shake = Math.max(EV.shake, 0.05 + 0.13 * amp);
+  showCallout('M' + fmt(M, 1), kind === 'mega' ? 'Megathrust earthquake' : kind === 'ss' ? 'Strike-slip earthquake' : 'Earthquake', [hypo[0], groundH(hypo[0], clamp(hypo[2], P.Z0, P.Z1)) + 0.25, hypo[2]], 'q');
+  EV.lastCine[kind] = tNow;
+}
+function megaQuake(forced) {
+  const m = S.mega;
+  const slip = forced ? Math.max(m.def, 0.2) : m.def;
+  const M = magFromSlip(slip, 8e5, 1.5e5);
+  m.def = 0; m.thr = newMegaThr(); m.count++; m.lastYear = S.years; m.lastM = M; S.quakes++;
+  const hx = rand(3.15, 3.55), hy = plateTopA(hx) - 0.03, hz = rand(-3.2, 3.4);
+  addDot(hx, hy, M, 30);
+  if (forced || (cinematicOK() && tNow - EV.lastCine.mega > 2.5)) {
+    startQuake('mega', [hx, hy, hz], M);
+    EV.snap = { from: U.uMegaDef.value, t: 0 };
+    EV.tsu = { x0: 3.2, zc: 0.2, half: 3.6, t: -0.25, amp: clamp(0.02 + 0.03 * (M - 7.5), 0.02, 0.085) };
+    const n = Math.round(clamp(6 + 9 * (M - 7.8), 4, 22));
+    for (let k = 0; k < n; k++) EV.after = (EV.after || []).concat([{ t: 6 * Math.pow(Math.random(), 2.2), x: hx + rand(-0.3, 0.6), z: hz + rand(-2, 2), M: 4 + Math.min(2.8, -Math.log10(Math.random() + 1e-4)) }]);
+    toast(`<b>M${fmt(M, 1)}</b> megathrust quake · ${fmt(slip, 1)} m of slip · tsunami`);
+  } else {
+    EV.flicker.mega = 1;
+    seisPacket(M, 6, 'mini');
+  }
+}
+function ssQuake(forced) {
+  const s = S.ss;
+  const slip = forced ? Math.max(s.def, 0.15) : s.def;
+  const M = magFromSlip(slip, 3.2e5, 1.5e4);
+  s.count++; s.lastYear = S.years; s.lastM = M; S.quakes++;
+  const hz = rand(-2.5, 3.2), hy = -rand(0.35, 0.8);
+  addDot(P.xF, hy, M, 30);
+  if (forced || (cinematicOK() && tNow - EV.lastCine.ss > 2.5)) {
+    fence.preDef = s.def; fence.offset0 = s.offset; fence.snap = 0; fence.hz = hz;
+    s.offset += s.def; s.def = 0; s.quakesSinceBuild++;
+    startQuake('ss', [P.xF, hy, hz], M, { hz });
+    toast(`<b>M${fmt(M, 1)}</b> strike-slip quake · fault jumped ${fmt(slip, 1)} m`);
+  } else {
+    s.offset += s.def; s.def = 0; s.quakesSinceBuild++;
+    EV.flicker.ss = 1;
+    seisPacket(M, 2, 'mini');
+  }
+  s.thr = newSsThr();
+}
+function tfQuake() {
+  const M = rand(5.2, 6.6);
+  S.quakes++;
+  const x = rand(P.ridgeA + 0.05, P.ridgeB - 0.05);
+  U.uTfFlash.value = 1;
+  if (cinematicOK() && !EV.q) {
+    seisPacket(M, new THREE.Vector3(x, -0.6, P.zT).distanceTo(seisStation()), 'quake');
+  }
+}
+function eruptArc(forced) {
+  const a = S.arc;
+  a.count++; a.lastYear = S.years;
+  if (forced || (S.warp <= 1500 && tNow - EV.lastCine.arc > 7.5 && !EV.arc)) {
+    EV.arc = { t: 0, dur: 8, from: a.fill };
+    EV.lastCine.arc = tNow;
+    seisPacket(4.2, 2, 'tremor');
+    showCallout('VEI 3', 'Explosive eruption', [P.v1[0], groundH(P.v1[0], P.v1[1] - 0.05) + 0.6, P.v1[1] - 0.05], 'v');
+    if (forced) toast('Eruption · the chamber vents about 0.1 km³ of ash and lava');
+  } else {
+    a.fill = rand(0.3, 0.45);
+    puffV1(10);
+  }
+  a.thr = rand(0.95, 1.06);
+}
+function puffV1(n) {
+  const vx = P.v1[0], vz = P.v1[1] - 0.06, vy = groundH(vx, vz);
+  for (let k = 0; k < n; k++) emit(ash, 0, vx + rand(-0.03, 0.03), vy + 0.02, vz + rand(-0.04, 0.01), rand(-0.12, 0.12), rand(0.6, 1.0), rand(-0.12, 0.05), rand(3, 5), rand(0.1, 0.16), rand(1.6, 2.4));
+}
+function startCaldera(forced) {
+  const c = S.cal;
+  if (c.state === 'erupting' || EV.cal) return;
+  c.state = 'erupting'; c.count++; c.lastYear = S.years;
+  EV.cal = { t: 0, dur: 11, fill0: c.fill, cone0: c.cone, col0: c.collapse };
+  seisPacket(6.2, 3, 'tremor');
+  showCallout('VEI 7', 'Caldera-forming eruption', [P.vc[0], groundH(P.vc[0], P.vc[1] - 0.3) + 1.4, P.vc[1] - 0.3], 'v');
+  toast('Super-eruption · about 150 km³ of magma leaves the chamber and the roof collapses');
+  if (!reduceMotion) EV.shake = Math.max(EV.shake, 0.08);
+}
+
+function stepSim(dt) {
+  const dy = dt * S.warp;
+  S.years += dy;
+  const v = plateV();
+  S.disp += v * 1e-7 * dy;
+  // magnetic reversals
+  let flips = 0;
+  while (S.years >= S.nextRev && flips < 50) { S.polarity *= -1; S.revs.push(S.disp); S.fieldSince = S.nextRev; S.nextRev += revInterval(); flips++; }
+  if (flips && S.warp < 3e5) toast('Earth’s magnetic field just flipped');
+  const minS = S.disp - POL_DMAX - 1; while (S.revs.length > 2 && S.revs[1] < minS) S.revs.shift();
+  // megathrust
+  const mg = S.mega;
+  mg.def += v * 0.01 * dy;
+  let guard = 0;
+  while (mg.def >= mg.thr && guard < 40) { megaQuake(false); guard++; }
+  if (guard >= 40) mg.def = mg.def % mg.thr;
+  // background small quakes along the slab (rate grows with plate speed)
+  let nq = (0.012 * (v / 5)) * dy; let nd = 0;
+  while (nq > 0 && nd < 6) { if (Math.random() < Math.min(1, nq)) { randomSlabQuake(); S.quakes++; } nq -= 1; nd++; }
+  if (nq > 0) S.quakes += Math.floor(nq);
+  // strike-slip fault
+  const ss = S.ss;
+  ss.def += v * 0.4 * 0.01 * dy;
+  guard = 0;
+  while (ss.def >= ss.thr && guard < 40) { ssQuake(false); guard++; }
+  if (ss.quakesSinceBuild >= 3 && !EV.q) { ss.offset = 0; ss.quakesSinceBuild = 0; if (S.warp < 5000) toast('Fence rebuilt straight across the fault'); }
+  // transform fault at the ridge
+  S.tf.next -= dy;
+  if (S.tf.next <= 0) { tfQuake(); S.tf.next = rand(40, 160); if (S.tf.next < 0) S.tf.next = 40; }
+  // arc volcano
+  const a = S.arc;
+  if (!EV.arc) {
+    a.fill += 0.0019 * (v / 5) * S.magma * dy;
+    let g2 = 0; while (a.fill >= a.thr && g2 < 20) { eruptArc(false); g2++; if (EV.arc) break; }
+  }
+  // caldera
+  stepCaldera(dy);
+  // hotspot islands
+  while (S.disp - S.lastIsland >= 0.62) { S.lastIsland += 0.62; S.islands.push(makeIsland(S.lastIsland)); }
+  S.islands = S.islands.filter(isl => P.xH + (S.disp - isl.birth) < P.xTr - 0.3);
+  while (S.islands.length > 8) S.islands.shift();
+}
+function stepCaldera(dy) {
+  const c = S.cal;
+  if (c.state === 'erupting') return;
+  c.fill = Math.min(1.02, c.fill + Math.pow(S.heat, 1.3) * S.magma / 150000 * dy);
+  if (c.collapse > 0) {
+    const rb = sstep(0.35, 0.92, c.fill);
+    c.collapse = Math.min(c.collapse, 1 - rb);
+    c.cone = Math.max(c.cone, rb);
+    c.ash = Math.max(0, c.ash - dy / 40000);
+    if (c.collapse <= 0.002) { c.collapse = 0; c.lake = 0; }
+  } else c.ash = Math.max(0, c.ash - dy / 40000);
+  c.inflate = sstep(0.8, 1.0, c.fill);
+  c.state = c.fill > 0.85 ? 'unrest' : (c.collapse > 0.5 ? 'collapsed' : 'recharging');
+  if (c.state === 'unrest' && Math.random() < Math.min(1, dy * 0.002)) addDot(P.vc[0] + rand(-0.5, 0.5), rand(-0.75, -0.15), rand(2.5, 4), 10);
+  if (c.fill >= 1.0) startCaldera(false);
+}
+
+function updateEvents(dt) {
+  tNow += dt;
+  // earthquake cinematic
+  const q = EV.q;
+  if (q) {
+    q.t += dt;
+    U.uQuake.value.set(q.hypo[0], q.hypo[1], q.hypo[2], q.t);
+    U.uQuakeAmp.value = q.amp;
+    U.uRip.value.set(q.hypo[0], q.hypo[2], q.t, q.amp * (1 - sstep(3, 6, q.t)));
+    if (q.kind === 'mega') {
+      const rr = 3.4 * q.t;
+      U.uMegaRup.value.set(q.hypo[2], rr, Math.max(0, 1 - sstep(2.5, 5, q.t)), 0);
+      const reachFront = Math.abs(P.Z1 - q.hypo[2]) <= rr;
+      U.uMegaFlash.value = reachFront ? Math.max(U.uMegaFlash.value, 1 - sstep(2.8, 5.2, q.t)) : 0;
+    }
+    if (q.kind === 'ss') {
+      const rr = 3.0 * q.t;
+      U.uSsRup.value.set(q.hypo[2], rr, Math.max(0, 1 - sstep(2.5, 5, q.t)), 0);
+      if (Math.abs(P.Z1 - q.hypo[2]) <= rr) U.uSsFlash.value = Math.max(U.uSsFlash.value, 1 - sstep(2.8, 5.2, q.t));
+      if (Math.abs(P.zFence - q.hypo[2]) <= rr && fence.snap < 1) fence.snap = Math.min(1, fence.snap + dt / 0.22);
+    }
+    if (q.t > q.dur) { EV.q = null; U.uQuake.value.w = -1; U.uQuakeAmp.value = 0; U.uRip.value.w = 0; U.uMegaRup.value.z = 0; U.uSsRup.value.z = 0; if (fence.snap < 1) fence.snap = 1; }
+  }
+  if (fence.snap < 1 && (!EV.q || EV.q.kind !== 'ss')) fence.snap = 1;
+  // aftershocks
+  if (EV.after && EV.after.length) {
+    EV.after = EV.after.filter(a => { a.t -= dt; if (a.t <= 0) { addDot(a.x, plateTopA(clamp(a.x, P.xTr, 4)) - rand(0.02, 0.2), a.M, 18); seisPacket(a.M, 4, 'mini'); return false; } return true; });
+  }
+  // flicker glow for fast time-warps
+  U.uMegaFlash.value = Math.max(U.uMegaFlash.value * Math.exp(-dt * 3), EV.flicker.mega * 0.8);
+  U.uSsFlash.value = Math.max(U.uSsFlash.value * Math.exp(-dt * 3), EV.flicker.ss * 0.8);
+  EV.flicker.mega = 0; EV.flicker.ss = 0;
+  U.uTfFlash.value *= Math.exp(-dt * 2.5);
+  // tsunami
+  if (EV.tsu) {
+    EV.tsu.t += dt;
+    U.uTsu.value.set(EV.tsu.x0, EV.tsu.zc, EV.tsu.half, Math.max(EV.tsu.t, 0));
+    U.uTsuAmp.value = EV.tsu.t < 0 ? 0 : EV.tsu.amp * sstep(0, 0.4, EV.tsu.t);
+    if (EV.tsu.t > 11) { EV.tsu = null; U.uTsu.value.w = -1; U.uTsuAmp.value = 0; }
+  }
+  // megathrust coseismic snap-back
+  const target = S.mega.def / 8;
+  if (EV.snap) {
+    EV.snap.t += dt; const k = clamp(EV.snap.t / 0.5, 0, 1);
+    U.uMegaDef.value = EV.snap.from * (1 - easeOutBack(k)) + target * k;
+    if (k >= 1) EV.snap = null;
+  } else U.uMegaDef.value = target;
+  // arc eruption cinematic
+  const a = EV.arc;
+  const vx = P.v1[0], vz = P.v1[1] - 0.06, vtop = groundH(vx, vz);
+  if (a) {
+    a.t += dt;
+    const k = a.t / a.dur;
+    const inten = sstep(0, 0.08, k) * (1 - sstep(0.65, 1, k));
+    U.uArc.value.y = inten;
+    S.arc.fill = lerp(a.from, 0.35, sstep(0.05, 0.9, k));
+    const rate = 70 * inten;
+    for (let n = 0; n < rate * dt + Math.random() * 0.999 * (rate * dt > 0 ? 1 : 0); n++) emit(ash, 0, vx + rand(-0.04, 0.04), vtop + 0.02, vz + rand(-0.05, 0.02), rand(-0.15, 0.15), rand(1.2, 1.9), rand(-0.15, 0.05), rand(4, 6.5), rand(0.12, 0.2), rand(2.6, 3.4));
+    for (let n = 0; n < 40 * inten * dt + (Math.random() < 40 * inten * dt ? 1 : 0); n++) emit(glow, 10, vx, vtop + 0.03, vz, rand(-0.7, 0.7), rand(1.3, 2.4), rand(-0.7, 0.4), rand(0.9, 1.6), rand(0.05, 0.08), 0);
+    if (a.t > a.dur) { EV.arc = null; U.uArc.value.y = 0; }
+  } else {
+    U.uArc.value.y = S.warp > 1500 ? 0.25 + 0.15 * Math.sin(tNow * 7) : 0;
+    if (S.warp > 1500 && Math.random() < dt * 3) puffV1(2);
+  }
+  U.uArc.value.x = S.arc.fill;
+  // caldera cinematic
+  const c = S.cal, e = EV.cal;
+  const cx = P.vc[0], cz = P.vc[1] - 0.25;
+  if (e) {
+    e.t += dt; const t = e.t;
+    const plinian = sstep(0, 0.6, t) * (1 - sstep(3.2, 5.0, t));
+    const rate = 150 * plinian;
+    const ctop = groundH(cx, cz);
+    for (let n = 0; n < rate * dt; n++) emit(ash, 0, cx + rand(-0.12, 0.12), ctop + 0.05, cz + rand(-0.12, 0.08), rand(-0.2, 0.2), rand(2.2, 3.1), rand(-0.2, 0.1), rand(5, 8), rand(0.16, 0.26), rand(4.2, 5.2));
+    const pyro = sstep(2.2, 3.0, t) * (1 - sstep(6.5, 8, t));
+    for (let n = 0; n < 110 * pyro * dt; n++) { const ang = rand(Math.PI * 0.95, Math.PI * 2.05); emit(ash, 2, cx + Math.cos(ang) * 0.55, ctop, P.vc[1] + Math.sin(ang) * 0.55, Math.cos(ang) * rand(0.8, 1.4), 0, Math.sin(ang) * rand(0.8, 1.4), rand(2.2, 3.2), rand(0.14, 0.22), 0); }
+    for (let n = 0; n < 30 * plinian * dt; n++) emit(glow, 10, cx, ctop + 0.05, cz, rand(-1, 1), rand(1.5, 2.8), rand(-1, 0.6), rand(1, 1.8), rand(0.05, 0.09), 0);
+    c.fill = lerp(e.fill0, 0.08, sstep(0.3, 7, t));
+    c.cone = lerp(e.cone0, 0, sstep(1.4, 5.2, t));
+    c.collapse = lerp(e.col0, 1, easeInOut(clamp((t - 2.4) / 3.8, 0, 1)));
+    c.inflate = lerp(c.inflate, 0, dt * 2);
+    c.ash = Math.max(c.ash, sstep(3, 9, t));
+    U.uCalX.value.y = sstep(2.3, 3.0, t) * (1 - sstep(6.2, 7.5, t));
+    if (t > 2.4 && t < 6.2 && Math.random() < dt * 6) addDot(cx + rand(-0.5, 0.5), rand(-0.7, -0.1), rand(3, 4.8), 14);
+    if (t > e.dur) { EV.cal = null; c.state = 'collapsed'; U.uCalX.value.y = 0; c.lake = 0.001; }
+  } else if (c.collapse > 0.5) {
+    c.lake = Math.min(1, c.lake + dt / 6);
+    if (Math.random() < dt * 5) emit(ash, 3, cx + rand(-0.3, 0.3), groundH(cx, cz) + 0.05, cz + rand(-0.2, 0.1), 0, rand(0.2, 0.35), 0, rand(3, 5), rand(0.1, 0.16), 0);
+  } else if (c.state === 'unrest' && Math.random() < dt * 3) {
+    emit(ash, 3, cx + rand(-0.3, 0.3), groundH(cx, cz) + 0.03, cz + rand(-0.2, 0.1), 0, rand(0.15, 0.3), 0, rand(3, 5), rand(0.07, 0.12), 0);
+  }
+  U.uCal.value.set(c.cone, c.collapse, c.inflate, c.ash);
+  U.uCalX.value.x = c.fill;
+  DYN.cone = c.cone; DYN.collapse = c.collapse; DYN.inflate = c.inflate; DYN.mega = U.uMegaDef.value;
+  // lake level inside the caldera
+  if (c.collapse > 0.3 && c.lake > 0) {
+    const floor = baseH(P.vc[0], P.vc[1] - 0.2) + dynDef(P.vc[0], P.vc[1] - 0.2);
+    const ly = floor + 0.02 + 0.3 * c.lake * sstep(0.3, 1, c.collapse);
+    lake.position.y = ly; lake.visible = true; U.uLakeY.value = ly;
+  } else { lake.visible = false; U.uLakeY.value = -99; }
+  // new island volcanism glow
+  if (S.warp > 20000 && Math.random() < dt * 4) {
+    const young = S.islands[S.islands.length - 1];
+    if (young) { const st = islandState(young); if (st.d < 0.3 && st.top > 0) emit(glow, 12, st.x, st.top, st.z, rand(-0.3, 0.3), rand(0.6, 1.2), rand(-0.3, 0.3), 0.8, 0.05, 0); }
+  }
+  // shake decay
+  EV.shake *= Math.exp(-dt * 1.3);
+  // ash-greyed trees near the caldera
+  const ashLevel = Math.round(c.ash * 10) / 10;
+  if (ashLevel !== trees.ashed) {
+    trees.ashed = ashLevel;
+    const col = new THREE.Color(), grey = new THREE.Color('#8b8883');
+    trees.spots.forEach((s, i) => { const d = Math.hypot(s[0] - P.vc[0], s[1] - P.vc[1]); col.set(trees.base[i]).lerp(grey, ashLevel * Math.exp(-d * d / 3.2)); trees.im.setColorAt(i, col); });
+    trees.im.instanceColor.needsUpdate = true;
+  }
+}
+
+/* island uniforms */
+function updateIslands() {
+  DYN.isl.length = 0;
+  const arr = U.uIsl.value;
+  for (let k = 0; k < 8; k++) arr[k].set(0, 0, 0, 1);
+  S.islands.forEach((isl, k) => { if (k >= 8) return; const s = islandState(isl); arr[k].set(s.x, s.z, s.amp, s.r); DYN.isl.push(s); });
+}
+
+/* fence: the elastic-rebound demonstration */
+function updateFence() {
+  const E = 0.085, Dl = 0.22, s = S.ss;
+  const def = fence.snap < 1 ? lerp(fence.preDef, 0, fence.snap) + s.def : s.def;
+  const off = fence.snap < 1 ? lerp(fence.offset0, fence.offset0 + fence.preDef, fence.snap) : s.offset;
+  const d = fence.dummy;
+  fence.xs.forEach((x, i) => {
+    const zo = E * ((def / Math.PI) * Math.atan((x - P.xF) / Dl) + 0.5 * off * Math.sign(x - P.xF));
+    const z = P.zFence + zo;
+    fence.pts[i].set(x, groundH(x, z), z);
+    d.position.copy(fence.pts[i]); d.rotation.set(0, 0, 0); d.scale.set(1, 1, 1); d.updateMatrix();
+    fence.posts.setMatrixAt(i, d.matrix);
+  });
+  const broken = s.offset > 0.05 || fence.snap < 1 && fence.snap > 0.2;
+  let r = 0;
+  for (let i = 0; i < fence.N - 1; i++) {
+    const a = fence.pts[i], b = fence.pts[i + 1];
+    const crosses = a.x < P.xF && b.x > P.xF;
+    for (const hgt of [0.05, 0.1]) {
+      const len = Math.hypot(b.x - a.x, (b.y - a.y), b.z - a.z);
+      d.position.set((a.x + b.x) / 2, (a.y + b.y) / 2 + hgt, (a.z + b.z) / 2);
+      d.rotation.set(0, -Math.atan2(b.z - a.z, b.x - a.x), Math.atan2(b.y - a.y, Math.hypot(b.x - a.x, b.z - a.z)));
+      d.scale.set(crosses && broken ? 0.0001 : len, 1, 1);
+      d.updateMatrix(); fence.rails.setMatrixAt(r++, d.matrix);
+    }
+  }
+  fence.posts.instanceMatrix.needsUpdate = true; fence.rails.instanceMatrix.needsUpdate = true;
+}
+
+/* =====================================================================
+   seismograph
+   ===================================================================== */
+const seisCanvas = $('#seis-canvas'), sctx = seisCanvas.getContext('2d');
+const SEIS_N = 420; const seisBuf = new Float32Array(SEIS_N); let seisW = 0; let seisCount = 0;
+const seisMarks = []; const packets = [];
+function seisPacket(M, dist, type) {
+  const a = type === 'mini' ? clamp(Math.pow(10, 0.5 * (M - 6.5)) * 0.35, 0.02, 0.25) : clamp(Math.pow(10, 0.5 * (M - 7.6)) * (7 / (7 + dist)), 0.05, 1.0);
+  const pk = { t0: tNow, tP: dist / WAVE.vp * 0.9, tS: dist / WAVE.vs * 0.9, tR: dist / WAVE.vr * 0.95, a, type, dist, M, pDone: false, sDone: false };
+  if (type === 'tremor') { pk.tP = 0.2; pk.tS = 99; pk.tR = 99; pk.dur = M > 6 ? 9 : 6; }
+  packets.push(pk);
+  if (type === 'quake') {
+    const km = dist * 100, sp = km / 8;
+    $('#seis-info').innerHTML = `M${fmt(M, 1)} · ${fmtInt(km)} km · S−P ${fmtInt(sp)} s`;
+  } else if (type === 'tremor') $('#seis-info').textContent = 'volcanic tremor';
+}
+function seisSample() {
+  let s = (Math.random() - 0.5) * 0.035 + 0.012 * Math.sin(tNow * 2.3);
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const pk = packets[i], dt = tNow - pk.t0;
+    if (pk.type === 'tremor') {
+      const u = dt - pk.tP;
+      if (u > 0) s += pk.a * 0.45 * Math.sin(u * 34) * Math.sin(u * 3.1) * sstep(0, 1, u) * (1 - sstep(pk.dur * 0.6, pk.dur, u));
+      if (u > pk.dur) packets.splice(i, 1);
+      continue;
+    }
+    if (dt > pk.tP) { const u = dt - pk.tP; s += pk.a * 0.32 * Math.exp(-u * 2.6) * Math.sin(u * 60); if (!pk.pDone) { pk.pDone = true; if (pk.type === 'quake') seisMarks.push({ n: seisCount, l: 'P' }); } }
+    if (dt > pk.tS) { const u = dt - pk.tS; s += pk.a * 0.72 * Math.exp(-u * 1.7) * Math.sin(u * 31 + 1); if (!pk.sDone) { pk.sDone = true; if (pk.type === 'quake') seisMarks.push({ n: seisCount, l: 'S' }); } }
+    if (dt > pk.tR) { const u = dt - pk.tR; s += pk.a * 0.95 * Math.exp(-u * 0.85) * Math.sin(u * 11) * Math.min(1, u * 3); }
+    if (dt > pk.tR + 7) packets.splice(i, 1);
+  }
+  return clamp(s, -1, 1);
+}
+function drawSeis() {
+  const w = seisCanvas.clientWidth, h = seisCanvas.clientHeight;
+  if (!w || !h) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (seisCanvas.width !== Math.round(w * dpr)) { seisCanvas.width = Math.round(w * dpr); seisCanvas.height = Math.round(h * dpr); }
+  seisBuf[seisW] = seisSample(); seisW = (seisW + 1) % SEIS_N; seisCount++;
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sctx.clearRect(0, 0, w, h);
+  sctx.strokeStyle = 'rgba(255,255,255,0.06)'; sctx.lineWidth = 1;
+  for (let k = 1; k < 4; k++) { sctx.beginPath(); sctx.moveTo(0, h * k / 4); sctx.lineTo(w, h * k / 4); sctx.stroke(); }
+  for (let k = 1; k < 7; k++) { const gx = ((k * 60 - (seisCount % 60)) / SEIS_N) * w; sctx.beginPath(); sctx.moveTo(gx, 0); sctx.lineTo(gx, h); sctx.stroke(); }
+  sctx.beginPath();
+  for (let k = 0; k < SEIS_N; k++) { const v = seisBuf[(seisW + k) % SEIS_N]; const px = k / (SEIS_N - 1) * w, py = h / 2 - v * h * 0.46; if (k === 0) sctx.moveTo(px, py); else sctx.lineTo(px, py); }
+  sctx.strokeStyle = '#ff8f6a'; sctx.lineWidth = 1.3; sctx.stroke();
+  sctx.font = '600 10px IBM Plex Mono, monospace';
+  for (let i = seisMarks.length - 1; i >= 0; i--) {
+    const m = seisMarks[i], age = seisCount - m.n;
+    if (age >= SEIS_N) { seisMarks.splice(i, 1); continue; }
+    const px = (1 - age / (SEIS_N - 1)) * w;
+    sctx.strokeStyle = m.l === 'P' ? 'rgba(124,203,255,0.8)' : 'rgba(255,180,77,0.85)'; sctx.lineWidth = 1;
+    sctx.beginPath(); sctx.moveTo(px, 3); sctx.lineTo(px, h - 3); sctx.stroke();
+    sctx.fillStyle = m.l === 'P' ? '#7ccbff' : '#ffb44d'; sctx.fillText(m.l, px + 3, 11);
+  }
+}
+
+/* =====================================================================
+   camera: orbit + station flights + shake
+   ===================================================================== */
+const cam = { cur: { th: 0.38, ph: 1.12, r: 30, tx: 0.3, ty: -2.6, tz: 0.2, fov: 34 }, goal: null, flying: true };
+cam.goal = Object.assign({}, cam.cur);
+let view = '3d';
+let W = 1, H = 1, occL = 0, occR = 0;
+const overlayMode = () => window.innerWidth > 860;
+function measureOcclusion() {
+  // how much of the canvas the floating panels cover, so the scene can be centred in the free space
+  occL = occR = 0;
+  if (!overlayMode()) return;
+  const sr = stage.getBoundingClientRect();
+  const st = $('#story').getBoundingClientRect();
+  if (!$('#story').classList.contains('collapsed') || st.height > 0.45 * sr.height) occL = Math.max(0, st.right - sr.left + 10);
+  const ct = $('#controls').getBoundingClientRect();
+  if (!$('#controls').classList.contains('collapsed')) occR = Math.max(0, sr.right - ct.left + 10);
+}
+function fitK() {
+  const effW = Math.max(240, W - (occL + occR) * 0.55);
+  return Math.max(1, Math.pow(1.6 * H / effW, 0.9));
+}
+function applyViewOffset() {
+  const shift = (occL - occR) * 0.5;
+  if (Math.abs(shift) < 1) camera.clearViewOffset();
+  else camera.setViewOffset(W, H, -shift, 0, W, H);
+}
+function goalFor(st) {
+  const k = fitK();
+  if (view === 'section') return { th: 0, ph: Math.PI / 2 - 0.01, r: st.sec[2] * k, tx: st.sec[0], ty: st.sec[1], tz: P.Z1, fov: 24 };
+  if (view === 'map') return { th: 0, ph: 0.03, r: st.map[2] * k, tx: st.map[0], ty: 0, tz: st.map[1], fov: 30 };
+  return { th: st.cam.th, ph: st.cam.ph, r: st.cam.r * k, tx: st.cam.t[0], ty: st.cam.t[1], tz: st.cam.t[2], fov: 34 };
+}
+function flyTo(g) {
+  // take the short way round
+  while (g.th - cam.cur.th > Math.PI) g.th -= Math.PI * 2;
+  while (g.th - cam.cur.th < -Math.PI) g.th += Math.PI * 2;
+  cam.goal = g; cam.flying = true;
+}
+function updateCam(dt) {
+  const k = 1 - Math.exp(-dt * (cam.flying ? (reduceMotion ? 12 : 2.6) : 10));
+  for (const key in cam.cur) cam.cur[key] += (cam.goal[key] - cam.cur[key]) * k;
+  const c = cam.cur, sp = Math.sin(c.ph);
+  camera.position.set(c.tx + c.r * sp * Math.sin(c.th), c.ty + c.r * Math.cos(c.ph), c.tz + c.r * sp * Math.cos(c.th));
+  camera.up.set(0, 1, 0);
+  camera.lookAt(c.tx, c.ty, c.tz);
+  if (EV.shake > 0.002) {
+    const s = EV.shake * (c.r / 25);
+    camera.position.x += (Math.random() - 0.5) * s; camera.position.y += (Math.random() - 0.5) * s * 0.7; camera.position.z += (Math.random() - 0.5) * s;
+  }
+  if (Math.abs(camera.fov - c.fov) > 0.01) { camera.fov = c.fov; camera.updateProjectionMatrix(); }
+}
+{
+  const ptrs = new Map(); let lastPinch = 0, lastMid = null, mode = 'rot';
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    mode = (e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey) ? 'pan' : 'rot';
+    canvas.classList.add('dragging'); cam.flying = false;
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; lastPinch = Math.hypot(a.x - b.x, a.y - b.y); lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+  });
+  const pan = (dx, dy) => {
+    const g = cam.goal, s = g.r * 0.0016;
+    const right = new THREE.Vector3(Math.cos(g.th), 0, -Math.sin(g.th));
+    const up = new THREE.Vector3(-Math.cos(g.ph) * Math.sin(g.th), Math.sin(g.ph), -Math.cos(g.ph) * Math.cos(g.th));
+    g.tx -= (right.x * dx - up.x * dy) * s; g.ty -= (-up.y * dy) * s * -1 * -1 + 0; g.tz -= (right.z * dx - up.z * dy) * s;
+    g.ty += up.y * dy * s;
+    g.tx = clamp(g.tx, -14, 14); g.ty = clamp(g.ty, -9, 4); g.tz = clamp(g.tz, -8, 8);
+  };
+  canvas.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const p = ptrs.get(e.pointerId); const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    const g = cam.goal;
+    if (ptrs.size === 1) {
+      if (mode === 'rot') { g.th -= dx * 0.0055; g.ph = clamp(g.ph - dy * 0.0045, 0.03, 1.62); }
+      else pan(dx, dy);
+    } else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (lastPinch > 0) g.r = clamp(g.r * lastPinch / d, 3, 70);
+      if (lastMid) pan(mid.x - lastMid.x, mid.y - lastMid.y);
+      lastPinch = d; lastMid = mid;
+    }
+  });
+  const up = e => { ptrs.delete(e.pointerId); if (!ptrs.size) canvas.classList.remove('dragging'); lastPinch = 0; lastMid = null; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('wheel', e => { e.preventDefault(); cam.flying = false; cam.goal.r = clamp(cam.goal.r * Math.exp(e.deltaY * 0.0011), 3, 70); }, { passive: false });
+  canvas.addEventListener('dblclick', () => flyTo(goalFor(STATIONS[stIdx])));
+  canvas.addEventListener('keydown', e => {
+    const g = cam.goal; cam.flying = false;
+    if (e.key === 'ArrowLeft') g.th += 0.08; else if (e.key === 'ArrowRight') g.th -= 0.08;
+    else if (e.key === 'ArrowUp') g.ph = clamp(g.ph - 0.06, 0.03, 1.62); else if (e.key === 'ArrowDown') g.ph = clamp(g.ph + 0.06, 0.03, 1.62);
+    else if (e.key === '+' || e.key === '=') g.r = clamp(g.r * 0.9, 3, 70); else if (e.key === '-') g.r = clamp(g.r * 1.1, 3, 70);
+    else return;
+    e.preventDefault();
+  });
+}
+
+/* =====================================================================
+   labels
+   ===================================================================== */
+const labelsEl = $('#labels');
+const H0 = (x, z) => groundH(x, z);
+const LABELS = [
+  { id: 'ridge', t: 'Mid-ocean ridge', dot: '#ffd46b', at: () => [P.ridgeA, H0(P.ridgeA, 2.8) + 0.03, 2.8], v: () => `+${fmt(plateV(), 1)} cm/yr each way`, st: ['overview', 'ridge'] },
+  { id: 'transform', t: 'Transform fault', dot: '#ff6166', at: () => [-4.6, H0(-4.6, P.zT) + 0.02, P.zT], v: () => 'plates grind sideways', st: ['ridge'] },
+  { id: 'stripes', t: 'Magnetic stripes', dot: '#e3ae55', at: () => [-3.1, H0(-3.1, -1.6) + 0.02, -1.6], v: () => 'what a magnetometer sees', st: ['ridge'] },
+  { id: 'oceanplate', t: 'Ocean plate', dot: '#7ccbff', at: () => [0.1, 0.05, -2.7], v: () => `${fmt(plateV(), 1)} cm/yr →`, st: ['engine'] },
+  { id: 'trench', t: 'Trench', dot: '#7ccbff', at: () => [P.xTr, H0(P.xTr, -0.6), -0.6], v: () => 'plate dives here', st: ['overview', 'subduction'] },
+  { id: 'mega', t: 'Locked megathrust', dot: '#ff6166', at: () => [3.3, plateTopA(3.3) + dynDef(3.3, P.Z1), P.Z1], v: () => `${fmt(S.mega.def, 1)} m stored`, st: ['subduction'] },
+  { id: 'prism', t: 'Accretionary wedge', dot: '#caa97c', at: () => [3.12, -0.55, P.Z1], v: () => 'scraped-off mud', st: ['subduction'] },
+  { id: 'tsunami', t: 'Tsunami', dot: '#d6ecff', at: () => EV.tsu && EV.tsu.t > 0.6 ? [EV.tsu.x0 - WAVE.ts * EV.tsu.t, 0.08, 1.2] : null, v: () => '≈700 km/h in deep water', st: ['overview', 'subduction', 'ridge', 'hotspot', 'engine', 'arc', 'caldera', 'faultlab'] },
+  { id: 'slab', t: 'Sinking slab', dot: '#7ccbff', at: () => [6.1, -4.45, P.Z1], v: () => `pulls the plate at ${fmt(plateV(), 1)} cm/yr`, st: ['overview', 'engine', 'subduction'] },
+  { id: 'arc', t: 'Volcanic arc', dot: '#ffa24c', at: () => [P.v1[0], H0(P.v1[0], P.v1[1] - 0.02) + 0.04, P.v1[1] - 0.02], v: () => EV.arc ? 'erupting' : `chamber ${Math.round(S.arc.fill * 100)}% full`, st: ['overview', 'arc'] },
+  { id: 'chamber', t: 'Magma chamber', dot: '#ffa24c', at: () => [P.v1[0] + 0.3, -0.72, P.Z1], v: () => `${Math.round(S.arc.fill * 100)}% full`, st: ['arc'] },
+  { id: 'flux', t: 'Flux melting', dot: '#ff8a3d', at: () => [5.25, -2.4, P.Z1], v: () => 'water lowers the melting point', st: ['arc'] },
+  { id: 'water', t: 'Water leaves the slab', dot: '#8fd8ff', at: () => [4.55, -2.95, P.Z1], v: () => '~100 km down', st: ['arc'] },
+  { id: 'wedge', t: 'Mantle wedge', dot: '#ef7a2c', at: () => [6.6, -2.3, P.Z1], v: () => 'hot and flowing', st: ['arc'] },
+  { id: 'caldera', t: 'Caldera volcano', dot: '#ff6166', at: () => [P.vc[0], H0(P.vc[0], P.vc[1] - 0.3) + 0.04, P.vc[1] - 0.3], v: () => calStateText(), st: ['overview', 'caldera'] },
+  { id: 'calchamber', t: 'Magma chamber', dot: '#ffa24c', at: () => [P.vc[0] + 0.55, -0.85, P.Z1], v: () => `${Math.round(S.cal.fill * 100)}% recharged`, st: ['caldera'] },
+  { id: 'ring', t: 'Ring faults', dot: '#ff6166', at: () => [P.vc[0] - 0.56, -0.3, P.Z1], v: () => S.cal.collapse > 0.1 ? 'roof dropped here' : 'form when the roof drops', st: ['caldera'] },
+  { id: 'fault', t: 'Strike-slip fault', dot: '#ff6166', at: () => [P.xF, H0(P.xF, 0.6) + 0.02, 0.6], v: () => `${fmt(S.ss.def, 1)} m of strain`, st: ['overview', 'faultlab'] },
+  { id: 'fence', t: 'Fence', dot: '#f1e7d6', at: () => { const p = fence.pts[3]; return [p.x, p.y + 0.14, p.z]; }, v: () => S.ss.offset > 0.05 && fence.snap >= 1 ? `offset ${fmt(S.ss.offset, 1)} m` : `bent ${fmt(S.ss.def, 1)} m`, st: ['faultlab'] },
+  { id: 'symbols', t: '⊗ away  ⊙ toward you', dot: '#f4ecdf', at: () => [P.xF, -0.08, P.Z1], v: () => '', st: ['faultlab'] },
+  { id: 'seis', t: 'Seismometer', dot: '#d24b43', at: () => [P.seis[0], H0(P.seis[0], P.seis[1]) + 0.26, P.seis[1]], v: () => 'records the waves', st: ['faultlab', 'subduction'] },
+  { id: 'conv', t: 'Convection current', dot: '#ffa24c', at: () => [-7.4, -4.55, P.Z1], v: () => `${fmt(plateV(), 1)} cm/yr`, st: ['overview', 'engine'] },
+  { id: 'upwell', t: 'Hot rock rises', dot: '#ffd46b', at: () => [P.ridgeA, -3.3, P.Z1], v: () => 'and melts as pressure drops', st: ['engine', 'ridge'] },
+  { id: 'sink', t: 'Cold rock sinks', dot: '#7ccbff', at: () => [7.6, -6.2, P.Z1], v: () => '', st: ['engine'] },
+  { id: 'plume', t: 'Mantle plume', dot: '#ffd46b', at: () => [P.xH, -4.6, P.Z1], v: () => 'stays put', st: ['overview', 'engine', 'hotspot'] },
+  { id: 'astheno', t: 'Asthenosphere', dot: '#ef7a2c', at: () => [-8.4, -2.45, P.Z1], v: () => 'soft, solid, creeping', st: ['engine'] },
+  { id: 'litho', t: 'Lithosphere', dot: '#9fb0a2', at: () => [-8.4, -0.78, P.Z1], v: () => 'the rigid plate', st: ['engine'] },
+  { id: 'island', t: 'Newest island', dot: '#ffa24c', at: () => { const s = DYN.isl[DYN.isl.length - 1]; return s ? [s.x, Math.max(s.top, 0) + 0.05, s.z] : null; }, v: () => { const s = DYN.isl[DYN.isl.length - 1]; return s ? `${fmt(s.d / (plateV() * 1e-7) / 1e6, 1)} Myr old` : ''; }, st: ['hotspot'] },
+  { id: 'seamount', t: 'Drowned seamount', dot: '#7ccbff', at: () => { const s = DYN.isl.find(q => q.top < -0.05 && q.amp > 0.05); return s ? [s.x, 0.04, s.z] : null; }, v: () => { const s = DYN.isl.find(q => q.top < -0.05 && q.amp > 0.05); return s ? `${fmt(s.d / (plateV() * 1e-7) / 1e6, 1)} Myr old` : ''; }, st: ['hotspot'] },
+  { id: 'continent', t: 'Continent', dot: '#caa97c', at: () => [9.3, H0(9.3, 3.2) + 0.05, 3.2], v: () => 'held still in this view', st: ['engine'] },
+];
+LABELS.forEach(L => {
+  const el = document.createElement('div'); el.className = 'tag hidden';
+  el.innerHTML = `<span class="pill"><i style="background:${L.dot}"></i><span class="t"></span><em></em></span><span class="stem"></span><span class="foot"></span>`;
+  el.querySelector('.t').textContent = L.t;
+  labelsEl.appendChild(el); L.el = el; L.em = el.querySelector('em'); L.pill = el.querySelector('.pill'); L.stem = el.querySelector('.stem'); L.lastV = null; L.w = 0; L.h = 0; L.lift = -1;
+});
+const callouts = [];
+function showCallout(big, sub, at, kind) {
+  const el = document.createElement('div'); el.className = 'callout' + (kind === 'v' ? ' vol' : '');
+  el.innerHTML = `<div class="mag"></div><div class="sub"></div>`;
+  el.querySelector('.mag').textContent = big; el.querySelector('.sub').textContent = sub;
+  labelsEl.appendChild(el);
+  callouts.push({ el, at, t: 0 });
+}
+let showLabels = true;
+const vtmp = new THREE.Vector3();
+function project(at) {
+  vtmp.set(at[0], at[1], at[2]).project(camera);
+  if (vtmp.z > 1 || vtmp.z < -1) return null;
+  return [(vtmp.x * 0.5 + 0.5) * W, (-vtmp.y * 0.5 + 0.5) * H];
+}
+let lastLabelText = 0;
+const placed = [];
+function updateLabels(dt) {
+  const stId = STATIONS[stIdx].id;
+  const refreshText = tNow - lastLabelText > 0.2; if (refreshText) lastLabelText = tNow;
+  placed.length = 0;
+  for (const L of LABELS) {
+    const vis = showLabels && L.st.includes(stId);
+    const at = vis ? L.at() : null;
+    let sp = at ? project(at) : null;
+    if (sp && (sp[0] < -40 || sp[0] > W + 40 || sp[1] < 10 || sp[1] > H + 40)) sp = null;
+    if (sp && (refreshText || !L.w)) {
+      const v = L.v();
+      if (v !== L.lastV) { L.em.textContent = v; L.em.style.display = v ? '' : 'none'; L.lastV = v; L.w = 0; }
+      if (!L.w) { L.w = L.pill.offsetWidth; L.h = L.pill.offsetHeight; }
+    }
+    // stack labels that would overlap, drop the ones that still don't fit
+    let lift = -1;
+    if (sp && L.w) {
+      for (let k = 0, up = 0; k < 4; k++, up += L.h + 5) {
+        const x0 = sp[0] - L.w / 2 - 3, x1 = sp[0] + L.w / 2 + 3, y1 = sp[1] - 20 - up, y0 = y1 - L.h - 2;
+        if (!placed.some(r => x0 < r[2] && x1 > r[0] && y0 < r[3] && y1 > r[1])) { placed.push([x0, y0, x1, y1]); lift = up; break; }
+      }
+    }
+    if (lift < 0) { if (!L.el.classList.contains('hidden')) L.el.classList.add('hidden'); continue; }
+    L.el.classList.remove('hidden');
+    if (lift !== L.lift) { L.stem.style.height = (16 + lift) + 'px'; L.lift = lift; }
+    L.el.style.transform = `translate(${sp[0].toFixed(1)}px, ${sp[1].toFixed(1)}px) translate(-50%, -100%)`;
+  }
+  for (let i = callouts.length - 1; i >= 0; i--) {
+    const c = callouts[i]; c.t += dt;
+    const sp = project(c.at);
+    if (c.t > 4.2) { c.el.remove(); callouts.splice(i, 1); continue; }
+    const sc = 0.6 + 0.4 * easeOutBack(clamp(c.t / 0.5, 0, 1));
+    c.el.style.opacity = sp ? String(1 - sstep(3.2, 4.2, c.t)) : '0';
+    if (sp) c.el.style.transform = `translate(${sp[0].toFixed(1)}px, ${(sp[1] - 10).toFixed(1)}px) translate(-50%, -100%) scale(${sc.toFixed(3)})`;
+  }
+}
+let toastTimer = 0;
+function toast(html) { const el = $('#toast'); el.innerHTML = html; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3600); }
+function calStateText() {
+  const c = S.cal;
+  if (c.state === 'erupting') return 'erupting';
+  if (c.state === 'unrest') return 'unrest: ground rising';
+  if (c.collapse > 0.5) return c.lake > 0.3 ? 'collapsed, lake forming' : 'collapsed';
+  return `recharging ${Math.round(c.fill * 100)}%`;
+}
+
+/* =====================================================================
+   tour stops
+   ===================================================================== */
+const heatNote = () => S.heat > 1.45 ? 'Crank it back down' : 'Crank up the heat';
+const cyclesYears = (thr, rate) => thr / rate;
+const STATIONS = [
+  { id: 'overview', name: 'Overview', title: 'Heat below, quakes above',
+    body: 'Earth’s outer shell is cracked into rigid plates. Under them the mantle is solid rock, but it is hot enough to creep a few centimetres a year, and heat from deep inside keeps it slowly churning. The plates are the cold top of that churn. Every ridge, trench, volcano and fault on this slice comes from their motion.',
+    tiles: () => [['Elapsed', fmtYears(S.years)], ['Plate speed', fmt(plateV(), 1), 'cm/yr'], ['Quakes', fmtInt(S.quakes)]],
+    narr: () => `The ocean plate moves <span class="cold">${fmt(plateV(), 1)} cm</span> a year toward the continent. In a million years that adds up to <span class="cold">${fmtInt(plateV() * 10)} km</span>. The locked fault under the coast is <span class="qk">${Math.round(S.mega.def / S.mega.thr * 100)}%</span> of the way to its next break.`,
+    action: () => ['Break the megathrust', () => megaQuake(true)],
+    cam: { t: [0.4, -2.55, 0.1], th: 0.36, ph: 1.12, r: 29.5 }, sec: [0.3, -3.2, 33], map: [0, 0, 26] },
+  { id: 'engine', name: 'Engine', title: 'Solid rock that flows',
+    body: 'The mantle is not an ocean of lava. It is solid rock at about 1,300 °C that creeps like very stiff putty over millions of years. Rock heated from below rises, spreads under the plates, cools and sinks. Most of the push comes from the top: cold, heavy plate sinks at the trench and drags the rest behind it.',
+    tiles: () => [['Mantle heat', fmt(S.heat, 2), '×'], ['Flow speed', fmt(plateV(), 1), 'cm/yr'], ['One loop', fmtInt(3000 / (plateV() * 10)), 'Myr']],
+    narr: () => `At this heat the rock moves about <span class="hot">${fmt(plateV(), 1)} cm</span> a year, roughly as fast as fingernails grow. One trip around the big loop takes about <span class="hot">${fmtInt(3000 / (plateV() * 10))} million years</span>. The glowing streaks are sped up about a million times so you can see them.`,
+    action: () => [heatNote(), () => setHeat(S.heat > 1.45 ? 1 : 1.8)],
+    cam: { t: [-0.4, -4.1, 4], th: 0.1, ph: 1.4, r: 21.5 }, sec: [0.2, -4.2, 30], map: [0, 0, 26] },
+  { id: 'ridge', name: 'Ridge', title: 'New seafloor is made here',
+    body: 'Where plates pull apart, hot mantle rises and partly melts as the pressure drops. The magma erupts along the ridge and freezes into new ocean crust. As it cools it records the direction of Earth’s magnetic field, which flips every few hundred thousand years. The seafloor ends up striped, mirrored on both sides of the ridge.',
+    tiles: () => [['Spreading', fmt(plateV() * 2, 1), 'cm/yr'], ['Field', S.polarity > 0 ? 'Normal' : 'Reversed'], ['Crust at trench', fmt((P.xTr - P.ridgeA) / (plateV() * 1e-7) / 1e6, 0), 'Myr']],
+    narr: () => `Each side moves <span class="cold">${fmt(plateV(), 1)} cm</span> a year. The field has been <span class="gd">${S.polarity > 0 ? 'normal' : 'reversed'}</span> for <span class="gd">${fmtYears(Math.max(0, S.years - S.fieldSince))}</span>. Switch time warp to Drift to watch the stripes march away from the ridge and dive into the trench.`,
+    action: () => ['Flip the magnetic field', flipField],
+    cam: { t: [-4.4, -0.7, 1.4], th: -0.55, ph: 0.98, r: 10.5 }, sec: [-4.6, -1.3, 10], map: [-4.2, 0, 8] },
+  { id: 'subduction', name: 'Trench', title: 'One plate dives under another',
+    body: 'Old ocean plate is cold and dense, so where it meets a continent it sinks back into the mantle. That sinking slab is the main force that moves plates. The contact between the two plates is the megathrust fault. It stays locked for centuries while strain builds, then slips all at once in the largest earthquakes on Earth.',
+    tiles: () => [['Slip stored', fmt(S.mega.def, 1), 'm'], ['Last quake', S.mega.count ? 'M' + fmt(S.mega.lastM, 1) : '—'], ['Next in ~', fmtYears(Math.max(0, (S.mega.thr - S.mega.def) / (plateV() * 0.01)))]],
+    narr: () => `The locked fault has stored <span class="qk">${fmt(S.mega.def, 1)} m</span> of slip. Released at once, that is about a <span class="qk">magnitude ${fmt(magFromSlip(S.mega.def, 8e5, 1.5e5), 1)}</span>. The seafloor above it would jump up and push out a tsunami. Red dots mark quakes: they trace the slab as it sinks.`,
+    action: () => ['Rupture the megathrust', () => megaQuake(true)],
+    cam: { t: [3.3, -1.5, 3.0], th: 0.3, ph: 1.2, r: 10 }, sec: [3.8, -1.9, 10], map: [3.2, 0, 8] },
+  { id: 'arc', name: 'Arc', title: 'Wet rock melts',
+    body: 'About 100 km down, heat squeezes seawater out of the sinking slab. The water rises into the hot mantle wedge above and lowers its melting point, so some of that rock melts. The magma is lighter than the rock around it, so it rises, pools in chambers in the crust and feeds a line of volcanoes parallel to the trench.',
+    tiles: () => [['Chamber', fmtInt(S.arc.fill * 100), '%'], ['Supply', fmt(1.2 * plateV() / 5, 1), 'km³/kyr'], ['Eruptions', fmtInt(S.arc.count)]],
+    narr: () => `Blue drops are water leaving the slab. They turn orange as the rock melts. The chamber is <span class="hot">${fmtInt(S.arc.fill * 100)}%</span> full, and at this plate speed the slab feeds it about <span class="hot">${fmt(1.2 * plateV() / 5, 1)} km³</span> of magma every thousand years.`,
+    forecast: () => { const f = S.arc.fill, yrs = Math.max(0, (S.arc.thr - f) / (0.0019 * plateV() / 5 * S.magma)); return `<br><b>Forecast:</b> next eruption in <span class="hot">${fmtInt(yrs * 0.5)}–${fmtInt(yrs * 1.8 + 20)} yr</span>. Most likely <span class="hot">VEI ${f > 0.8 ? 3 : 2}</span>; worst case <span class="qk">VEI ${S.magma > 1.8 ? 5 : 4}</span> if gas-rich magma builds up.`; },
+    action: () => ['Erupt the volcano', () => eruptArc(true)],
+    cam: { t: [5.0, -1.2, 3.2], th: 0.28, ph: 1.28, r: 9 }, sec: [5.1, -1.5, 8.5], map: [5.4, 0, 8] },
+  { id: 'caldera', name: 'Caldera', title: 'A volcano that swallows itself',
+    body: 'When a huge magma chamber empties in one eruption, the rock roof above it loses its support. It drops down along ring-shaped faults and leaves a basin called a caldera, often many kilometres wide. Rain turns it into a lake. Over tens of thousands of years the chamber refills, the ground bulges again and the cycle restarts.',
+    tiles: () => [['Chamber', fmtInt(S.cal.fill * 100), '%'], ['Ground uplift', fmt(S.cal.inflate * 6, 1), 'm'], ['State', S.cal.state === 'erupting' ? 'Erupting' : S.cal.state === 'unrest' ? 'Unrest' : S.cal.collapse > 0.5 ? 'Collapsed' : 'Recharging']],
+    narr: () => S.cal.collapse > 0.5 && S.cal.state !== 'erupting' ? `The roof has dropped about <span class="qk">${fmtInt(S.cal.collapse * 500)} m</span> and a lake is filling the bowl. Refilling takes about <span class="hot">${fmtInt(150 / Math.pow(S.heat, 1.3))} thousand years</span>. Try Eruptions time warp to watch it rebuild.` : `The chamber is <span class="hot">${fmtInt(S.cal.fill * 100)}%</span> recharged. Near full, the ground bulges and swarms of small quakes start. A full chamber empties about <span class="hot">150 km³</span> of ash and pumice.`,
+    forecast: () => { const c = S.cal; const kyr = Math.max(0, (1 - c.fill) * 150 / (Math.pow(S.heat, 1.3) * S.magma)); return `<br><b>Forecast:</b> <span class="hot">${fmtInt(kyr * 0.6)}–${fmtInt(kyr * 1.6 + 1)} kyr</span> to the next big one. Likely <span class="hot">VEI 6</span> (small caldera); worst case <span class="qk">VEI 8</span>, ash across a continent.`; },
+    action: () => ['Trigger the super-eruption', () => startCaldera(true)],
+    cam: { t: [7.9, -0.35, 3.1], th: 0.5, ph: 1.12, r: 7.8 }, sec: [8.0, -0.6, 6.5], map: [8, 0, 7] },
+  { id: 'faultlab', name: 'Fault lab', title: 'How a fault breaks',
+    body: 'The blocks on either side of this fault keep sliding past each other, but friction locks the fault itself. The rock near it bends like a flexed ruler, and the fence bends with it. When the stored stress beats the friction, the fault slips in seconds and the bent rock springs back. That snap is the earthquake.',
+    tiles: () => [['Strain stored', fmt(S.ss.def, 1), 'm'], ['Fault grip', gripName()], ['Last quake', S.ss.count ? 'M' + fmt(S.ss.lastM, 1) : '—']],
+    narr: () => `The fence is <span class="qk">${fmt(S.ss.def, 1)} m</span> out of line. With this grip the fault gives way at about <span class="qk">${fmt(S.ss.thr, 1)} m</span>, roughly <span class="qk">${fmtYears(Math.max(0, (S.ss.thr - S.ss.def) / (plateV() * 0.004)))}</span> from now. Raise the grip and quakes come less often but hit harder.`,
+    action: () => ['Snap the fault now', () => ssQuake(true)],
+    cam: { t: [6.6, 0.2, 2.45], th: 0.12, ph: 0.72, r: 4.6 }, sec: [6.6, -0.4, 5], map: [6.6, 2.2, 4.5] },
+  { id: 'hotspot', name: 'Hotspot', title: 'A plate drifting over a hot plume',
+    body: 'A narrow plume of hot rock rises from deep in the mantle and stays in one place while the plate slides over it. Each time it punches through, it builds a volcanic island. The plate carries the island away; it goes extinct, erodes and sinks, and a new one grows over the plume. The chain records the plate’s motion.',
+    tiles: () => { const v = DYN.isl.filter(s => s.amp > 0.02); const old = v[0]; const yn = v[v.length - 1]; const age = s => s ? fmt(s.d / (plateV() * 1e-7) / 1e6, 1) : '—'; return [['Islands', fmtInt(v.filter(s => s.top > 0).length)], ['Newest', age(yn), 'Myr'], ['Oldest', age(old), 'Myr']]; },
+    narr: () => { const v = DYN.isl.filter(s => s.amp > 0.02); const old = v[0]; return old ? `The oldest volcano in view formed <span class="hot">${fmt(old.d / (plateV() * 1e-7) / 1e6, 1)} million years</span> ago and has drifted <span class="cold">${fmtInt(old.d * 100)} km</span> from the plume. ${old.top < 0 ? 'It has already sunk below the waves.' : 'It is still above water, but sinking.'}` : 'Switch to Drift time warp to grow a chain.'; },
+    action: () => ['Fast-forward at 1 Myr per second', () => setWarp(1e6)],
+    cam: { t: [0.2, -0.5, 2.0], th: -0.2, ph: 0.95, r: 10.5 }, sec: [-0.6, -3.2, 14], map: [0.2, 1.4, 9] },
+];
+let stIdx = 0;
+const stationsEl = $('#stations');
+STATIONS.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.setAttribute('role', 'tab'); b.innerHTML = `<b>${i + 1}</b>${s.name}`;
+  b.addEventListener('click', () => setStation(i));
+  stationsEl.appendChild(b); s.btn = b;
+});
+function setStation(i) {
+  stIdx = (i + STATIONS.length) % STATIONS.length;
+  const s = STATIONS[stIdx];
+  STATIONS.forEach((q, k) => q.btn.setAttribute('aria-selected', k === stIdx ? 'true' : 'false'));
+  $('#st-eyebrow').innerHTML = `Plate Engine · stop <b>${stIdx + 1}</b> of ${STATIONS.length}`;
+  $('#st-title').textContent = s.title;
+  $('#st-body').textContent = s.body.split(/(?<=\.) /).slice(0, 2).join(' ');
+  flyTo(goalFor(s));
+  renderStory(true);
+}
+function renderStory(full) {
+  const s = STATIONS[stIdx];
+  const tiles = s.tiles();
+  const tilesEl = $('#st-tiles');
+  if (full || tilesEl.children.length !== tiles.length) {
+    tilesEl.innerHTML = tiles.map(() => '<div class="tile"><div class="k"></div><div class="v"></div></div>').join('');
+  }
+  tiles.forEach((t, k) => {
+    const el = tilesEl.children[k];
+    el.querySelector('.k').textContent = t[0];
+    el.querySelector('.v').innerHTML = `${t[1]}${t[2] ? `<small>${t[2]}</small>` : ''}`;
+  });
+  $('#st-narr').innerHTML = s.narr() + (s.forecast ? s.forecast() : '');
+  const [label] = s.action();
+  if ($('#st-action-text').textContent !== label) $('#st-action-text').textContent = label;
+}
+$('#st-action').addEventListener('click', () => { const [, fn] = STATIONS[stIdx].action(); fn(); renderStory(false); });
+$('#prev').addEventListener('click', () => setStation(stIdx - 1));
+$('#next').addEventListener('click', () => setStation(stIdx + 1));
+function flipField() { S.polarity *= -1; S.revs.push(S.disp); S.fieldSince = S.years; S.nextRev = S.years + revInterval(); toast('Field flipped · new crust at the ridge now records the opposite direction'); }
+
+/* =====================================================================
+   controls
+   ===================================================================== */
+const heatEl = $('#heat'), gripEl = $('#grip'), warpEl = $('#warp');
+const setPct = el => el.style.setProperty('--pct', ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1) + '%');
+function gripName() { const g = S.grip; return g < 0.75 ? 'Slippery' : g < 0.92 ? 'Low' : g < 1.1 ? 'Normal' : g < 1.3 ? 'Sticky' : 'Very sticky'; }
+function setHeat(v) { S.heat = clamp(+v, 0.3, 2); heatEl.value = S.heat; setPct(heatEl); $('#heat-out').textContent = fmt(S.heat, 2) + '×'; U.uHeat.value = S.heat; renderStory(false); }
+heatEl.addEventListener('input', () => setHeat(heatEl.value));
+gripEl.addEventListener('input', () => {
+  const old = S.grip; S.grip = +gripEl.value; setPct(gripEl);
+  S.mega.thr *= S.grip / old; S.ss.thr *= S.grip / old;
+  $('#grip-out').textContent = gripName(); renderStory(false);
+});
+const warpFromSlider = v => Math.pow(10, v / 1000 * 6.5);
+const sliderFromWarp = w => Math.round(Math.log10(w) / 6.5 * 1000);
+function setWarp(w) {
+  S.warp = clamp(w, 1, 3.2e6); warpEl.value = sliderFromWarp(S.warp); setPct(warpEl);
+  $('#warp-out').textContent = fmtWarp(S.warp);
+  document.querySelectorAll('#warp-chips button').forEach(b => b.setAttribute('aria-pressed', Math.abs(Math.log10(+b.dataset.warp) - Math.log10(S.warp)) < 0.05 ? 'true' : 'false'));
+  if (!S.playing) setPlaying(true);
+}
+warpEl.addEventListener('input', () => setWarp(warpFromSlider(+warpEl.value)));
+document.querySelectorAll('#warp-chips button').forEach(b => b.addEventListener('click', () => setWarp(+b.dataset.warp)));
+function setPlaying(p) {
+  S.playing = p;
+  $('#play').setAttribute('aria-label', p ? 'Pause' : 'Play');
+  $('#play-ico').innerHTML = p ? '<rect x="2" y="1.5" width="2.8" height="9" rx=".6"/><rect x="7.2" y="1.5" width="2.8" height="9" rx=".6"/>' : '<path d="M3 1.5v9l7.5-4.5z"/>';
+}
+$('#play').addEventListener('click', () => setPlaying(!S.playing));
+document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => {
+  view = b.dataset.view;
+  document.querySelectorAll('#views button').forEach(q => q.setAttribute('aria-pressed', q === b ? 'true' : 'false'));
+  U.uWaterAlpha.value = view === 'map' ? 0.62 : 1;
+  flyTo(goalFor(STATIONS[stIdx]));
+}));
+const toggle = (id, fn) => { const b = $(id); b.addEventListener('click', () => { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on ? 'true' : 'false'); fn(on); }); };
+toggle('#t-stripes', on => U.uStripes.value = on ? 1 : 0);
+toggle('#t-heat', on => { heatTarget = on ? 1 : 0; });
+toggle('#t-labels', on => { showLabels = on; });
+let heatTarget = 0;
+setHeat(1); setPct(gripEl); setWarp(10);
+const magmaEl = $('#magma');
+function hints() {
+  $('#heat-hint').textContent = `How hot the deep rock is. Hotter rock flows faster, so plates move ${fmt(plateV(), 1)} cm/yr and everything speeds up.`;
+  $('#grip-hint').textContent = `How strongly friction locks the faults. More grip means rarer but bigger quakes (megathrust breaks near M${fmt(magFromSlip(8 * S.grip, 8e5, 1.5e5), 1)}).`;
+  $('#magma-hint').textContent = `How much melt reaches the volcanoes. More magma fills chambers faster: an arc eruption every ~${fmtInt(0.65 / (0.0019 * plateV() / 5 * S.magma))} yr.`;
+}
+magmaEl.addEventListener('input', () => { S.magma = +magmaEl.value; setPct(magmaEl); $('#magma-out').textContent = fmt(S.magma, 2) + '×'; hints(); });
+heatEl.addEventListener('input', hints); gripEl.addEventListener('input', hints);
+setPct(magmaEl); hints();
+
+/* =====================================================================
+   resize & main loop
+   ===================================================================== */
+function setFold(panel, btn, open, label) {
+  panel.classList.toggle('collapsed', !open);
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.setAttribute('aria-label', (open ? 'Hide ' : 'Show ') + label);
+}
+$('#ctl-toggle').addEventListener('click', () => {
+  const open = $('#controls').classList.contains('collapsed');
+  setFold($('#controls'), $('#ctl-toggle'), open, 'controls');
+  measureOcclusion(); applyViewOffset(); flyTo(goalFor(STATIONS[stIdx]));
+});
+$('#story-toggle').addEventListener('click', () => {
+  const open = $('#story').classList.contains('collapsed');
+  setFold($('#story'), $('#story-toggle'), open, 'explanation');
+  measureOcclusion(); applyViewOffset(); flyTo(goalFor(STATIONS[stIdx]));
+});
+if (window.innerWidth < 1280 && window.innerWidth > 860) setFold($('#controls'), $('#ctl-toggle'), false, 'controls');
+function resize() {
+  W = Math.max(1, stage.clientWidth); H = Math.max(1, stage.clientHeight);
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H; camera.updateProjectionMatrix();
+  measureOcclusion(); applyViewOffset();
+  const hb = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
+  const sc = hb / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+  ash.pts.material.uniforms.uScale.value = sc; glow.pts.material.uniforms.uScale.value = sc; dots.pts.material.uniforms.uScale.value = sc;
+}
+window.addEventListener('resize', () => { resize(); flyTo(goalFor(STATIONS[stIdx])); });
+resize();
+setStation(0);
+Object.assign(cam.cur, cam.goal);
+
+let last = performance.now(), lastUI = 0, lastFov = camera.fov;
+function frame(now) {
+  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
+  if (S.playing) stepSim(dt);
+  updateEvents(dt);
+  updateIslands();
+  updatePolTex();
+  updateFence();
+  updateConv(dt);
+  updateMelt(dt);
+  updateAsh(dt); updateGlow(dt); updateDots(dt);
+  U.uTime.value += dt;
+  U.uMegaStress.value = clamp(S.mega.def / S.mega.thr, 0, 1);
+  U.uHeatMap.value += (heatTarget - U.uHeatMap.value) * (1 - Math.exp(-dt * 6));
+  arrows.forEach(a => a.material.uniforms.uSpeed.value = 0.35 * S.heat * (S.playing ? 1 : 0));
+  updateCam(dt);
+  if (Math.abs(camera.fov - lastFov) > 0.01) { lastFov = camera.fov; const hb = renderer.getDrawingBufferSize(new THREE.Vector2()).y; const sc = hb / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)); ash.pts.material.uniforms.uScale.value = sc; glow.pts.material.uniforms.uScale.value = sc; dots.pts.material.uniforms.uScale.value = sc; }
+  renderer.render(scene, camera);
+  updateLabels(dt);
+  drawSeis();
+  if (now - lastUI > 160) {
+    lastUI = now;
+    renderStory(false);
+    $('#elapsed').textContent = fmtYears(S.years);
+    $('#field').textContent = S.polarity > 0 ? 'Normal' : 'Reversed';
+    $('#field-sw').style.background = S.polarity > 0 ? 'var(--gold)' : '#35506e';
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>

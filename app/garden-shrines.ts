@@ -5,7 +5,7 @@ import{material,textSprite}from'./three-kit';
 // Twenty-four possible places, populated only by real, playable catalog worlds.
 export const SHRINE_CAPACITY=24;
 export const SHRINE_RADIUS=32;
-const colors:Record<string,number>={telescope:0xe8c58c,airport:0x89d9e7,lightning:0xbbadf0,aeolith:0xe6a6be,'fable-flight':0xb5d5a1,galevein:0x8edbc5,'universe-clash':0xefb287,spacetime:0xf2c78d,poe:0xc2b2dd,tides:0x8edacb,skyline:0xf0a9a2};
+const colors:Record<string,number>={'plate-engine':0xf0b478,telescope:0xe8c58c,airport:0x89d9e7,lightning:0xbbadf0,aeolith:0xe6a6be,'fable-flight':0xb5d5a1,galevein:0x8edbc5,'universe-clash':0xefb287,spacetime:0xf2c78d,poe:0xc2b2dd,tides:0x8edacb,skyline:0xf0a9a2};
 export const shrinePortals=projects.filter(p=>!!p.url).slice(0,SHRINE_CAPACITY).map((p,i,list)=>{const angle=Math.PI+i/list.length*Math.PI*2;return{id:p.id,title:p.title,category:p.category,image:p.image,color:colors[p.id]||0xa9d8cf,x:Math.sin(angle)*SHRINE_RADIUS,z:Math.cos(angle)*SHRINE_RADIUS};});
 export type ShrinePortal=typeof shrinePortals[number];
 
@@ -19,6 +19,7 @@ function emblem(id:string,color:string){const canvas=document.createElement('can
  case'poe':path([[-80,23],[-38,-25],[0,-8],[36,-58],[68,-42],[44,-20],[76,10],[20,8],[-13,46],[-35,30],[-80,23]],true);break;
  case'galevein':path([[-80,48],[-62,-47],[-24,-14],[0,-74],[24,-14],[62,-47],[80,48],[33,17],[0,65],[-33,17],[-80,48]],true);break;
  case'spacetime':circle(37);c.save();c.rotate(-.45);c.scale(1.45,.42);circle(65);c.restore();break;
+ case'plate-engine':circle(72);path([[-70,8],[-25,-9],[14,8],[55,-11]]);path([[-40,30],[-3,13],[38,39]]);path([[10,7],[34,-30],[54,-49]]);break;
  case'universe-clash':path([[-60,-73],[48,62],[65,76]]);path([[60,-73],[-48,62],[-65,76]]);path([[-68,41],[-33,73]]);path([[68,41],[33,73]]);circle(20);break;
  default:path([[0,-83],[55,-13],[23,64],[0,84],[-23,64],[-55,-13],[0,-83]],true);path([[0,-83],[0,84]]);}
  const t=new T.CanvasTexture(canvas);t.colorSpace=T.SRGBColorSpace;return t;}
