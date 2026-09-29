@@ -15,7 +15,7 @@ A small owned Web Audio graph was chosen over an additional library because this
 
 ## Provider experiment
 
-One original ElevenLabs request, four seconds, was generated on 2026-09-30. The provider returned four variants in the single generation. UI quote: 52 credits; observed balance delta: 53 credits (7,247 to 7,194). No purchase, upgrade, credit top-up, or new terms acceptance. Generation remained private. No other generation requests were made.
+One original ElevenLabs request, four seconds, was generated on 2026-09-30. The provider returned four variants in the single generation. UI quote: 52 credits; observed balance delta: 53 credits. No purchase, upgrade, credit top-up, or new terms acceptance. Generation remained private. No other generation requests were made.
 
 The MP3 export control did not deliver a retrievable local artifact within the bounded browser attempt. The generated variants remain in the account's Sound Effects history; they are **not shipped** and the app has no speculative file reference. Proof screenshot lives outside the public site at `outputs/elevenlabs-sound-generation-proof.png`.
 

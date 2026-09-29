@@ -7,7 +7,8 @@ export function teachingSky(scene:T.Scene){
  root.add(new T.Mesh(new T.SphereGeometry(68,48,32),skyMaterial));
  let seed=814;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
  const dots:number[]=[],colors:number[]=[];
- for(let i=0;i<2400;i++){const az=random()*360,alt=Math.asin(random()*1.3-.22)*180/Math.PI,p=skyDirection(az,alt);dots.push(...p.map(v=>v*64));const bright=.4+random()*.6;colors.push(bright*.8,bright*.9,bright);}
+ // Sample sine-altitude within its physical domain, from just below the horizon to zenith.
+ for(let i=0;i<2400;i++){const az=random()*360,alt=Math.asin(random()*1.22-.22)*180/Math.PI,p=skyDirection(az,alt);dots.push(...p.map(v=>v*64));const bright=.4+random()*.6;colors.push(bright*.8,bright*.9,bright);}
  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(dots,3));geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));root.add(new T.Points(geo,new T.PointsMaterial({size:1.6,vertexColors:true,sizeAttenuation:false,transparent:true,opacity:.92,toneMapped:false})));
  const band:number[]=[];for(let i=0;i<1600;i++){const a=random()*Math.PI*2,b=(random()+random()+random()-1.5)*.11;const p=new T.Vector3(Math.cos(a),Math.sin(a)*.68+b,Math.sin(a)*.73).normalize().multiplyScalar(63);band.push(...p.toArray());}
  const bandGeo=new T.BufferGeometry();bandGeo.setAttribute('position',new T.Float32BufferAttribute(band,3));root.add(new T.Points(bandGeo,new T.PointsMaterial({color:0x9babdf,size:1.1,sizeAttenuation:false,transparent:true,opacity:.3,depthWrite:false,toneMapped:false})));
