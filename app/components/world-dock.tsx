@@ -42,7 +42,7 @@ export function WorldDock({current,pulse,onFavorite}:{current:string;pulse:Pulse
  {panel==='reflection'&&<DiscoveryFeedback world={current} title={title} onClose={close}/>}
  {panel==='about'&&<About onClose={close} onRemix={()=>setPanel('remix')}/>}
  {panel==='remix'&&<Membership onClose={close} world={title}/>}
- {(panel==='worlds'||panel==='tree')&&<PortalDirectory current={current} onClose={close} pulse={pulse} onFavorite={onFavorite} initialView={panel==='tree'?'constellation':'shelves'}/>}
+ {(panel==='worlds'||panel==='tree')&&<PortalDirectory current={current} onClose={close} pulse={pulse} onFavorite={onFavorite} initialView='constellation'/>}
  {message&&<div className="toast" role="status">{message}</div>}
  </>;
 }
