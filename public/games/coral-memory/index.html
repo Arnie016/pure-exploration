@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1420">
+<title>REEF/MEMORY — Station SOUTH REEF · 2019–2026</title>
+<link rel="stylesheet" href="./fonts/fonts.css">
+<link rel="stylesheet" href="./styles.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/build/three.module.js",
+    "three/addons/": "./vendor/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="app">
+  <aside id="rail" aria-label="Station controls">
+    <header class="rail-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4">
+          <path d="M12 21c-3.5-2.2-5.5-4.8-5.5-8A5.5 5.5 0 0 1 12 7.5 5.5 5.5 0 0 1 17.5 13c0 3.2-2 5.8-5.5 8Z"/>
+          <path d="M12 7.5V3m0 0c-1.6 0-2.6-.9-3-2m3 2c1.6 0 2.6-.9 3-2M12 13v3"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>REEF<span>/</span>MEMORY</h1>
+        <p>Simulated reef · your notes stay on this device</p>
+      </div>
+    </header>
+
+    <section class="rail-sec">
+      <h3>Station readings <span>simulated conditions · follow the timeline</span></h3>
+      <dl class="instruments">
+        <div><dt>Sea temp</dt><dd id="roTemp">28.4°C</dd></div>
+        <div><dt>DHW</dt><dd id="roDhw">0.0</dd></div>
+        <div><dt>Live cover</dt><dd id="roCover">—</dd></div>
+        <div><dt>Bleached</dt><dd id="roBleach">—</dd></div>
+        <div><dt>Lost</dt><dd id="roDead">—</dd></div>
+        <div><dt>Year</dt><dd id="roYear">2026.0</dd></div>
+      </dl>
+    </section>
+
+    <section class="rail-sec">
+      <h3>Expedition <span>pick a way to explore — one click, explained as it happens</span></h3>
+      <div class="mode-list">
+        <button class="mode-row" id="playRow" type="button" aria-pressed="false">
+          <span class="mode-ic">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
+          </span>
+          <span class="mode-tx"><b>Play the seven years</b><i>Watch the heatwave, the losses and the recovery unfold</i></span>
+        </button>
+        <button class="mode-row" id="tourBtn" type="button" aria-pressed="false">
+          <span class="mode-ic">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8 4.8-2.2Z"/></svg>
+          </span>
+          <span class="mode-tx"><b>Guided tour</b><i>Five story stations — the elders, the graveyard, the nursery</i></span>
+        </button>
+        <button class="mode-row" id="nightBtn" type="button" aria-pressed="false">
+          <span class="mode-ic">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5Z"/></svg>
+          </span>
+          <span class="mode-tx"><b>Night dive</b><i>Lights out — the corals fluoresce in their own colors</i></span>
+        </button>
+        <button class="mode-row" id="photoBtn" type="button" aria-pressed="false">
+          <span class="mode-ic">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h3.2L9 6h6l1.8 2H20v11H4V8Z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          </span>
+          <span class="mode-tx"><b>Photo mode</b><i>Hides everything — save the frame as a PNG</i></span>
+        </button>
+      </div>
+    </section>
+
+    <section class="rail-sec" id="secColony">
+      <h3>Colony dossier <span id="colonyHint">click any coral in the lagoon to open its file</span></h3>
+      <div id="colonyEmpty">
+        <p>Every colony here has a file: its tag, its growth record, its notes.</p>
+        <p class="dim">Select a coral and it opens in this panel — tag a genus, leave a note at that exact spot, or search the reef for lookalikes. Your marks survive reloads.</p>
+      </div>
+      <div id="colonyBody" hidden>
+        <p class="d-explain">This colony's file. Tag it, leave a note, or find lookalikes — the close button is up top.</p>
+        <div class="d-id">
+          <span class="swatch" id="dSwatch"></span>
+          <div>
+            <h2 id="dName">WFS-000</h2>
+            <p class="mono dim" id="dTaxon">unidentified · awaiting tag</p>
+          </div>
+          <button class="icon-btn" id="dossierClose" aria-label="Close dossier">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <span class="badge" id="dStatus">healthy</span>
+
+        <div class="d-block">
+          <p class="label">Tag this colony</p>
+          <div class="chips" id="genusChips"></div>
+        </div>
+
+        <div class="d-block">
+          <p class="label">Size &amp; condition · <button class="linkish" id="sparkScrub" type="button">drag the chart to scrub time</button></p>
+          <canvas id="dChart" height="150" aria-label="Colony size and health over time"></canvas>
+          <dl class="d-stats mono">
+            <div><dt>Height now</dt><dd id="dHeight">—</dd></div>
+            <div><dt>Peak size</dt><dd id="dPeak">—</dd></div>
+            <div><dt>First logged</dt><dd id="dBorn">—</dd></div>
+          </dl>
+        </div>
+
+        <div class="d-block">
+          <p class="label">Colony history <span class="dim">· written by the crew</span></p>
+          <ul class="history" id="dHistory"></ul>
+        </div>
+
+        <div class="d-block">
+          <p class="label">Field notes <span class="dim" id="dNoteCount"></span></p>
+          <ul class="notes" id="dNotes"></ul>
+          <form class="note-form" id="noteForm">
+            <input id="noteInput" maxlength="800" type="text" maxlength="140" autocomplete="off" placeholder="Leave a note at this exact spot…">
+            <button class="btn btn-primary" type="submit">Post</button>
+          </form>
+        </div>
+
+        <div class="d-block">
+          <button class="btn btn-ghost wide" id="similarBtn" type="button">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/><path d="M11 8.5a2.5 2.5 0 0 0-2.5 2.5"/></svg>
+            Find similar colonies across the reef
+          </button>
+          <ul class="similars" id="similars"></ul>
+        </div>
+      </div>
+    </section>
+
+    <footer class="rail-foot">
+      <button class="foot-btn" id="soundBtn" aria-pressed="false" type="button">
+        <svg class="i-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="m17 9 4 6m0-6-4 6"/></svg>
+        <svg class="i-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        <span>Ambient sound</span>
+      </button>
+      <button class="foot-btn" id="helpBtn" aria-expanded="false" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 3c-.7.4-1 .9-1 1.8"/><path d="M12 17h.01"/></svg>
+        <span>Field guide</span>
+      </button>
+    </footer>
+  </aside>
+
+  <main id="viewport">
+    <div id="scene"></div>
+    <div id="pins" aria-hidden="false"></div>
+    <p class="vp-hint mono" id="vpHint">drag to look around · scroll to glide · click any coral</p>
+
+    <section class="caption" id="caption" aria-live="polite"><span id="captionText"></span></section>
+
+    <div class="timeline" id="timeline" role="group" aria-label="Reef time machine, 2019 to 2026">
+      <button class="play-btn" id="playBtn" aria-label="Play reef history">
+        <svg class="i-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5Z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.6z"/></svg>
+      </button>
+      <div class="track" id="track" tabindex="0" role="slider" aria-valuemin="2019" aria-valuemax="2026" aria-valuenow="2026" aria-label="Year scrubber">
+        <div class="rail-line"></div>
+        <div class="fill" id="trackFill"></div>
+        <div class="ticks" id="trackTicks"></div>
+        <div class="events" id="trackEvents"></div>
+        <div class="head" id="trackHead"><span class="mono" id="yearLabel">2026.0</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button id="railToggle" aria-label="Toggle station panel" type="button">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+
+<div id="photoUI" aria-hidden="true">
+  <div class="photo-tag mono" id="photoTag"></div>
+  <button class="btn btn-primary" id="photoSave" type="button">Save PNG</button>
+</div>
+
+<section class="intro" id="intro">
+  <p class="i-over mono">STATION SOUTH REEF · TRANSECT 07 · −9.2 m</p>
+  <h2 class="i-title">Seven years<br>on one reef</h2>
+  <p class="i-sub">Hundreds of coral colonies. A marine heatwave, a cyclone, and a restoration crew.<br>
+  The station panel on the left holds everything — readings, modes, and each colony's file.</p>
+  <button class="btn btn-primary i-dive" id="diveBtn" type="button">Begin the dive</button>
+  <p class="i-fine mono">drag to look · scroll to glide · click a colony to open its dossier</p>
+</section>
+
+<section class="help card" id="helpPanel" hidden>
+  <h3>Field guide</h3>
+  <ul>
+    <li><strong>About this reef</strong> — an original procedural world with illustrative history, not real monitoring data. Inspired by the idea of collaborative reef annotation. Your notes are private to this browser.</li>
+    <li><strong>Left panel</strong> — readings follow the timeline; Expedition modes run the story; the dossier opens here when you click a coral.</li>
+    <li><strong>Timeline</strong> — drag it, or press play. The heatwave arrives mid-2020.</li>
+    <li><strong>Tags + notes</strong> — saved on this device, pinned where you left them.</li>
+    <li><strong>Find similar</strong> — searches the reef for colonies shaped and shaded alike.</li>
+    <li><strong>Keys</strong> — space plays, T tour, N night, P photo, C saves the photo.</li>
+  </ul>
+  <button class="btn btn-ghost" id="helpClose">Back to the water</button>
+</section>
+
+<div class="fallback card" id="fallback" hidden>
+  <h3>This reef needs WebGL</h3>
+  <p>Your browser refused to render it. Try a current Chrome, Edge, Firefox or Safari with hardware acceleration on.</p>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

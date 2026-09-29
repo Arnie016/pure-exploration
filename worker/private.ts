@@ -2,6 +2,8 @@ interface DB {prepare(sql:string):Stmt;batch<T=unknown>(statements:Stmt[]):Promi
 interface Stmt {bind(...values:unknown[]):Stmt;run():Promise<unknown>;all<T=unknown>():Promise<{results:T[]}>;first<T=unknown>(column?:string):Promise<T|null>}
 let setup:Promise<unknown>|null=null;
 export async function privateSchema(db:DB){if(!setup)setup=db.batch([
+ db.prepare('CREATE TABLE IF NOT EXISTS entry_channels (session TEXT PRIMARY KEY, channel TEXT NOT NULL, created INTEGER NOT NULL)'),
+ db.prepare('CREATE INDEX IF NOT EXISTS entry_channels_created ON entry_channels(created)'),
  db.prepare('CREATE TABLE IF NOT EXISTS reactions (visitor TEXT NOT NULL,project TEXT NOT NULL,value INTEGER NOT NULL,updated INTEGER NOT NULL,PRIMARY KEY(visitor,project))'),
  db.prepare('CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY,visitor TEXT NOT NULL,project TEXT NOT NULL,text TEXT NOT NULL,created INTEGER NOT NULL,resolved INTEGER NOT NULL DEFAULT 0)'),
  db.prepare('CREATE INDEX IF NOT EXISTS feedback_visitor ON feedback(visitor,created)'),
@@ -26,7 +28,8 @@ export async function owner(request:Request,db:DB|undefined,ownerHash?:string){c
    const viewers=await db.prepare('SELECT count(*) AS n FROM sessions WHERE seen>?').bind(now-90000).first<number>('n');
    const onlineGarden=await db.prepare('SELECT count(*) AS n FROM presence WHERE seen>?').bind(now-20000).first<number>('n');
    const journeys=await db.prepare('SELECT v.public_id AS visitor,v.alias,j.project,j.visits,j.opens,j.updated FROM journeys j JOIN visitors v ON v.id=j.visitor ORDER BY j.updated DESC LIMIT 200').all();
-   return json({journeys:journeys.results,generatedAt:new Date(now).toISOString(),periodDays:30,online:viewers||0,garden:onlineGarden||0,events:events.results,reactions:reactions.results,feedback:feedback.results,days:days.results});
+   const channels=await db.prepare('SELECT channel,count(*) AS visits FROM entry_channels WHERE created>? GROUP BY channel ORDER BY visits DESC').bind(now-30*864e5).all();
+   return json({channels:channels.results,journeys:journeys.results,generatedAt:new Date(now).toISOString(),periodDays:30,online:viewers||0,garden:onlineGarden||0,events:events.results,reactions:reactions.results,feedback:feedback.results,days:days.results});
   }return json({error:'Not found'},404);
  }catch{return json({error:'The owner report is temporarily unavailable'},503);}
 }

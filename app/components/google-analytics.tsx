@@ -8,7 +8,7 @@ export const ANALYTICS_ORIGIN='https://pure-exploration.arnz.chatgpt.site';
 export const CONSENT_KEY='pe-optional-analytics-v1';
 export type AnalyticsChoice='accepted'|'declined'|null;
 const preferenceEvent='pe-analytics-preference';
-const worlds=new Set(['garden','telescope','airport','spacetime','lightning','skyline','galevein','aeolith','universe-clash','tides','edge-universe','poe','fable-flight']);
+const worlds=new Set(['coral-memory','garden','telescope','airport','spacetime','lightning','skyline','galevein','aeolith','universe-clash','tides','edge-universe','poe','fable-flight']);
 const publicPages=new Set(['/','/telescope','/airport','/spacetime','/leaderboard','/privacy']);
 const events:Record<string,string>={project_open:'world_open',first_interaction:'world_interaction',share:'world_share',follow:'follow_x_click',clip:'capture_video',screenshot:'capture_image',chapter:'lesson_open',tour:'tour_start',favorite:'world_favorite',unfavorite:'world_unfavorite'};
 export function analyticsPage(path:string):string|null{const clean=path.split(/[?#]/)[0];if(publicPages.has(clean))return ANALYTICS_ORIGIN+clean;const slug=clean.match(/^\/world\/([a-z0-9-]+)$/)?.[1];return slug&&worlds.has(slug)?ANALYTICS_ORIGIN+clean:null;}

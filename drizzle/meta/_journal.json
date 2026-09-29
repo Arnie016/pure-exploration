@@ -15,6 +15,13 @@
       "when": 1790633415645,
       "tag": "0001_busy_phalanx",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790699148050,
+      "tag": "0002_sleepy_inhumans",
+      "breakpoints": true
     }
   ]
 }

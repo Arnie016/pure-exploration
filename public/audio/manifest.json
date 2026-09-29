@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "default": "off",
+  "human_device_review": "NOT_TESTED",
+  "shipped_audio": [{
+    "id": "garden-adaptive-score",
+    "origin": "Original procedural composition and synthesis in app/audio",
+    "method": "Owned Web Audio graph; original flute-like harmonic tones and glass-like cues; no recorded voice or sampled song",
+    "moods": ["garden", "curiosity", "tide", "adventure", "mystery"],
+    "cue_events": ["favorite", "portal", "capture", "achievement"],
+    "music_routes": ["/", "/telescope"],
+    "accessibility": "All cues supplement visible interface changes. Independent music/effects volume and global mute. No haptics.",
+    "review": "Lifecycle and routing tested; human listening not yet performed"
+  }],
+  "generated_but_not_shipped": [{
+    "provider": "ElevenLabs Sound Effects",
+    "generation_date": "2026-09-30",
+    "title": "Science-garden portal opening",
+    "duration_seconds": 4,
+    "requests": 1,
+    "variants_returned": 4,
+    "status": "Generated in provider history. Browser MP3 export did not return a retrievable local file. Not loaded by the app."
+  }],
+  "suno": "Original instrumental brief retained in app/audio/PRODUCTION.md; not generated because the credit cost was not visible."
+}

@@ -1,0 +1,13 @@
+{
+  "name": "REEF/MEMORY",
+  "sourceProject": "reef-memory",
+  "sourceSessionTitle": "Building insane Codex-inspired project",
+  "sourceFiles": {
+    "index.html": "1fb4c8185c2948b4a2733078ee53f17d8a20dff672f65cca98b802dfeb863f5d",
+    "main.js": "4381943f19a10e075b5b94098049181cd0551dbc50479217cd325ab1d565fb16",
+    "styles.css": "41e8ada058c0da5b251d66090beb7070defba609f724388e6eb368e3ea5dfc55"
+  },
+  "edition": "Pure Exploration browser integration",
+  "data": "Procedural fictional reef and simulated environmental history. Local notes only; no shared collaboration service.",
+  "thirdParty": "Three.js r160, MIT. Procedural original art, no Wildflow scans or branding copied."
+}

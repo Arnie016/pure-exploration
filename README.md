@@ -41,7 +41,7 @@ The presence test is restricted to localhost. It creates 100 temporary browser i
 
 ## Data and counts
 
-Public counters aggregate browser sessions, portal opens, shares and current favorites. They are not unique-person counts, verified follows or confirmed social posts. Written feedback and dislikes are private. Visitor journeys are visible only to that browser and the owner. Positions and visitor-supplied profile links are shared in the lobby. The privacy page explains retention and includes a Forget this browser action. Google Analytics is not connected.
+Public counters aggregate browser sessions, portal opens, shares and current favorites. They are not unique-person counts, verified follows or confirmed social posts. Written feedback and dislikes are private. Visitor journeys are visible only to that browser and the owner. Positions and visitor-supplied profile links are shared in the lobby. The privacy page explains retention and includes a Forget this browser action. A separate Pure Exploration Google Analytics property is connected only after explicit visitor opt-in. First-party source categories store only X, GitHub, search, tagged share, other or direct/unknown. They measure arrivals on this site, not social-platform impressions.
 
 Schema changes live in `db/schema.ts` and versioned `drizzle/` migrations. The runtime initializes matching tables defensively. Queries use bound parameters; mutations require a same-origin request and valid random browser cookies. Suggestions and greetings have rate limits. This is a small-production starting point, not a promise of unlimited anonymous abuse resistance or 100,000 concurrent visitors.
 
@@ -67,10 +67,18 @@ Human acceptance of this revision remains pending; browser checks and automated 
 
 ## This release
 
-Twelve worlds are connected inside the shared interface: the garden is a dedicated lobby, not a shuffled destination. Skyline Swing, Lightning, Poe, Galevein, Universe Clash, Tides, AEOLITH, Fable Flight and Thirty Steps Down preserve recovered project sources with edition boundaries in the How to play panels. The new Space-time lab and telescope remain educational approximations. Ben 10 / Omni Tournament has surviving trailers but its playable checkout was not recovered.
+Thirteen worlds are connected inside the shared interface: the garden is a dedicated lobby, not a shuffled destination. Skyline Swing, Lightning, Poe, Galevein, Universe Clash, Tides, AEOLITH, Fable Flight and Thirty Steps Down preserve recovered project sources with edition boundaries in the How to play panels. The recovered original Space-Time Visualization Lab and telescope remain educational approximations. Reef / Memory now preserves the original OpenCode reef archive with honest simulated readings and private local notes. Ben 10 / Omni Tournament has surviving trailers but its playable checkout was not recovered.
 
 The telescope has a full 360-degree teaching sky and alt-az aiming, not a live astronomical pointing service. The garden contains one shrine per real catalog world, with room for 24. Public presence is anonymous first-party browser activity; these changes do not establish production capacity for 100 simultaneous rendered clients.
 
-Recording offers the next ten seconds and a previous-ten-seconds replay. The replay uses a bounded compressed image cache on the device (640px desktop / 480px mobile, about 6.7 sampled frames per second); it starts after a world loads and clears when leaving. Export prefers MP4/H.264 where supported, otherwise WebM. Clips contain the world image, not microphone or game audio. Native file sharing can send the actual video to a compatible app. X's web composer accepts a caption but cannot attach a local video through an intent URL; no X OAuth upload service is connected.
+Recording offers the next 10, 30 or 60 seconds and a previous-ten-seconds replay. The replay uses a bounded compressed image cache on the device (640px desktop / 480px mobile, about 6.7 sampled frames per second); it starts after a world loads and clears when leaving. Export prefers MP4/H.264 where supported, otherwise WebM. Next clips include the original site score when enabled; the previous-ten-second replay is silent. No microphone or embedded-game audio is captured. Native file sharing can send the actual video to a compatible app. X's web composer accepts a caption but cannot attach a local video through an intent URL; no X OAuth upload service is connected.
 
 Glorp Protocol was recovered and locally launched, but remains outside the featured portal catalog pending a fuller visual pass. Its recovered source is preserved with provenance.
+
+## Keepsakes and sound
+
+The on-device library stores annotated pictures, recordings, notes, imported audio and personal achievement cards in IndexedDB (80 items / 200 MB, 40 MB per item). It never silently deletes old entries. Storage failure offers a download fallback for captures. Clearing browser data removes local keepsakes; export first. No cloud sync is implied.
+
+Optional heart reflections ask three world-specific questions and save privately to the owner report. The library contains six browser-local achievements with shareable cards. They are mementos, not verified game scores, redeemable credits or guaranteed discounts. Reward provenance is recorded in docs/rewards-verification.md.
+
+Music starts only after visitor activation. The original local flute score responds to nearby portals and destination moods, suspends offscreen and ducks under visible media. Sound generation provenance, exact provider credit usage and the unshipped ElevenLabs candidate are recorded in app/audio/PRODUCTION.md.

@@ -1,8 +1,9 @@
+import {guidedFeedbackText} from '../app/feedback-model';
 import {privateSchema} from './private';
 /** First-party, pseudonymous activity. Visitor tokens never leave HttpOnly cookies. */
 interface DB {prepare(sql:string):Stmt;batch<T=unknown>(statements:Stmt[]):Promise<{results:T[]}[]>}
 interface Stmt {bind(...values:unknown[]):Stmt;run():Promise<unknown>;all<T=unknown>():Promise<{results:T[]}>;first<T=unknown>(column?:string):Promise<T|null>}
-const knownProjects=new Set(['glorp','spacetime','leaderboard','garden','telescope','airport','lightning','galevein','hollowdeep','neuroscience','universe-clash','tides','reef-relay','aeolith','cansat','checkfirst','morse','particles','poe','edge-universe','skyline','alien-art','ben10','tokenbar','bitepdf','fable-flight']);
+const knownProjects=new Set(['coral-memory','glorp','spacetime','leaderboard','garden','telescope','airport','lightning','galevein','hollowdeep','neuroscience','universe-clash','tides','reef-relay','aeolith','cansat','checkfirst','morse','particles','poe','edge-universe','skyline','alien-art','ben10','tokenbar','bitepdf','fable-flight']);
 const eventNames=new Set(['first_interaction','share','project_open','chapter','tour','clip','follow','remix','screenshot']);
 const signals=['Hello, explorers!','I found something wonderful.','Try the telescope.','Who wants to race?','The lightning lab is incredible.','Come explore the airport.'];
 let initialized:Promise<unknown>|null=null;
@@ -39,10 +40,12 @@ export async function activity(request:Request,db:DB|undefined):Promise<Response
    if(!old){visitor=crypto.randomUUID();const pub=crypto.randomUUID(),n=parseInt(pub.slice(0,4),16);const alias=['Amber','Cedar','Lunar','Fern','Comet','Moss','Nova','Saffron'][n%8]+' Fox '+(n%900+100);await db.prepare('INSERT INTO visitors(id,public_id,alias,color,seen) VALUES(?,?,?,?,?)').bind(visitor,pub,alias,['amber','mint','silver','rose'][n%4],now).run();setCookie('pe_visitor',visitor,180*86400);}else await db.prepare('UPDATE visitors SET seen=? WHERE id=?').bind(now,visitor).run();
    if(!current||now-current.seen>1800000){session=crypto.randomUUID();await db.prepare('INSERT INTO sessions(id,created,seen) VALUES(?,?,?)').bind(session,now,now).run();}else await db.prepare('UPDATE sessions SET seen=? WHERE id=?').bind(now,session).run();
    setCookie('pe_session',session!,1800);
+   const channel=['direct','x','github','search','shared','other'].includes(String(data.channel))?String(data.channel):'direct';
+   await db.prepare('INSERT OR IGNORE INTO entry_channels(session,channel,created) VALUES(?,?,?)').bind(session,channel,now).run();
    await db.prepare('INSERT OR IGNORE INTO events(session,name,project,day,created) VALUES(?,?,?,?,?)').bind(session,'visit',project,day,now).run();
    await journey(db,visitor!,session!,project,now,'visit');
    // Bounded retention; persistent favorites remain until removed or the browser is forgotten.
-   if(!current)await db.batch([db.prepare('DELETE FROM sessions WHERE seen < ?').bind(now-864e5),db.prepare('DELETE FROM events WHERE day < ?').bind(cutoff),db.prepare('DELETE FROM presence WHERE seen < ?').bind(now-864e5),db.prepare('DELETE FROM garden_feed WHERE created < ?').bind(now-864e5)]);
+   if(!current)await db.batch([db.prepare('DELETE FROM entry_channels WHERE created < ?').bind(now-30*864e5),db.prepare('DELETE FROM sessions WHERE seen < ?').bind(now-864e5),db.prepare('DELETE FROM events WHERE day < ?').bind(cutoff),db.prepare('DELETE FROM presence WHERE seen < ?').bind(now-864e5),db.prepare('DELETE FROM garden_feed WHERE created < ?').bind(now-864e5)]);
    return json({...await stats(db,now,cutoff),...await self(db,visitor!)});
   }
   if(url.pathname==='/api/stats'&&request.method==='GET')return json(await stats(db,now,cutoff));
@@ -86,6 +89,13 @@ export async function activity(request:Request,db:DB|undefined):Promise<Response
    await db.prepare('INSERT INTO reactions(visitor,project,value,updated) VALUES(?,?,?,?) ON CONFLICT(visitor,project) DO UPDATE SET value=excluded.value,updated=excluded.updated').bind(visitor,project,data.value,now).run();return json({ok:true,value:data.value});
   }
   if(url.pathname==='/api/feedback'&&request.method==='POST'){
+   if(data.guided===true){
+    const reflection=guidedFeedbackText(project,data.answers,data.note);
+    if(!reflection)return json({error:'Choose an answer for each of the three questions'},400);
+    const saved=await db.prepare('SELECT created FROM favorites_v2 WHERE visitor=? AND project=?').bind(visitor,project).first();
+    if(!saved)return json({error:'Save this world to your favorites before sending this reflection'},400);
+    data.text=reflection;
+   }
    if(!knownProjects.has(String(data.project))||typeof data.text!=='string'||data.text.trim().length<5||data.text.length>600)return json({error:'Write a suggestion between 5 and 600 characters'},400);
    const recent=await db.prepare('SELECT count(*) AS count,max(created) AS latest FROM feedback WHERE visitor=? AND created>?').bind(visitor,now-864e5).first<{count:number;latest:number}>();
    if(recent&&((recent.count>=5)||(now-recent.latest<30000)))return json({error:'Please wait before sending another suggestion. Limit: five per day.'},429);
@@ -93,7 +103,7 @@ export async function activity(request:Request,db:DB|undefined):Promise<Response
   }
   if(url.pathname==='/api/forget' &&request.method==='POST'){
    await db.batch(['presence','favorites_v2','garden_feed','reactions','feedback','journeys'].map(t=>db.prepare(`DELETE FROM ${t} WHERE visitor=?`).bind(visitor)));
-   await db.prepare('DELETE FROM visitors WHERE id=?').bind(visitor).run();await db.prepare('DELETE FROM sessions WHERE id=?').bind(session).run();setCookie('pe_visitor','',0);setCookie('pe_session','',0);return json({ok:true});
+   await db.prepare('DELETE FROM entry_channels WHERE session=?').bind(session).run();await db.prepare('DELETE FROM visitors WHERE id=?').bind(visitor).run();await db.prepare('DELETE FROM sessions WHERE id=?').bind(session).run();setCookie('pe_visitor','',0);setCookie('pe_session','',0);return json({ok:true});
   }
   return json({error:'Not found'},404);
  }catch{return json({error:'Activity is temporarily unavailable'},503);}

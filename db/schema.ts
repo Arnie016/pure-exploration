@@ -10,3 +10,5 @@ export const journeys=sqliteTable('journeys',{visitor:text('visitor').notNull(),
 export const reactions=sqliteTable('reactions',{visitor:text('visitor').notNull(),project:text('project').notNull(),value:integer('value').notNull(),updated:integer('updated').notNull()},t=>[primaryKey({columns:[t.visitor,t.project]})]);
 export const feedback=sqliteTable('feedback',{id:text('id').primaryKey(),visitor:text('visitor').notNull(),project:text('project').notNull(),text:text('text').notNull(),created:integer('created').notNull(),resolved:integer('resolved').notNull().default(0)},t=>[index('feedback_visitor').on(t.visitor,t.created)]);
 export const ownerSessions=sqliteTable('owner_sessions',{hash:text('hash').primaryKey(),epoch:text('epoch').notNull(),expires:integer('expires').notNull()});
+
+export const entryChannels=sqliteTable('entry_channels',{session:text('session').primaryKey(),channel:text('channel').notNull(),created:integer('created').notNull()},t=>[index('entry_channels_created').on(t.created)]);
