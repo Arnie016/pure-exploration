@@ -2502,7 +2502,7 @@ function frame(now) {
     };
   }
   const studio = experience.studio();
-  const freezeArena = paused && !studio;
+  const freezeArena = paused && !studio?.open;
   // Keep UI responsive without drawing the same arena behind a modal each frame.
   // Studio deliberately keeps its live model. Resize/settings request one redraw.
   if (!freezeArena || !renderSuspended || renderDirty) world.update(

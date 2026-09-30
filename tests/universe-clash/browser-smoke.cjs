@@ -13,7 +13,7 @@ const {resolve} = require('node:path');
     ...(process.env.UC_BROWSER ? {executablePath:process.env.UC_BROWSER} : {}),
     args:['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
   });
-  const page = await browser.newPage({viewport:{width:1440,height:960},deviceScaleFactor:1});
+  const page = await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1});
   page.setDefaultTimeout(180000);
   const errors = [];
   try {
