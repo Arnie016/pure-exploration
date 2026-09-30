@@ -2,3 +2,6 @@
 .world-help .close-modal{position:static;width:44px;height:44px;border-radius:50%}
 .studio-modal.clip-share{width:620px;max-width:calc(100vw - 30px);min-width:0;box-sizing:border-box}
 @media(max-width:600px){.studio-modal.clip-share{padding:20px}.clip-share .capture-options{flex-wrap:wrap}.clip-share h2{font-size:29px}}
+
+/* Keep icon and label inside the control at every inherited HUD size. */
+.world-utilities .tree-utility,.world-utilities .help-utility{display:inline-flex!important;align-items:center;justify-content:center;flex-direction:row;flex-wrap:nowrap;line-height:1;min-height:36px}.world-utilities .tree-utility svg,.world-utilities .help-utility svg{flex-shrink:0}.world-utilities .utility-label{white-space:nowrap;line-height:1}

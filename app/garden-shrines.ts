@@ -1,13 +1,16 @@
 import*as T from'three';
 import{projects}from'./projects';
 import{material}from'./three-kit';
+import{portalBatch,PORTAL_SLOT_COUNT}from'./portal-recycling';
 
-// Twenty-four possible places, populated only by real, playable catalog worlds.
-export const SHRINE_CAPACITY=24;
+// Keep the whole playable catalog available; only a bounded batch occupies the garden.
 export const SHRINE_RADIUS=32;
 const colors:Record<string,number>={'plate-engine':0xf0b478,telescope:0xe8c58c,airport:0x89d9e7,lightning:0xbbadf0,aeolith:0xe6a6be,'fable-flight':0xb5d5a1,galevein:0x8edbc5,'universe-clash':0xefb287,spacetime:0xf2c78d,poe:0xc2b2dd,tides:0x8edacb,skyline:0xf0a9a2};
-export const shrinePortals=projects.filter(p=>!!p.url).slice(0,SHRINE_CAPACITY).map((p,i,list)=>{const angle=Math.PI+i/list.length*Math.PI*2;return{id:p.id,title:p.title,description:p.subtitle,category:p.category,image:p.image,color:colors[p.id]||0xa9d8cf,x:Math.sin(angle)*SHRINE_RADIUS,z:Math.cos(angle)*SHRINE_RADIUS};});
+export const shrinePortals=projects.filter(p=>!!p.url).map((p,i,list)=>{const angle=Math.PI+i/list.length*Math.PI*2;return{id:p.id,title:p.title,description:p.subtitle,category:p.category,image:p.image,color:colors[p.id]||0xa9d8cf,x:Math.sin(angle)*SHRINE_RADIUS,z:Math.cos(angle)*SHRINE_RADIUS};});
 export type ShrinePortal=typeof shrinePortals[number];
+// Architecture stays put; destinations cycle through these eight shared doorways.
+export function shrineBatch(offset:number){return portalBatch(shrinePortals,offset,PORTAL_SLOT_COUNT).map((p,i,list)=>{const angle=Math.PI+i/list.length*Math.PI*2;return{...p,x:Math.sin(angle)*SHRINE_RADIUS,z:Math.cos(angle)*SHRINE_RADIUS};});}
+export const shrineSlots=shrineBatch(0);
 
 function stoneTexture(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d')!;g.fillStyle='#aab5b0';g.fillRect(0,0,256,256);let seed=73;for(let i=0;i<6000;i++){seed=(seed*1664525+1013904223)>>>0;const x=seed%256;seed=(seed*1664525+1013904223)>>>0;const y=seed%256;g.fillStyle=i%3?'#8e9d9819':'#d4dbd628';g.fillRect(x,y,1+(i%4),1);}for(let i=0;i<7;i++){g.strokeStyle='#526d6917';g.beginPath();g.moveTo(i*43,0);g.bezierCurveTo(i*43+35,80,i*43-20,160,i*43+12,256);g.stroke();}const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,4);t.colorSpace=T.SRGBColorSpace;return t;}
 function emblem(id:string,color:string){const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const c=canvas.getContext('2d')!;c.translate(128,128);c.strokeStyle=color;c.fillStyle=color;c.lineWidth=8;c.lineCap='round';c.lineJoin='round';c.shadowColor=color;c.shadowBlur=16;const path=(pts:number[][],close=false)=>{c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));if(close)c.closePath();c.stroke();};const circle=(r:number,x=0,y=0)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.stroke();};
@@ -24,7 +27,7 @@ function emblem(id:string,color:string){const canvas=document.createElement('can
  default:path([[0,-83],[55,-13],[23,64],[0,84],[-23,64],[-55,-13],[0,-83]],true);path([[0,-83],[0,84]]);}
  const t=new T.CanvasTexture(canvas);t.colorSpace=T.SRGBColorSpace;return t;}
 
-export function buildShrines(scene:T.Scene,portals:ShrinePortal[]){const root=new T.Group();root.name='constellation-shrines';scene.add(root);const clock={value:0},textures:T.Texture[]=[];let disposed=false;const pickables:T.Object3D[]=[];const stoneMap=stoneTexture();textures.push(stoneMap);const dark=new T.MeshStandardMaterial({color:0x15292e,map:stoneMap,roughness:.75,metalness:.18}),stone=new T.MeshStandardMaterial({color:0x526d68,map:stoneMap,roughness:.64,metalness:.25}),brass=material(0x9e865c,.32,.78),black=material(0x081820,.55,.5),garden=material(0x264e40,.92);
+export function buildShrines(scene:T.Scene,portals:ShrinePortal[]){const root=new T.Group();root.name='constellation-shrines';scene.add(root);const clock={value:0},reveal={value:1},textures:T.Texture[]=[];let disposed=false;const pickables:T.Object3D[]=[];const stoneMap=stoneTexture();textures.push(stoneMap);const dark=new T.MeshStandardMaterial({color:0x15292e,map:stoneMap,roughness:.75,metalness:.18}),stone=new T.MeshStandardMaterial({color:0x526d68,map:stoneMap,roughness:.64,metalness:.25}),brass=material(0x9e865c,.32,.78),black=material(0x081820,.55,.5),garden=material(0x264e40,.92);
  const boxGeo=new T.BoxGeometry(1,1,1),cylGeo=new T.CylinderGeometry(1,1,1,24),capGeo=new T.ConeGeometry(1,1,5),archGeo=new T.TorusGeometry(2.5,.18,8,64,Math.PI),innerGeo=new T.CircleGeometry(2.24,64),haloGeo=new T.PlaneGeometry(7.6,8.6),ringGeo=new T.TorusGeometry(2.25,.045,6,96);
  const fx:{halo:T.Mesh;orbit:T.Group;glyph:T.Mesh;phase:number}[]=[];
  const seeds=[];for(let i=0;i<84;i++)seeds.push(i/84,((i*37)%84)/84,0);const traceGeo=new T.BufferGeometry();traceGeo.setAttribute('position',new T.Float32BufferAttribute(seeds,3));
@@ -38,7 +41,7 @@ export function buildShrines(scene:T.Scene,portals:ShrinePortal[]){const root=ne
  const arch=shape(archGeo,stone,0,3.08,0);arch.scale.x=1.15;shape(archGeo,brass,0,3.08,.03,1.23,1.05,1);shape(boxGeo,dark,0,5.62,-.22,1.5,.66,.7);shape(boxGeo,brass,0,5.27,.16,1.8,.085,.12);
  const ring=shape(ringGeo,metal,0,2.89,.08);ring.scale.set(1,1.04,1);
  // A portal image is recessed into animated glass, not displayed as a floating card.
- const veil=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:clock,tint:{value:color},cover:{value:null},hasCover:{value:0},phase:{value:index}},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec2 vUv;uniform float time;uniform float phase;uniform vec3 tint;uniform sampler2D cover;uniform float hasCover;void main(){vec2 q=vUv-.5;float r=length(q)*2.;float a=atan(q.y,q.x);float rim=pow(smoothstep(.64,1.,r),4.);float ripple=sin(r*24.-time*.7+phase)*.004*(1.-r);vec2 uv=clamp(vUv+normalize(q+vec2(.0001))*ripple,0.,1.);vec3 scene=texture2D(cover,uv).rgb;scene=mix(tint*.13,scene*.68,hasCover);float veil=pow(.5+.5*sin(a*3.+r*11.-time*.32+phase),12.);scene+=tint*(rim*.72+veil*.12);float edge=1.-smoothstep(.96,1.,r);gl_FragColor=vec4(scene,edge*.96);}`});
+ const veil=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:clock,reveal,tint:{value:color},cover:{value:null},hasCover:{value:0},phase:{value:index}},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec2 vUv;uniform float time;uniform float phase;uniform vec3 tint;uniform sampler2D cover;uniform float hasCover;uniform float reveal;void main(){vec2 q=vUv-.5;float r=length(q)*2.;float a=atan(q.y,q.x);float rim=pow(smoothstep(.64,1.,r),4.);float ripple=sin(r*24.-time*.7+phase)*.004*(1.-r);vec2 uv=clamp(vUv+normalize(q+vec2(.0001))*ripple,0.,1.);vec3 scene=texture2D(cover,uv).rgb;scene=mix(tint*.13,scene*.68,hasCover);float veil=pow(.5+.5*sin(a*3.+r*11.-time*.32+phase),12.);scene+=tint*(rim*.72+veil*.12);float edge=1.-smoothstep(.96,1.,r);gl_FragColor=vec4(scene,edge*.96*reveal);}`});
  const inner=shape(innerGeo,veil,0,2.9,.055);inner.scale.y=1.04;
  if(p.image?.startsWith('/')){const texture=loader.load(p.image,image=>{if(disposed){image.dispose();return;}image.colorSpace=T.SRGBColorSpace;veil.uniforms.cover.value=image;veil.uniforms.hasCover.value=1;},undefined,()=>{});textures.push(texture);}
  const icon=emblem(p.id,'#'+color.getHexString());textures.push(icon);const glyph=shape(new T.PlaneGeometry(1.48,1.48),new T.MeshBasicMaterial({map:icon,transparent:true,depthWrite:false,side:T.DoubleSide}),0,5.77,.25);
@@ -58,5 +61,5 @@ export function buildShrines(scene:T.Scene,portals:ShrinePortal[]){const root=ne
  const pool=new T.Mesh(new T.CircleGeometry(3.35,48),new T.MeshBasicMaterial({color:p.color,transparent:true,opacity:.065,depthWrite:false}));pool.rotation.x=-Math.PI/2;pool.position.set(0,.535,0);gate.add(pool);
  gate.traverse(o=>{o.userData.portal=p.id;if(o instanceof T.Mesh)pickables.push(o);});
  });
- return{root,pickables,animate:(t:number,motion:boolean)=>{if(!motion)return;clock.value=t*.001;for(const f of fx){f.orbit.rotation.z=t*.00005+f.phase;f.glyph.position.y=5.77+Math.sin(t*.0006+f.phase)*.045;}},dispose:()=>{disposed=true;textures.forEach(t=>t.dispose());}};
+ return{root,pickables,setReveal:(value:number)=>{reveal.value=value;},animate:(t:number,motion:boolean)=>{if(!motion)return;clock.value=t*.001;for(const f of fx){f.orbit.rotation.z=t*.00005+f.phase;f.glyph.position.y=5.77+Math.sin(t*.0006+f.phase)*.045;}},dispose:()=>{disposed=true;textures.forEach(t=>t.dispose());}};
 }

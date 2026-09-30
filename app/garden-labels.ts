@@ -18,6 +18,8 @@ export function buildPortalLabels(mount:HTMLElement,portals:ShrinePortal[],open:
   return{portal,button};
  });
  return{
+  isEngaged:()=>!!focused,
+  setReveal:(value:number)=>{layer.style.opacity=String(value);},
   update(t:number,camera:T.PerspectiveCamera,visitor:T.Vector3,walking:boolean){
    if(t-last<100)return;last=t;const width=mount.clientWidth,height=mount.clientHeight,narrow=width<600;
    const boxes:{left:number;right:number;top:number;bottom:number}[]=[],bounds=mount.getBoundingClientRect();

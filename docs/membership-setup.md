@@ -39,3 +39,9 @@ A compact Support entry appears in the shared top-right world controls, opening 
 - https://docs.stripe.com/payment-links
 - https://docs.stripe.com/payments/checkout/limit-subscriptions
 - https://docs.stripe.com/billing/entitlements
+
+## Connector checkpoint · 1 October 2026
+
+The reconnected Stripe connector exposes a live DoodilyDo account with context acct_1TfHlE58O2I89qdS. This differs from the historical G4JaXi6Dm2 product/price IDs above; those IDs must be verified in their original account before reuse. No duplicate products or new live links created. The user requested future locked member worlds, ongoing course materials and prompts. Existing worlds stay free. Member content, enrollment identity, verified lifecycle webhooks and billing management remain required before sales open. Current Udemy referral still does not grant enrollment. Proposed paid-world catalogue must consist of real available worlds, not fabricated locked cards.
+
+Lobby expansion brief: House of Poe cinema accepts creator-submitted AI videos into a pending moderation queue; analysis covers frames/OCR/audio with human review and appeals before public playback. No automatic approval is implied. Future lobby mechanics: jump, first-person camera, equipment/footprint cosmetics and a five-slot emote wheel. Upload, moderation-provider cost and public distribution are not enabled by this checkpoint.

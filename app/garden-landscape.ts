@@ -1,4 +1,4 @@
-import*as T from'three';import{kit,material,textSprite}from'./three-kit';import{shrinePortals,SHRINE_RADIUS}from'./garden-shrines';import{gardenWater}from'./garden-water';import{gardenArchitecture,gardenArchitectureObstacles,gardenArchitectureClearings,gardenPavilions,gardenLotusBeds}from'./garden-architecture';
+import*as T from'three';import{kit,material,textSprite}from'./three-kit';import{shrineSlots as shrinePortals,SHRINE_RADIUS}from'./garden-shrines';import{gardenWater}from'./garden-water';import{gardenArchitecture,gardenArchitectureObstacles,gardenArchitectureClearings,gardenPavilions,gardenLotusBeds}from'./garden-architecture';
 /** Original environment. A 10× wider walkable footprint gives 100× the area. */
 export function landscape(scene:T.Scene){const motionClock={value:0};const world=new T.Group();scene.add(world);const{box,cyl,ball,rod}=kit(world),basalt=material(0x1c3439,.92),moss=material(0x315a48,.92),bark=material(0x4d5146),silver=material(0x648d89,.3,.7),gold=material(0xb5a272,.32,.6),waterFx=gardenWater(motionClock),water=waterFx.surface,glow=new T.MeshBasicMaterial({color:0x83d4d0});
  const architecture=gardenArchitecture(world);
