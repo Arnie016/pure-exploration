@@ -29,21 +29,44 @@ available in this workspace. This change extends the accessible repository.
 - Character materials add light bands and view-dependent ink edges without an
   extra outline draw pass. Solo melee impacts pause briefly; reduced effects
   disables the pause. Host navigation hides during active matches.
+- Free-aim shots converge on the point under the shoulder-camera reticle. Aim
+  assistance selects a living opponent within a narrow cone, including opponents
+  other than the currently tracked rival in Pit. The reticle names the assisted
+  opponent; an edge arrow locates an off-screen tracked rival.
+- L now shares the on-screen energy button's tap/hold behavior: tap for a blast,
+  hold 350ms for a beam, or hold 1.2s for an ultimate, then release. Costs and
+  cooldowns are still enforced by the simulation. U/V remain direct shortcuts.
+- Camera & visuals settings save sensitivity, vertical inversion, camera
+  distance, field of view and aim assistance. Four graphics presets change the
+  actual pixel-ratio cap, shadow resolution and decorative particle count;
+  Performance retains contact markers and combat warnings without shadow maps.
+- The camera's forward lead and higher look point clear the reticle above the
+  player's silhouette while fitting the full body. Paused menus stop redundant
+  arena rendering; Fighter Studio remains live, and resize/settings redraw once.
 
 ## Validation
 
-- 15 Node engine/progression regression tests pass, including a 2,400-tick
+- 19 Node engine/progression regression tests pass, including a 2,400-tick
   12-fighter simulation, aim, pickup, throw, depletion and transformation cases.
+- Additional regressions cover shoulder-camera parallax, target selection in a
+  crowded arena, disabling aim assistance, and corrupted/out-of-range preferences.
 - Changed JavaScript modules pass Node syntax checks; `git diff --check` passes.
 - HTML has no duplicate IDs or missing local asset references. New module imports
   resolve to real files.
-- Browser/WebGL visual acceptance has **not passed** in this environment. The
-  cloud browser could not create a WebGL context for the existing preview and
-  blocked localhost. Local Chromium could not create its process socket; the
-  environment's approval policy rejected the elevated browser run.
-- A runnable browser smoke pass is included. Before production, run it with
-  Playwright, inspect its desktop/mobile screenshots, and play the camera and
-  combat transitions. Also run the host application's normal typecheck/build.
+- The workspace browser remains unavailable: the cloud browser failed WebGL
+  and blocked localhost, and local Chromium could not create its process socket.
+  No local elevation is used. A read-only GitHub Actions job now runs the game in
+  software WebGL, exercises real UI/input, and retains screenshots and renderer
+  diagnostics as a seven-day artifact. It uses no deployment credentials.
+- Remote runs captured the menu, camera settings, enlarged Fighter Studio,
+  story scene and active fight. Inspection exposed the avatar blocking the
+  reticle; camera framing was adjusted. A teleport assertion during active AI
+  combat timed out and is now tested in training. The extended acceptance run
+  is still pending at this checkpoint.
+- Before production, complete remote browser acceptance, inspect desktop/mobile
+  screenshots, and play the camera/combat transitions on a hardware-accelerated
+  browser. Also run the host application's normal typecheck/build. Software
+  WebGL acceptance does not establish a real-device frame-rate target.
 
 No replacement models, extra arenas, generated opening movie, MP4 recording or
 multiplayer backend are included in this pass. Existing replay storage and

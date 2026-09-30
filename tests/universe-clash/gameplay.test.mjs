@@ -101,7 +101,7 @@ test('shoulder-camera projectiles converge on the ground point under the reticle
 test('saved camera preferences reject malformed values and clamp extreme views',()=>{
  const p=normalizePresentation({quality:'__proto__',fov:999,distance:-1,sensitivity:Infinity,invertY:'true',aimAssist:false});
  assert.deepEqual(p,{quality:'balanced',fov:85,distance:6,sensitivity:1,invertY:false,aimAssist:false});
- assert.equal(normalizePresentation(null).distance,7.6);
+ assert.equal(normalizePresentation(null).distance,9.2);
 });
 test('story draw introduces every roster character exactly once',()=>{
  assert.equal(DRAW.flat().length,16);assert.equal(new Set(DRAW.flat()).size,16);

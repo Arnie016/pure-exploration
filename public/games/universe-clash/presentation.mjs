@@ -5,14 +5,14 @@ export const QUALITY = Object.freeze({
   high: { label:'High', dpr:1.75, mobileDpr:1.35, shadow:2048, particles:1 },
   ultra: { label:'Ultra', dpr:2, mobileDpr:1.5, shadow:2048, particles:1.25 },
 });
-export const DEFAULT_PRESENTATION = Object.freeze({quality:'balanced', sensitivity:1, distance:7.6, fov:62, invertY:false, aimAssist:true});
+export const DEFAULT_PRESENTATION = Object.freeze({quality:'balanced', sensitivity:1, distance:9.2, fov:62, invertY:false, aimAssist:true});
 const bounded = (value, fallback, low, high) => Number.isFinite(value) ? Math.max(low,Math.min(high,value)) : fallback;
 export function normalizePresentation(value) {
   const p = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return {
     quality:Object.hasOwn(QUALITY,p.quality) ? p.quality : DEFAULT_PRESENTATION.quality,
     sensitivity:bounded(p.sensitivity,1,.4,2),
-    distance:bounded(p.distance,7.6,6,12),
+    distance:bounded(p.distance,DEFAULT_PRESENTATION.distance,6,12),
     fov:bounded(p.fov,62,50,85),
     invertY:p.invertY === true,
     aimAssist:p.aimAssist !== false,

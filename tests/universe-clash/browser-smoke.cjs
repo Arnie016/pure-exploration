@@ -15,8 +15,8 @@ const {resolve} = require('node:path');
   });
   const page = await browser.newPage({viewport:{width:1440,height:960},deviceScaleFactor:1});
   page.setDefaultTimeout(180000);
+  const errors = [];
   try {
-    const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => {
       if (message.type() === 'error' && /THREE|shader|WebGL|TypeError|ReferenceError/.test(message.text())) errors.push(message.text());
@@ -39,6 +39,9 @@ const {resolve} = require('node:path');
     assert.equal(await page.evaluate(() => window.__UC__.presentation().sensitivity),1.4);
     assert.equal(await page.evaluate(() => window.__UC__.stats().presentation.shadowSize),0);
     await screenshot('01b-camera-settings');
+    const pausedFrames=await page.evaluate(() => window.__UC__.stats().renderedFrames);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await page.evaluate(() => window.__UC__.stats().renderedFrames),pausedFrames,'a paused menu should not keep rendering the arena');
     await page.locator('#settings-dialog [data-close]').click();
 
     await page.locator('.main-nav [data-nav="studio"]').click();
@@ -60,8 +63,6 @@ const {resolve} = require('node:path');
     const yaw = await page.evaluate(() => window.__UC__.cameraLook().yaw);
     await page.mouse.move(850,430,{steps:8});
     await page.waitForFunction(before => window.__UC__.cameraLook().yaw !== before, yaw);
-    await page.keyboard.press('KeyZ');
-    await page.waitForFunction(() => window.__UC__.snapshot().events.some(e => e.owner === 0 && e.evadeKind === 'vanish'));
     await screenshot('04-fight');
     await page.keyboard.press('Escape');
     await page.locator('#exit-match').click();
@@ -78,6 +79,9 @@ const {resolve} = require('node:path');
 
     await page.locator('#guide-open').click();
     await page.waitForFunction(() => window.__UC__.mode() === 'training');
+    await page.keyboard.press('KeyZ');
+    await page.waitForFunction(() => window.__UC__.snapshot().events.some(e => e.owner === 0 && e.evadeKind === 'vanish'));
+    await page.waitForFunction(() => window.__UC__.snapshot().fighters[0].action === 'idle');
     await page.keyboard.press('KeyL');
     await page.waitForFunction(() => window.__UC__.snapshot().events.some(e => e.type==='attack' && e.owner===0 && e.kind==='blast'));
     await screenshot('06-tutorial');
@@ -88,10 +92,15 @@ const {resolve} = require('node:path');
     await page.reload();
     await page.waitForFunction(() => window.__UC__?.ready);
     assert.equal(await page.evaluate(() => window.__UC__.presentation().fov),70,'camera settings survive reload');
+    await page.locator('#guide-open').click();
+    await page.waitForFunction(() => window.__UC__.mode() === 'training');
+    await screenshot('08-mobile-training');
     assert.deepEqual(errors, []);
     console.log(`Browser checks passed. Inspect screenshots in ${output}`);
   } catch (error) {
     await page.screenshot({path:resolve(output, 'failure.png')}).catch(() => {});
+    const diagnostic=await page.evaluate(() => ({mode:window.__UC__?.mode(),state:window.__UC__?.snapshot(),cameraLook:window.__UC__?.cameraLook(),stats:window.__UC__?.stats(),dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.id)})).catch(() => null);
+    writeFileSync(resolve(output,'failure.json'),JSON.stringify({error:error.message,console:errors,diagnostic},null,2));
     throw error;
   } finally {
     await browser.close();

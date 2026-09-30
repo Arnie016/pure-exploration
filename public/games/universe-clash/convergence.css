@@ -6,6 +6,7 @@ button:hover { border-color:#899eb8; }
 .text-button { background:transparent; border:0; color:var(--muted); font-size:11px; }
 #menu { padding:0 clamp(18px,3.3vw,64px); max-width:1800px; margin:auto; }
 .masthead { background:transparent; min-height:78px; }
+#menu-settings { font-size:11px; white-space:nowrap; }
 .wordmark { letter-spacing:.16em; }
 .brand-icon { border-radius:3px; width:44px; height:44px; }
 .main-nav { gap:4px; }
@@ -108,7 +109,7 @@ button:hover { border-color:#899eb8; }
 #aim-target { position:fixed; top:calc(50% + 20px); left:50%; transform:translateX(-50%); font:10px ui-monospace,monospace; color:#ffe5a6; text-shadow:0 1px 4px #000,0 1px 8px #000; pointer-events:none; }
 #target-guide { position:fixed; transform:translate(-50%,-50%); display:grid; justify-items:center; gap:3px; padding:6px 9px; color:#ffcd7c; background:#08121dd9; border:1px solid #ffd08840; border-radius:6px; pointer-events:none; }
 #target-guide i { font-style:normal; display:block; transform:rotate(var(--cue-angle)); }
-#target-guide span { font-size:10px; }
+#target-guide span { font-size:10px; max-width:140px; text-align:center; }
 #target-guide small { font-size:8px; color:#c6d4e1; }
 .range-setting { display:grid; grid-template-columns:1fr auto; gap:3px 12px; }
 .range-setting output { color:var(--gold); font:12px ui-monospace,monospace; }

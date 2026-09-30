@@ -2827,17 +2827,18 @@ export function createWorld(canvas, roster = []) {
         const yaw=chaseHeading+lookInput.yaw+(firstPerson?0:shoulderAngle),pitch=firstPerson?(lookInput.manual?clamp(lookInput.pitch-.2,-.75,.65):chasePitch):lookInput.manual?clamp(.1+lookInput.pitch,-.55,.95):clamp(.1+lookInput.pitch+chasePitch,-.9,1.3);
         viewBack.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
         if(playerFollow) {
-          desiredLook.set(finite(local.x),finite(local.y)+activeModels[localSlot].visualHeight*.57,finite(local.z));
-          // A small forward lead opens the arena while keeping the fighter near centre.
-          desiredLook.x += Math.sin(yaw)*1.1 + Math.cos(yaw)*.3;
-          desiredLook.z += Math.cos(yaw)*1.1 - Math.sin(yaw)*.3;
+          desiredLook.set(finite(local.x),finite(local.y)+activeModels[localSlot].visualHeight*.86,finite(local.z));
+          // Keep the fighter near horizontal centre, with the reticle above the
+          // hairline and a clear sightline into the arena instead of into the back.
+          desiredLook.x += Math.sin(yaw)*2.4 + Math.cos(yaw)*.55;
+          desiredLook.z += Math.cos(yaw)*2.4 - Math.sin(yaw)*.55;
         }
       }else {
         const pitch=clamp((cameraMode===3?1.13:.26)+lookInput.pitch,.12,1.42);
         viewBack.set(Math.sin(lookInput.yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(lookInput.yaw)*Math.cos(pitch));
       }
       const followDistance=Math.max(presentation.distance,activeModels[localSlot].visualHeight/(Math.tan(camera.fov*PI/360)*Math.min(1,camera.aspect)*.95));
-      const distance=playerFollow?followDistance:fitView(fitSlots,desiredLook,viewBack,cameraMode===2?followDistance:cameraMode===3?19:10.8);
+      const distance=fitView(fitSlots,desiredLook,viewBack,playerFollow?followDistance:cameraMode===3?19:10.8);
       desiredCamera.copy(desiredLook).addScaledVector(viewBack,distance);
       if(firstPerson){
         const m=activeModels[localSlot];
@@ -3300,6 +3301,7 @@ export function createWorld(canvas, roster = []) {
        camera:{position:camera.position.toArray(),look:cameraLook.toArray(),fov:camera.fov,aspect:camera.aspect,localSlot,targetSlot,chaseHeading,chasePitch,shoulderAngle,firstPerson,previewViewport:previewViewport?{...previewViewport}:null,projectionUnits:'viewport 0..1, origin top-left; union of projected visible-mesh bounding boxes',framing:activeModels.length?pairFraming():null,cameraLook:{...lookInput},...lookInput,movement:movementBasis()},
        arena:{pit:pitFloor,playRadius:pitFloor?PIT_RADIUS:10,floorRadius:pitFloor?FLOOR_RADIUS:15.4,expansionVisible:!!activeStage.expansion?.visible,structureMinRadius:48,vaultMinHeight:13.35,visibleVaults:activeStage.vaults?.filter(v=>v.visible).length||0},
       renderCpuMs:Number(frameMs.toFixed(2)),
+      renderedFrames:renderer.info.render.frame,
       presentation:{...presentation,dpr,shadowSize:quality.shadow},
       activeForms: activeModels.map((m) => m ? { char: m.id, index: m.formIndex, id: m.form.id, label: m.form.label, hair: m.form.hair, aura: m.form.aura, scale: m.root.scale.y, hairStyle: m.hairStyle, eyebrows: m.brows.visible, height: Number(m.visualHeight.toFixed(2)) } : null),
       resources: { geometries: geometries.size, materials: materials.size, textures: textures.size, geometryBytes: [...geometries].reduce((sum,g)=>sum+(g.index?.array.byteLength||0)+Object.values(g.attributes).reduce((n,a)=>n+(a.array||a.data.array).byteLength,0),0), gpuGeometries: renderer.info.memory.geometries, gpuTextures: renderer.info.memory.textures, framingPoints: [...models[0].values(),...models[1].values(),...extraModels.values()].reduce((sum,m)=>sum+m.boundsPoints.length,0) },
@@ -3363,7 +3365,8 @@ export function createWorld(canvas, roster = []) {
     const x=projectionPoint.x, y=projectionPoint.y;
     const onScreen=!behind && Math.abs(x)<.9 && Math.abs(y)<.7;
     const dx=Math.abs(x)+Math.abs(y)<.001?0:x, dy=Math.abs(x)+Math.abs(y)<.001?-1:y;
-    const scale=Math.min(.4/Math.max(.001,Math.abs(dx)),.25/Math.max(.001,Math.abs(dy)));
+    const edgeX=Math.min(.4,Math.max(.2,.5-80/width));
+    const scale=Math.min(edgeX/Math.max(.001,Math.abs(dx)),.25/Math.max(.001,Math.abs(dy)));
     return {onScreen,x:.5+dx*scale,y:.43-dy*scale,angle:Math.atan2(-dy,dx)*180/PI};
   }
   function configure(value) {

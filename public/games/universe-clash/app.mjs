@@ -250,6 +250,8 @@ let tutorial = null;
 let matchmaking = { status: 'idle', mode:'duel', required:2, queued: 0, waited: 0 };
 const cameraLook = { yaw: 0, pitch: .2, manual: false };
 let mouseLooking = false, mouseLast = null;
+let renderSuspended = false, renderDirty = true;
+window.addEventListener('resize', () => { renderDirty = true; });
 const lookKeys = new Set();
 let lookPointer = null;
 let previousState = null,
@@ -2190,7 +2192,7 @@ function updateHUD(now) {
   $('#context-prompt').textContent = now < deniedUntil ? denial : holdingProp ? 'X  THROW · Aim with the mouse' : nearProp ? `X  PICK UP · Highlighted object · ${mine.energy >= 10 ? '10 Ki' : `need ${Math.ceil(10-mine.energy)} more Ki`}` : '';
   $('#context-prompt').dataset.state = now < deniedUntil ? 'blocked' : 'ready';
   $('#context-prompt').hidden = !powerVisible || !$('#context-prompt').textContent;
-  $('#aim-reticle').hidden = !powerVisible || ![2,4].includes(cameraMode);
+  $('#aim-reticle').hidden = !powerVisible || ![2,4].includes(cameraMode) || !cameraLook.manual;
   const aimActive=powerVisible && [2,4].includes(cameraMode) && cameraLook.manual;
   const aimed=aimActive && presentation.aimAssist ? aimCandidate(mine,state.fighters,world.aimDirection(mine)) : null;
   $('#aim-reticle').classList.toggle('on-target',!!aimed);
@@ -2499,12 +2501,16 @@ function frame(now) {
       left:left/innerWidth, top:top/innerHeight, width:(right-left)/innerWidth, height:(bottom-top)/innerHeight,
     };
   }
-  world.update(
+  const studio = experience.studio();
+  const freezeArena = paused && !studio;
+  // Keep UI responsive without drawing the same arena behind a modal each frame.
+  // Studio deliberately keeps its live model. Resize/settings request one redraw.
+  if (!freezeArena || !renderSuspended || renderDirty) world.update(
     menu ? modePreview?.state || menuState : renderState(now),
     mode === 'replay' ? (paused || !replay.playing ? 0 : dt * replay.speed) : paused && !menu && mode !== 'network' ? 0 : dt,
     {
       menu:menu && !modePreview,
-      studio:experience.studio(),
+      studio,
       previewViewport,
       cameraMode:modePreview ? 1 : cameraMode,
       cameraLook,
@@ -2523,6 +2529,8 @@ function frame(now) {
       previewActionTime: Math.max(0, ((now < previewUntil ? previewUntil : quoteAt + 1500) - now) / 1000),
     },
   );
+  renderSuspended = freezeArena;
+  renderDirty = false;
   if (now - previewTick > 70) {
     drawGearPreview();
     previewTick = now;
@@ -2912,12 +2920,14 @@ for (const input of $$('[data-presentation]')) input.addEventListener('input', (
   const value=input.type==='checkbox' ? input.checked : input.type==='range' ? Number(input.value) : input.value;
   presentation=normalizePresentation({...presentation,[input.dataset.presentation]:value});
   world?.configure(presentation);
+  renderDirty = true;
   savePreference('presentation-v1',JSON.stringify(presentation));
   syncPresentation();
 });
 $('#reset-presentation').addEventListener('click', () => {
   presentation=normalizePresentation(DEFAULT_PRESENTATION);
   world?.configure(presentation);
+  renderDirty = true;
   savePreference('presentation-v1',JSON.stringify(presentation));
   syncPresentation();
 });
