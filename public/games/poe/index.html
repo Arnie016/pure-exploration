@@ -35,8 +35,9 @@
       <button id="sound" aria-label="Mute film">Sound on</button>
       <button id="restart" aria-label="Restart film">↺</button>
     </div>
-    <div class="film-info"><button id="about" aria-expanded="false" aria-controls="credits">About this theatre</button><span id="status" role="status">Choose a film. No account needed.</span></div>
+    <div class="film-info"><button id="read-story">Read the stories</button><button id="about" aria-expanded="false" aria-controls="credits">About this theatre</button><span id="status" role="status">Choose a film. No account needed.</span></div>
     <section id="credits" hidden aria-label="About the films"><button id="close-credits" aria-label="Close film information">×</button><h2>Stories told in atmosphere.</h2><p>Created by Arnav from the worlds of Edgar Allan Poe, using AI-generated cinematic imagery. The original 65-second film is joined by two short moving studies.</p><p>This theatre adds film selection and playback to the recovered movies. It is a cinematic anthology, not a recovered branching game.</p><p>Film imagery produced with Higgsfield / Kling. Theatre assembled with Codex. The source films retain their creator's rights and provider terms.</p></section>
+    <section id="story-reader" hidden role="dialog" aria-modal="true" aria-labelledby="reader-title"><header><span>AFTER EDGAR ALLAN POE · SHORT RETELLINGS</span><button id="close-reader" aria-label="Close story">×</button></header><h2 id="reader-title">The Masque of the Red Death</h2><div id="reader-copy"></div><nav aria-label="Choose a story"><button data-read="masque">The Masque</button><button data-read="usher">Usher</button><button data-read="raven">The Raven</button></nav><p class="reader-note">Original short retellings for this theatre, inspired by Poe’s stories and poem. The films are separate interpretations.</p></section>
     <section id="error" hidden role="alert"><h2>The film could not load.</h2><p>The rest of the theatre is still here. Try this film again or choose another door.</p><button id="retry">Try again</button></section>
   </main>
   <script src="./theatre.js" defer></script>

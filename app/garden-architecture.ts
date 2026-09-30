@@ -58,6 +58,32 @@ export function gardenArchitecture(parent:T.Group){
  }
  for(const x of[-17,17])block([x,7.27,-88],[19.6,.22,15.6],bronze);
 
+ // A second distant landmark closes the view when the camera turns south.
+ // Original domes, perforated screens and deep arcades echo the garden's palace;
+ // all parts join the existing instance batches and stay outside the walk boundary.
+ block([0,.22,102],[57,.55,17],dark);block([0,.54,102],[55,.08,16],bronze);
+ block([0,5.35,104],[18,9.6,9]);cupola(0,10.35,104,4.7);
+ for(const sign of[-1,1]){
+  block([sign*17,3.55,104],[16,6.2,9]);block([sign*17,6.76,104],[16.7,.22,9.7],bronze);
+  cupola(sign*23,6.95,104,1.9);
+  shaft([sign*27,6.2,100],[.65,12,.65]);shaft([sign*27,12.17,100],[1.13,.22,1.13],bronze);cupola(sign*27,12.3,100,1.45);
+ }
+ for(let i=-5;i<=5;i++){
+  const x=i*4.35,w=i===0?2.55:1.45,h=i===0?7.4:4.4;
+  add('shadowed-recesses',cube,night,[x,(h-1.1)/2+.6,99.43],[w*1.75,h-1.1,.035]);
+  add('arcades',arch,stone,[x,h-1.1,99.34],[w,w,1]);
+  for(const sign of[-1,1])shaft([x+sign*w,(h-1.1)/2+.35,99.25],[.14,h-.4,.14]);
+  for(let k=0;k<5;k++)add('jali',cube,bronze,[x+(k-2)*w*.32,1.9,99.16],[.05,2.35,.05]);
+  for(let k=0;k<5;k++)add('jali',cube,bronze,[x,.85+k*.45,99.16],[w*1.48,.045,.045]);
+  for(const sign of[-1,1])add('warm-garden-lights',cube,warm,[x+sign*w*.82,2.7,99.12],[.07,.84,.03]);
+ }
+ // Slender east/west cupolas give every bearing a recognisable horizon silhouette.
+ for(const sign of[-1,1])for(const z of[-43,45]){
+  const x=sign*111;shaft([x,5.1,z],[.8,10.3,.8]);shaft([x,10.25,z],[1.7,.25,1.7],bronze);
+  for(let k=0;k<8;k++){const angle=k*Math.PI/4;shaft([x+Math.sin(angle)*1.3,11.2,z+Math.cos(angle)*1.3],[.11,1.75,.11]);}
+  cupola(x,12.2,z,2.1);
+ }
+
  // Open chhatris bring the palace's language into the walkable garden. The floor is
  // level with the paths, and only the four slender columns interrupt movement.
  for(const {x,z} of gardenPavilions){

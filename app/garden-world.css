@@ -1,4 +1,14 @@
 /* Garden remains a world, with only contextual controls above the landscape. */
+.garden-portal-labels{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.garden-portal-label{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;text-align:center;padding:8px 10px 9px;border:1px solid #c8ded733;border-bottom:2px solid var(--portal-tint);border-radius:10px;background:linear-gradient(160deg,#09181eed,#10292ce6);color:#eef2e6;box-shadow:0 4px 15px #0006;cursor:pointer;line-height:1.25;transition:background .18s,border-color .18s}
+.garden-portal-label[hidden]{display:none}
+.garden-portal-label:after{content:'';position:absolute;left:50%;bottom:-10px;width:1px;height:8px;background:var(--portal-tint);opacity:.75}
+.garden-portal-label strong{font:500 12px/1.35 system-ui,sans-serif;display:block;text-wrap:balance}
+.garden-portal-description{display:none;color:#bed0c9;font:400 11px/1.5 system-ui,sans-serif;margin-top:5px}
+.garden-portal-label.is-near .garden-portal-description{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.garden-portal-label:hover,.garden-portal-label:focus-visible{background:#16383a;border-color:var(--portal-tint)}
+.garden-portal-label:focus-visible{outline:2px solid #ead7b2;outline-offset:4px}
+@media(max-width:600px){.garden-portal-label{padding:7px 8px}.garden-portal-label strong{font-size:11px}.garden-portal-description{font-size:10px}}
 .garden-page.living-garden .garden-stage{height:100svh;min-height:0;overflow:hidden}
 .garden-page.living-garden .garden-stage:after{background:linear-gradient(90deg,#07171b9c,transparent 34%,transparent 82%,#07171b38),linear-gradient(0deg,#07171bcc,transparent 29%,transparent 78%,#07171b66)}
 .garden-page.living-garden .garden-intro{left:30px;top:36px;transition:opacity .4s,transform .4s}

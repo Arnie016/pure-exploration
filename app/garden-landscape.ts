@@ -42,6 +42,10 @@ export function landscape(scene:T.Scene){const motionClock={value:0};const world
  const fernGeo=new T.SphereGeometry(1,8,5),ferns=new T.InstancedMesh(fernGeo,material(0x427462,.85),shrinePortals.length*36),fern=new T.Object3D();let fernIndex=0;
  for(let i=0;i<shrinePortals.length;i++){const a=Math.PI+(i+.5)/shrinePortals.length*Math.PI*2,r=22,x=Math.sin(a)*r,z=Math.cos(a)*r;const island=cyl(x,-.025,z,3.1,.18,basalt,3.1,32);island.scale.z=.7;for(let j=0;j<36;j++){const f=j*2.399,radius=.3+Math.sqrt(j/36)*2.65;fern.position.set(x+Math.sin(f)*radius,.22+(j%5)*.085,z+Math.cos(f)*radius*.67);fern.rotation.set(.12,f,.25);fern.scale.set(.38,.55+(j%3)*.2,.19);fern.updateMatrix();ferns.setMatrixAt(fernIndex++,fern.matrix);}const lamp=box(x,.57,z,.16,1.1,.16,silver);box(x,1.15,z,.21,.12,.21,glow);}
  world.add(ferns);
+ // A continuous distant ridge avoids an empty horizon behind the portal ring.
+ // Forty-eight low-poly peaks share one draw and never enter the navigation grid.
+ const ridge=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),basalt,48),peak=new T.Object3D();ridge.name='garden-horizon-ridge';
+ for(let i=0;i<48;i++){const a=i/48*Math.PI*2,radius=178+(i%5)*9,h=13+((i*17)%29);peak.position.set(Math.sin(a)*radius,h*.35-8,Math.cos(a)*radius);peak.scale.set(21+(i%4)*8,h,15+(i%3)*8);peak.rotation.set(0,a,.1*Math.sin(i));peak.updateMatrix();ridge.setMatrixAt(i,peak.matrix);}ridge.computeBoundingSphere();world.add(ridge);
  // Efficient groves with instanced trunks and layered canopies.
  const trunks=new T.InstancedMesh(new T.CylinderGeometry(.25,.4,4,7),bark,170),crowns=new T.InstancedMesh(new T.SphereGeometry(1,12,7),moss,510),d=new T.Object3D();let seed=721;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};for(let i=0;i<170;i++){let x=0,z=0;do{const a=rand()*Math.PI*2,r=49+rand()*59;x=Math.cos(a)*r;z=Math.sin(a)*r;}while((Math.abs(x)<53&&z<5&&z>-69)||Math.abs(x)<4||Math.abs(z)<4||gardenArchitectureClearings.some(p=>Math.hypot(x-p.x,z-p.z)<7));const s=.7+rand()*.9;d.position.set(x,1.7*s,z);d.scale.set(s,s,s);d.updateMatrix();trunks.setMatrixAt(i,d.matrix);for(let k=0;k<3;k++){d.position.set(x+Math.sin(k*2.4),s*(3.7+k*.7),z+Math.cos(k*2.4));d.scale.set(2.6*s,1.2*s,2.6*s);d.updateMatrix();crowns.setMatrixAt(i*3+k,d.matrix);}}world.add(trunks,crowns);
  // Poseidon-inspired guardian, sculpted from original primitives: armour, crest and trident.
@@ -59,7 +63,7 @@ export function landscape(scene:T.Scene){const motionClock={value:0};const world
  // One shared clock freezes in place for reduced motion; no animation reset or catch-up jump.
  let previous:number|null=null;
  const animate=(t:number,motion:boolean)=>{const dt=previous===null?0:Math.max(0,Math.min(.06,(t-previous)/1000));previous=t;if(motion)motionClock.value+=dt;architecture.animate(dt,motion);};
- return Object.assign(animate,{waterMaterial:water,leaderboardPickables:architecture.leaderboardPickables,updateCounts:architecture.updateCounts,dispose:architecture.dispose});
+ return Object.assign(animate,{waterMaterial:water,setDaylight:waterFx.setDaylight,leaderboardPickables:architecture.leaderboardPickables,updateCounts:architecture.updateCounts,dispose:architecture.dispose});
 }
 
 // Collision footprints stay independent of decorative meshes and camera detail.

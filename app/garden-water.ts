@@ -2,17 +2,26 @@ import * as T from 'three';
 
 /** Art-directed surface, falling sheets and impact foam. No fluid solver or buoyancy. */
 export function gardenWater(clock:{value:number}){
- const surface=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:clock},
-  vertexShader:`uniform float time;varying vec3 vWorld;void main(){vec3 p=position;vec4 w=modelMatrix*vec4(p,1.);w.y+=sin(w.x*.47+time*.62)*sin(w.z*.38-time*.41)*.035;vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
-  fragmentShader:`uniform float time;varying vec3 vWorld;
-   void main(){vec2 p=vWorld.xz;float a=p.x*.47+time*.62,b=p.y*.38-time*.41;
-    vec3 n=normalize(vec3(-.14*cos(a)*sin(b),1.,-.12*sin(a)*cos(b)));
-    n.x+=sin(p.y*2.3-time*.82)*.025;n.z+=cos(p.x*1.8+time*.71)*.025;n=normalize(n);
+ const daylight={value:0},sunDirection={value:new T.Vector3(-.4,1,.3).normalize()};
+ const surface=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:clock,daylight,sunDirection},
+  vertexShader:`uniform float time;varying vec3 vWorld;void main(){vec4 w=modelMatrix*vec4(position,1.);w.y+=sin(w.x*.47+w.z*.24+time*.62)*.026+sin(w.x*-.21+w.z*.63-time*.48)*.017+sin(w.x*.88+w.z*.71+time*.91)*.007;vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:`uniform float time;uniform float daylight;uniform vec3 sunDirection;varying vec3 vWorld;
+   void main(){vec2 p=vWorld.xz;float a=p.x*.47+p.y*.24+time*.62,b=p.x*-.21+p.y*.63-time*.48,c=p.x*.88+p.y*.71+time*.91;
+    vec2 gradient=vec2(.47,.24)*cos(a)*.026+vec2(-.21,.63)*cos(b)*.017+vec2(.88,.71)*cos(c)*.007;
+    gradient+=vec2(sin(p.y*2.3-time*.82),cos(p.x*1.8+time*.71))*.025;
+    vec3 n=normalize(vec3(-gradient.x,1.,-gradient.y));
     vec3 eye=normalize(cameraPosition-vWorld);float fresnel=pow(1.-max(dot(n,eye),0.),3.);
-    float spec=pow(max(dot(reflect(-normalize(vec3(-.4,1.,.3)),n),eye),0.),80.);
+    float spec=pow(max(dot(reflect(-normalize(sunDirection),n),eye),0.),100.);
     float caustic=pow(.5+.5*sin(p.x*.91+sin(p.y*.72-time*.3)+time*.2)*sin(p.y*1.24-time*.48),13.);
-    vec3 deep=vec3(.018,.095,.105),sky=vec3(.13,.26,.29);
-    vec3 color=mix(deep,sky,.18+fresnel*.7)+vec3(.15,.36,.28)*caustic*.38+vec3(.65,.87,.77)*spec*.7;
+    vec3 reflected=reflect(-eye,n);float horizon=pow(1.-abs(reflected.y),3.);
+    vec3 deep=mix(vec3(.009,.055,.067),vec3(.018,.095,.105),daylight);
+    vec3 sky=mix(vec3(.055,.094,.145),vec3(.16,.29,.32),daylight)+horizon*vec3(.09,.085,.055);
+    float nebula=pow(.5+.5*sin(reflected.x*5.+reflected.z*3.),6.)*(1.-daylight);
+    sky+=vec3(.036,.018,.065)*nebula;
+    vec3 color=mix(deep,sky,.14+fresnel*.78)+vec3(.15,.36,.28)*caustic*.22+mix(vec3(.35,.62,.69),vec3(.9,.75,.48),daylight)*spec*.85;
+    float bank=length(vec2(p.x/41.25,(p.y+54.)/25.));
+    float shoreline=exp(-pow((bank-.98)*90.,2.))*(.2+.8*pow(.5+.5*sin(p.x*2.7+p.y*2.-time*.45),3.));
+    color+=vec3(.3,.48,.42)*shoreline*.23;
     gl_FragColor=vec4(color,.93);
    }`});
  const curtain=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,uniforms:{time:clock},
@@ -38,5 +47,5 @@ export function gardenWater(clock:{value:number}){
     gl_FragColor=vec4(.53,.81,.73,foam*.66);
    }`});
  surface.name='garden-water-surface';curtain.name='garden-water-curtain';impact.name='garden-water-impact';
- return{surface,curtain,impact};
+ return{surface,curtain,impact,setDaylight(value:number,direction:T.Vector3){daylight.value=value;sunDirection.value.copy(direction);}};
 }

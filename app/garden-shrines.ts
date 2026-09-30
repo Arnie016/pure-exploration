@@ -1,12 +1,12 @@
 import*as T from'three';
 import{projects}from'./projects';
-import{material,textSprite}from'./three-kit';
+import{material}from'./three-kit';
 
 // Twenty-four possible places, populated only by real, playable catalog worlds.
 export const SHRINE_CAPACITY=24;
 export const SHRINE_RADIUS=32;
 const colors:Record<string,number>={'plate-engine':0xf0b478,telescope:0xe8c58c,airport:0x89d9e7,lightning:0xbbadf0,aeolith:0xe6a6be,'fable-flight':0xb5d5a1,galevein:0x8edbc5,'universe-clash':0xefb287,spacetime:0xf2c78d,poe:0xc2b2dd,tides:0x8edacb,skyline:0xf0a9a2};
-export const shrinePortals=projects.filter(p=>!!p.url).slice(0,SHRINE_CAPACITY).map((p,i,list)=>{const angle=Math.PI+i/list.length*Math.PI*2;return{id:p.id,title:p.title,category:p.category,image:p.image,color:colors[p.id]||0xa9d8cf,x:Math.sin(angle)*SHRINE_RADIUS,z:Math.cos(angle)*SHRINE_RADIUS};});
+export const shrinePortals=projects.filter(p=>!!p.url).slice(0,SHRINE_CAPACITY).map((p,i,list)=>{const angle=Math.PI+i/list.length*Math.PI*2;return{id:p.id,title:p.title,description:p.subtitle,category:p.category,image:p.image,color:colors[p.id]||0xa9d8cf,x:Math.sin(angle)*SHRINE_RADIUS,z:Math.cos(angle)*SHRINE_RADIUS};});
 export type ShrinePortal=typeof shrinePortals[number];
 
 function stoneTexture(){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d')!;g.fillStyle='#aab5b0';g.fillRect(0,0,256,256);let seed=73;for(let i=0;i<6000;i++){seed=(seed*1664525+1013904223)>>>0;const x=seed%256;seed=(seed*1664525+1013904223)>>>0;const y=seed%256;g.fillStyle=i%3?'#8e9d9819':'#d4dbd628';g.fillRect(x,y,1+(i%4),1);}for(let i=0;i<7;i++){g.strokeStyle='#526d6917';g.beginPath();g.moveTo(i*43,0);g.bezierCurveTo(i*43+35,80,i*43-20,160,i*43+12,256);g.stroke();}const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(2,4);t.colorSpace=T.SRGBColorSpace;return t;}
@@ -53,7 +53,7 @@ export function buildShrines(scene:T.Scene,portals:ShrinePortal[]){const root=ne
  const halo=new T.Mesh(haloGeo,new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,uniforms:{tint:{value:color}},vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:`varying vec2 vUv;uniform vec3 tint;void main(){vec2 q=(vUv-.5)*vec2(1.,1.12);float r=length(q);float a=exp(-pow((r-.29)*13.,2.))*.095;gl_FragColor=vec4(tint,a);}`}));halo.position.set(0,3.05,-.08);gate.add(halo);
  const orbit=new T.Group();orbit.position.set(0,2.9,.13);const arcGeo=new T.TorusGeometry(2.41,.02,5,40,Math.PI*.5);for(let n=0;n<3;n++){const arc=new T.Mesh(arcGeo,glow);arc.rotation.z=n*Math.PI*2/3;orbit.add(arc);}gate.add(orbit);fx.push({halo,orbit,glyph,phase:index});
  const tracers=new T.Points(traceGeo,new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,uniforms:{time:clock,tint:{value:color},phase:{value:index}},vertexShader:`uniform float time;uniform float phase;varying float alpha;void main(){float a=position.x*6.283185+time*.13+phase;float r=2.34+position.y*.24;vec3 p=vec3(cos(a)*r,2.9+sin(a)*r,.16+sin(a*2.)*.06);vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp(70./-mv.z,1.,5.);alpha=.2+.65*pow(.5+.5*sin(a-time*.4),4.);}`,fragmentShader:`uniform vec3 tint;varying float alpha;void main(){float d=length(gl_PointCoord-.5)*2.;gl_FragColor=vec4(tint,pow(max(0.,1.-d),2.)*alpha);}`}));tracers.frustumCulled=false;gate.add(tracers);
- const title=textSprite(p.title,'#eef1e4',5.15);title.position.set(0,7.6,0);gate.add(title);const category=textSprite(p.category==='Watch'?'STORY SHRINE':p.category==='Understand'?'DISCOVERY SHRINE':'ADVENTURE SHRINE','#b9d0ce',2.8);category.position.set(0,7.02,.05);gate.add(category);
+ // Names and descriptions are projected by garden-labels at a readable pixel size.
  // A flat emissive pool catches each doorway's color on the floor.
  const pool=new T.Mesh(new T.CircleGeometry(3.35,48),new T.MeshBasicMaterial({color:p.color,transparent:true,opacity:.065,depthWrite:false}));pool.rotation.x=-Math.PI/2;pool.position.set(0,.535,0);gate.add(pool);
  gate.traverse(o=>{o.userData.portal=p.id;if(o instanceof T.Mesh)pickables.push(o);});
