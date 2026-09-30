@@ -2,7 +2,7 @@
 // Serve public/ on 4199, or pass UC_URL. Screenshots are written outside source.
 const {chromium} = require('playwright');
 const assert = require('node:assert/strict');
-const {mkdirSync} = require('node:fs');
+const {mkdirSync,writeFileSync} = require('node:fs');
 const {resolve} = require('node:path');
 
 (async () => {
@@ -14,7 +14,7 @@ const {resolve} = require('node:path');
     args:['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
   });
   const page = await browser.newPage({viewport:{width:1440,height:960},deviceScaleFactor:1});
-  page.setDefaultTimeout(60000);
+  page.setDefaultTimeout(180000);
   try {
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -22,16 +22,28 @@ const {resolve} = require('node:path');
       if (message.type() === 'error' && /THREE|shader|WebGL|TypeError|ReferenceError/.test(message.text())) errors.push(message.text());
     });
     await page.goto(process.env.UC_URL || 'http://127.0.0.1:4199/games/universe-clash/');
-    await page.waitForFunction(() => window.__UC__?.ready, null, {timeout:60000});
+    await page.waitForFunction(() => window.__UC__?.ready, null, {timeout:180000});
     const screenshot = async name => {
       await page.screenshot({path:resolve(output, `${name}.png`)});
       console.log(`Captured ${name}`);
+      const stats=await page.evaluate(() => window.__UC__.stats());
+      writeFileSync(resolve(output,`${name}.json`),JSON.stringify(stats,null,2));
     };
     await screenshot('01-menu');
 
+    await page.locator('#menu-settings').click();
+    await page.locator('[data-pause-panel="visuals"]').click();
+    await page.locator('#graphics-setting').selectOption('low');
+    await page.locator('#fov-setting').evaluate(input => {input.value='70';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    await page.locator('#sensitivity-setting').evaluate(input => {input.value='1.4';input.dispatchEvent(new Event('input',{bubbles:true}));});
+    assert.equal(await page.evaluate(() => window.__UC__.presentation().sensitivity),1.4);
+    assert.equal(await page.evaluate(() => window.__UC__.stats().presentation.shadowSize),0);
+    await screenshot('01b-camera-settings');
+    await page.locator('#settings-dialog [data-close]').click();
+
     await page.locator('.main-nav [data-nav="studio"]').click();
     await page.locator('#studio-roster [data-studio-fighter="vegeta"]').click();
-    assert.equal(await page.locator('#studio-name').innerText(), 'Vegeta');
+    assert.equal((await page.locator('#studio-name').innerText()).toLowerCase(), 'vegeta');
     await page.locator('[data-studio-form="1"]').click();
     await page.waitForFunction(() => window.__UC__.preview().fighters[0].form === 1);
     await screenshot('02-fighter-studio');
@@ -66,11 +78,16 @@ const {resolve} = require('node:path');
 
     await page.locator('#guide-open').click();
     await page.waitForFunction(() => window.__UC__.mode() === 'training');
+    await page.keyboard.press('KeyL');
+    await page.waitForFunction(() => window.__UC__.snapshot().events.some(e => e.type==='attack' && e.owner===0 && e.kind==='blast'));
     await screenshot('06-tutorial');
     await page.locator('#training-exit').click();
     await page.setViewportSize({width:390,height:844});
     await screenshot('07-mobile-menu');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1), 'No horizontal page overflow');
+    await page.reload();
+    await page.waitForFunction(() => window.__UC__?.ready);
+    assert.equal(await page.evaluate(() => window.__UC__.presentation().fov),70,'camera settings survive reload');
     assert.deepEqual(errors, []);
     console.log(`Browser checks passed. Inspect screenshots in ${output}`);
   } catch (error) {

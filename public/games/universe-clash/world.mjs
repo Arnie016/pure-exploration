@@ -4,6 +4,7 @@ import { mergeGeometries } from '/games/universe-clash/vendor/utils/BufferGeomet
 import { FORMS, STAGES } from './catalog.mjs';
 import { normalizeLoadout } from './gear.mjs';
 import { pickupCandidate } from './readability.mjs';
+import { normalizePresentation, QUALITY, resolveViewAim } from './presentation.mjs';
 
 const PI = Math.PI;
 const TAU = PI * 2;
@@ -71,6 +72,7 @@ export function createWorld(canvas, roster = []) {
   const whiteColor = new THREE.Color('#ffffff');
   const dummy = new THREE.Object3D();
   let width = 1, height = 1, mobile = false, dpr = 1, time = 0;
+  let presentation = normalizePresentation(), quality = QUALITY[presentation.quality];
   let disposed = false, lost = false, firstFrame = true, wasMenu = true;
   let lastEvent = 0, lastTick = -1, shake = 0, auraClock = 0, cameraAccent = 0;
   let lastPresentationState = null;
@@ -2373,6 +2375,7 @@ export function createWorld(canvas, roster = []) {
   }
   function emit(x, y, z, color, count, speed = 3, gravity = 5) {
     effectColor.set(color);
+    count = Math.max(1, Math.round(count * quality.particles));
     for (let j = 0; j < count; j++) {
       const i = particleCursor++ % MAX_PARTICLES, d = particleData[i], k = i * 3;
       const a = rng() * TAU, r = 0.2 + rng();
@@ -2588,13 +2591,17 @@ export function createWorld(canvas, roster = []) {
     width = Math.max(1, Math.round(rect.width || canvas.clientWidth || window.innerWidth));
     height = Math.max(1, Math.round(rect.height || canvas.clientHeight || window.innerHeight));
     mobile = width < 700;
-    dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.15 : 1.35);
+    dpr = Math.min(window.devicePixelRatio || 1, mobile ? quality.mobileDpr : quality.dpr);
     renderer.setPixelRatio(dpr); renderer.setSize(width, height, false);
     camera.aspect = width / height; camera.updateProjectionMatrix();
     particleMaterial.uniforms.uScale.value = height * dpr;
-    const shadowSize = 1024;
-    if (key.shadow.mapSize.x !== shadowSize) {
-      key.shadow.mapSize.set(shadowSize, shadowSize);
+    const shadowSize = quality.shadow;
+    if (renderer.shadowMap.enabled !== !!shadowSize) {
+      renderer.shadowMap.enabled = !!shadowSize;
+      for (const mat of materials) mat.needsUpdate = true;
+    }
+    if (!shadowSize || key.shadow.mapSize.x !== shadowSize) {
+      if (shadowSize) key.shadow.mapSize.set(shadowSize, shadowSize);
       if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; }
     }
   }
@@ -2801,7 +2808,7 @@ export function createWorld(canvas, roster = []) {
     const playerFollow=cameraMode===2;
     const fitSlots=playerFollow||cameraMode===4?[localSlot]:living.length?living:fighterStates.map((f,i)=>i);
     if(!menu) {
-      const targetFov=firstPerson?76:cameraMode===2?62:cameraMode===3?46:38;
+      const targetFov=firstPerson?Math.min(95,presentation.fov+14):cameraMode===2?presentation.fov:cameraMode===3?46:38;
       camera.fov=mix(camera.fov,targetFov,cameraCut?1:1-Math.exp(-dt*8));
       frameBounds.makeEmpty();for(const slot of fitSlots)frameBounds.union(activeModels[slot].bounds);
       frameBounds.getCenter(desiredLook);
@@ -2829,7 +2836,7 @@ export function createWorld(canvas, roster = []) {
         const pitch=clamp((cameraMode===3?1.13:.26)+lookInput.pitch,.12,1.42);
         viewBack.set(Math.sin(lookInput.yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(lookInput.yaw)*Math.cos(pitch));
       }
-      const followDistance=Math.max(6.8,activeModels[localSlot].visualHeight/(Math.tan(camera.fov*PI/360)*Math.min(1,camera.aspect)*.95));
+      const followDistance=Math.max(presentation.distance,activeModels[localSlot].visualHeight/(Math.tan(camera.fov*PI/360)*Math.min(1,camera.aspect)*.95));
       const distance=playerFollow?followDistance:fitView(fitSlots,desiredLook,viewBack,cameraMode===2?followDistance:cameraMode===3?19:10.8);
       desiredCamera.copy(desiredLook).addScaledVector(viewBack,distance);
       if(firstPerson){
@@ -3293,6 +3300,7 @@ export function createWorld(canvas, roster = []) {
        camera:{position:camera.position.toArray(),look:cameraLook.toArray(),fov:camera.fov,aspect:camera.aspect,localSlot,targetSlot,chaseHeading,chasePitch,shoulderAngle,firstPerson,previewViewport:previewViewport?{...previewViewport}:null,projectionUnits:'viewport 0..1, origin top-left; union of projected visible-mesh bounding boxes',framing:activeModels.length?pairFraming():null,cameraLook:{...lookInput},...lookInput,movement:movementBasis()},
        arena:{pit:pitFloor,playRadius:pitFloor?PIT_RADIUS:10,floorRadius:pitFloor?FLOOR_RADIUS:15.4,expansionVisible:!!activeStage.expansion?.visible,structureMinRadius:48,vaultMinHeight:13.35,visibleVaults:activeStage.vaults?.filter(v=>v.visible).length||0},
       renderCpuMs:Number(frameMs.toFixed(2)),
+      presentation:{...presentation,dpr,shadowSize:quality.shadow},
       activeForms: activeModels.map((m) => m ? { char: m.id, index: m.formIndex, id: m.form.id, label: m.form.label, hair: m.form.hair, aura: m.form.aura, scale: m.root.scale.y, hairStyle: m.hairStyle, eyebrows: m.brows.visible, height: Number(m.visualHeight.toFixed(2)) } : null),
       resources: { geometries: geometries.size, materials: materials.size, textures: textures.size, geometryBytes: [...geometries].reduce((sum,g)=>sum+(g.index?.array.byteLength||0)+Object.values(g.attributes).reduce((n,a)=>n+(a.array||a.data.array).byteLength,0),0), gpuGeometries: renderer.info.memory.geometries, gpuTextures: renderer.info.memory.textures, framingPoints: [...models[0].values(),...models[1].values(),...extraModels.values()].reduce((sum,m)=>sum+m.boundsPoints.length,0) },
        effects: { particles: particleData.filter((p) => p.life > 0).length, shockwaves: shockwaves.filter((s) => s.life > 0).length, beamTrails: beamEchoes.filter((e) => e.life > 0).length, transformations: stageEffects.filter((fx) => fx.releaseLife > 0).length, sparks: stageEffects.filter((fx) => fx.bolts.visible).length,
@@ -3342,6 +3350,27 @@ export function createWorld(canvas, roster = []) {
     const x=scratch.x,z=scratch.z,length=Math.hypot(x,z)||1;
     return {x:x/length,z:z/length};
   }
-  function aimDirection(){ camera.getWorldDirection(scratch); return {x:scratch.x,y:scratch.y,z:scratch.z}; }
-  return { update, portrait, dispose, stats, movementBasis, aimDirection };
+  function aimDirection(fighter){
+    camera.getWorldDirection(scratch);
+    const ray={x:scratch.x,y:scratch.y,z:scratch.z};
+    return fighter ? resolveViewAim(fighter,camera.position,ray,lastPresentationState?.fighters?.filter((_,slot)=>slot!==localSlot),lastPresentationState?.props) || ray : ray;
+  }
+  function targetCue(fighter) {
+    if (!fighter?.alive) return null;
+    projectionPoint.set(fighter.x,fighter.y+1.5,fighter.z).applyMatrix4(camera.matrixWorldInverse);
+    const behind=projectionPoint.z>=0;
+    if (!behind) projectionPoint.applyMatrix4(camera.projectionMatrix);
+    const x=projectionPoint.x, y=projectionPoint.y;
+    const onScreen=!behind && Math.abs(x)<.9 && Math.abs(y)<.7;
+    const dx=Math.abs(x)+Math.abs(y)<.001?0:x, dy=Math.abs(x)+Math.abs(y)<.001?-1:y;
+    const scale=Math.min(.4/Math.max(.001,Math.abs(dx)),.25/Math.max(.001,Math.abs(dy)));
+    return {onScreen,x:.5+dx*scale,y:.43-dy*scale,angle:Math.atan2(-dy,dx)*180/PI};
+  }
+  function configure(value) {
+    const next=normalizePresentation(value), changed=next.quality!==presentation.quality;
+    presentation=next; quality=QUALITY[next.quality];
+    if (changed) resize();
+    return {...presentation};
+  }
+  return { update, portrait, dispose, stats, movementBasis, aimDirection, targetCue, configure };
 }

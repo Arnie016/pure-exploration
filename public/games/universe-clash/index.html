@@ -213,6 +213,8 @@
       <div id="ki-cue" hidden role="status"></div>
       <div id="resource-gain" hidden role="status"></div>
       <div id="aim-reticle" aria-hidden="true"><i></i></div>
+      <div id="aim-target" hidden></div>
+      <div id="target-guide" hidden><i aria-hidden="true">➤</i><span></span><small>Home to recenter</small></div>
       <div id="context-prompt" role="status"></div>
       <div id="camera-hint">Click the arena to look around · Esc releases the mouse</div>
       <div id="achievement-toast" hidden role="status"></div>
@@ -626,7 +628,7 @@
         <div id="pause-root" class="pause-grid">
           <button id="resume" class="pause-tile primary-button"><span data-icon="play"></span><b>Resume</b></button>
           <button class="pause-tile" data-pause-panel="audio"><span data-icon="audio"></span><b>Audio</b></button>
-          <button class="pause-tile" data-pause-panel="visuals"><span data-icon="visuals"></span><b>Visuals</b></button>
+          <button class="pause-tile" data-pause-panel="visuals"><span data-icon="visuals"></span><b>Camera &amp; visuals</b></button>
           <button class="pause-tile" data-pause-panel="training"><span data-icon="training"></span><b>Training</b></button>
           <button class="pause-tile" data-pause-panel="replays"><span data-icon="replays"></span><b>Replays</b></button>
           <button id="exit-match" class="pause-tile"><span data-icon="exit"></span><b>Exit</b></button>
@@ -646,6 +648,25 @@
         <p id="voice-status" class="note"></p>
         </section>
         <section data-pause-view="visuals" hidden aria-label="Visual settings">
+        <p class="note">Tune your view. Changes apply immediately and save on this device.</p>
+        <div class="setting-row">
+          <label for="graphics-setting">Graphics<small>Resolution, shadows and particle detail</small></label>
+          <select id="graphics-setting" data-presentation="quality"><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select>
+        </div>
+        <div class="setting-row range-setting">
+          <label for="sensitivity-setting">Look sensitivity</label><output id="sensitivity-setting-value" for="sensitivity-setting"></output>
+          <input id="sensitivity-setting" data-presentation="sensitivity" type="range" min="0.4" max="2" step="0.1" />
+        </div>
+        <div class="setting-row range-setting">
+          <label for="distance-setting">Camera distance<small>Third-person view</small></label><output id="distance-setting-value" for="distance-setting"></output>
+          <input id="distance-setting" data-presentation="distance" type="range" min="6" max="12" step="0.2" />
+        </div>
+        <div class="setting-row range-setting">
+          <label for="fov-setting">Field of view</label><output id="fov-setting-value" for="fov-setting"></output>
+          <input id="fov-setting" data-presentation="fov" type="range" min="50" max="85" step="1" />
+        </div>
+        <div class="setting-row"><label for="invert-setting">Invert vertical look</label><input id="invert-setting" data-presentation="invertY" type="checkbox" role="switch" /></div>
+        <div class="setting-row"><label for="assist-setting">Aim assist<small>Helps shots connect near the reticle</small></label><input id="assist-setting" data-presentation="aimAssist" type="checkbox" role="switch" /></div>
         <div class="setting-row">
           <label for="effects-setting"
             >Reduced effects<small>Less flash, no camera shake</small></label
@@ -654,6 +675,7 @@
         <button id="show-controls" class="secondary-button full-width">
           Controls Reference
         </button>
+        <button id="reset-presentation" class="text-button full-width">Restore camera &amp; graphics defaults</button>
         </section>
         <section data-pause-view="training" hidden aria-label="Training choices">
           <div id="pause-drills" class="pause-grid"></div>

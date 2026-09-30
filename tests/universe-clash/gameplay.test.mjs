@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMatch,createPit,stepMatch,getAIInput} from '../../public/games/universe-clash/combat.mjs';
 import {ROSTER,FORMS,STAGES} from '../../public/games/universe-clash/catalog.mjs';
-import {pickupCandidate,powerReadiness,normalizedAim,BLINK_DISTANCE} from '../../public/games/universe-clash/readability.mjs';
+import {pickupCandidate,aimCandidate,powerReadiness,normalizedAim,BLINK_DISTANCE} from '../../public/games/universe-clash/readability.mjs';
+import {normalizePresentation,resolveViewAim} from '../../public/games/universe-clash/presentation.mjs';
 import {CHAPTERS,DRAW,normalizeStory,chapterUnlocked,completeChapter} from '../../public/games/universe-clash/story.mjs';
 import {createTraining,stepTraining} from '../../public/games/universe-clash/training.mjs';
 const tick=(state,input={},frames=1)=>{for(let n=0;n<frames;n++)stepMatch(state,[input,{}],1/60);};
@@ -70,6 +71,37 @@ test('teleport remains bounded at the arena edge and rejects non-finite aim',()=
 test('free aim rotates the fighter and shoots away from an off-screen target',()=>{
  const s=fight(),f=s.fighters[0];tick(s,{aimX:0,aimY:0,aimZ:1,blast:true});tick(s,{aimX:0,aimY:0,aimZ:1},8);
  assert.ok(Math.abs(f.heading)<.01);const shot=s.projectiles[0];assert.ok(shot);assert.ok(shot.vz>18);assert.ok(Math.abs(shot.vx)<.01);
+});
+test('aim assist finds the opponent near the reticle in a crowded fight',()=>{
+ const s=createPit('goku',{seed:120}),f=s.fighters[0];
+ s.fighters.forEach((enemy,i)=>Object.assign(enemy,{x:i?25:0,y:0,z:i?0:0}));
+ Object.assign(s.fighters[2],{x:.6,z:10});Object.assign(s.fighters[3],{x:0,z:-5});
+ assert.equal(aimCandidate(f,s.fighters,{x:0,y:0,z:1})?.slot,2);
+ s.fighters[2].alive=false;assert.equal(aimCandidate(f,s.fighters,{x:0,y:0,z:1}),null);
+ assert.equal(aimCandidate(f,s.fighters,{x:Infinity,y:0,z:1}),null);
+});
+test('manual shooting respects aim-assist preference and narrow target cone',()=>{
+ for(const assist of [true,false]) {
+  const s=fight(),f=s.fighters[0];Object.assign(f,{x:0,z:0});Object.assign(s.fighters[1],{x:.6,z:10});
+  tick(s,{blast:true,aimX:0,aimY:0,aimZ:1,aimAssist:assist});tick(s,{},8);
+  const shot=s.projectiles[0];assert.ok(shot);
+  if(assist) assert.ok(Math.abs(shot.vx/shot.vz-.06)<.001);
+  else assert.equal(shot.vx,0);
+ }
+ const s=fight();Object.assign(s.fighters[0],{x:0,z:0});Object.assign(s.fighters[1],{x:2.5,z:10});
+ tick(s,{blast:true,aimX:0,aimZ:1});tick(s,{},8);assert.equal(s.projectiles[0].vx,0,'an opponent 14 degrees away must not steal the shot');
+});
+test('shoulder-camera projectiles converge on the ground point under the reticle',()=>{
+ const f={x:0,y:0,z:0},origin={x:.4,y:4,z:-6},ray={x:0,y:-.2,z:1};
+ const aim=resolveViewAim(f,origin,ray),travel=(.1-1.5)/aim.y;
+ assert.ok(Math.abs(aim.x*travel-.4)<1e-8);
+ assert.ok(Math.abs(aim.z*travel-13.5)<1e-8);
+ assert.equal(resolveViewAim(f,origin,{x:NaN,y:0,z:1}),null);
+});
+test('saved camera preferences reject malformed values and clamp extreme views',()=>{
+ const p=normalizePresentation({quality:'__proto__',fov:999,distance:-1,sensitivity:Infinity,invertY:'true',aimAssist:false});
+ assert.deepEqual(p,{quality:'balanced',fov:85,distance:6,sensitivity:1,invertY:false,aimAssist:false});
+ assert.equal(normalizePresentation(null).distance,7.6);
 });
 test('story draw introduces every roster character exactly once',()=>{
  assert.equal(DRAW.flat().length,16);assert.equal(new Set(DRAW.flat()).size,16);

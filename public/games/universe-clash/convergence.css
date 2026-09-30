@@ -103,6 +103,17 @@ button:hover { border-color:#899eb8; }
 #action-hint { display:none; }
 #aim-reticle { position:fixed; left:50%; top:50%; width:17px; height:17px; border:1px solid #f2f7fb9c; border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; box-shadow:0 0 8px #000; }
 #aim-reticle i { position:absolute; left:6px; top:6px; width:3px; height:3px; background:#fff; border-radius:50%; }
+#aim-reticle.on-target { border-color:var(--gold); box-shadow:0 0 12px #ffc85766; }
+#aim-reticle.on-target i { background:var(--gold); }
+#aim-target { position:fixed; top:calc(50% + 20px); left:50%; transform:translateX(-50%); font:10px ui-monospace,monospace; color:#ffe5a6; text-shadow:0 1px 4px #000,0 1px 8px #000; pointer-events:none; }
+#target-guide { position:fixed; transform:translate(-50%,-50%); display:grid; justify-items:center; gap:3px; padding:6px 9px; color:#ffcd7c; background:#08121dd9; border:1px solid #ffd08840; border-radius:6px; pointer-events:none; }
+#target-guide i { font-style:normal; display:block; transform:rotate(var(--cue-angle)); }
+#target-guide span { font-size:10px; }
+#target-guide small { font-size:8px; color:#c6d4e1; }
+.range-setting { display:grid; grid-template-columns:1fr auto; gap:3px 12px; }
+.range-setting output { color:var(--gold); font:12px ui-monospace,monospace; }
+.setting-row.range-setting input { width:100%; height:28px; grid-column:1/-1; accent-color:var(--gold); }
+.setting-row select { padding:8px 12px; max-width:145px; background:#101e2d; border:1px solid #506174; border-radius:5px; color:#e4eef6; }
 #context-prompt { position:fixed; left:50%; top:calc(50% + 36px); transform:translateX(-50%); max-width:min(420px,80vw); padding:8px 13px; font-size:12px; text-align:center; background:#07111de8; border-bottom:2px solid var(--gold); border-radius:5px; pointer-events:none; }
 #context-prompt[data-state=blocked] { border-color:var(--alert); color:#ffb3a0; }
 #camera-hint { position:fixed; left:50%; bottom:160px; transform:translateX(-50%); color:#e3ebf4; background:#07111dce; padding:7px 12px; border-radius:20px; font-size:10px; pointer-events:none; text-align:center; }

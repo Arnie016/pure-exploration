@@ -30,6 +30,32 @@ export function pickupCandidate(fighter, props = [], aim = null) {
   return best;
 }
 
+// Aim assistance uses the same narrow cone in the HUD and the authoritative
+// simulation, and can acquire any living opponent in a crowded arena.
+export function aimCandidate(fighter, fighters = [], aim, positions = fighters) {
+  const own = fighters.indexOf(fighter), origin = positions[own];
+  if (own < 0 || !fighter.alive || !origin || !aim) return null;
+  const norm = Math.hypot(aim.x,aim.y,aim.z);
+  if (!Number.isFinite(norm) || norm < .001) return null;
+  let best = null, bestScore = Infinity;
+  for (let slot=0;slot<fighters.length;slot++) {
+    if (slot === own || !fighters[slot].alive || fighters[slot].hp <= 0) continue;
+    const target=positions[slot];
+    if (!target) continue;
+    const x=target.x-origin.x,y=target.y-origin.y,z=target.z-origin.z;
+    const distance=Math.hypot(x,y,z);
+    if (distance < .001 || distance > 60) continue;
+    const alignment=(x*aim.x+y*aim.y+z*aim.z)/(distance*norm);
+    if (alignment < Math.cos(.13)) continue;
+    const score=(1-alignment)*80+distance*.001;
+    if (score < bestScore) {
+      best={slot,distance,direction:{x:x/distance,y:y/distance,z:z/distance}};
+      bestScore=score;
+    }
+  }
+  return best;
+}
+
 export function powerReadiness(fighter, forms, maxEnergy = 100) {
   const next = forms[fighter.form + 1];
   const ki = Math.floor(fighter.energy);

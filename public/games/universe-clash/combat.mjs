@@ -1,6 +1,6 @@
 import { ROSTER, FORMS, STAGES } from './catalog.mjs';
 import { normalizeLoadout, getLoadoutStats, randomLoadout } from './gear.mjs';
-import { pickupCandidate, normalizedAim, PICKUP_COST, BLINK_COST, BLINK_DISTANCE, BLINK_COOLDOWN } from './readability.mjs';
+import { pickupCandidate, aimCandidate, normalizedAim, PICKUP_COST, BLINK_COST, BLINK_DISTANCE, BLINK_COOLDOWN } from './readability.mjs';
 export { ROSTER } from './catalog.mjs';
 
 export const MAX_HP = 1000;
@@ -102,7 +102,7 @@ function held(input) {
   let z = analog ? (Number.isFinite(input.moveZ) ? clamp(input.moveZ, -1, 1) : 0) : Number(result.back) - Number(result.forward);
   const length = Math.max(1, Math.hypot(x, z));
   // Keep the raw axis ratio for 3D dodges without changing ordinary X/Z movement.
-  return { ...result, aim:normalizedAim(input), moveX: x / length, moveZ: z / length, moveScale: length, grabRelease: Object.hasOwn(input, 'grab') && input.grab === false };
+  return { ...result, aim:normalizedAim(input), aimAssist:input.aimAssist !== false, moveX: x / length, moveZ: z / length, moveScale: length, grabRelease: Object.hasOwn(input, 'grab') && input.grab === false };
 }
 const living = (f) => !!f && f.alive && f.hp > 0;
 const distanceTo = (a, b) => Math.hypot(b.x - a.x, b.z - a.z);
@@ -365,12 +365,12 @@ function startAttack(state, slot, kind, positions) {
   }
   if (base.speed) {
     // Both torsos use the same frame snapshot, independent of fighter update order.
-    const origin = positions[slot], target = positions[f.target];
+    const assisted = d.aim && d.aimAssist ? aimCandidate(f,state.fighters,d.aim,positions) : null;
+    const origin = positions[slot], target = positions[d.aim ? assisted?.slot : f.target];
     if (target) {
       const dx = target.x - origin.x, dy = target.y - origin.y, dz = target.z - origin.z;
       const length = Math.hypot(dx, dy, dz);
-      const aligned = !d.aim || (dx*d.aim.x+dy*d.aim.y+dz*d.aim.z)/(length || 1) > .94;
-      if (length > 1e-8 && aligned) Object.assign(move, { dx: dx / length, dy: dy / length, dz: dz / length });
+      if (length > 1e-8) Object.assign(move, { dx: dx / length, dy: dy / length, dz: dz / length });
     }
     if (state.kind === 'pit') move.life = Math.min(3, Math.max(move.life, 44 / move.speed));
   }
@@ -886,6 +886,7 @@ function simulate(state, inputs, dt) {
     const input = controls[slot];
     const edge = edges[slot];
     d.aim = input.aim;
+    d.aimAssist = input.aimAssist;
     for (const key of Object.keys(d.cooldowns)) d.cooldowns[key] = Math.max(0, d.cooldowns[key] - dt);
     d.regenCooldown = Math.max(0, d.regenCooldown - dt);
     // Renderer mirrors only: client/snapshot values never grant a channel or clear its cooldown.

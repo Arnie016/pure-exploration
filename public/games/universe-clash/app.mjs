@@ -33,7 +33,8 @@ import { createReplayStore, createReplayRecorder } from './replay.mjs';
 import { createWorld } from './world.mjs';
 import { createAudio } from './audio.mjs';
 import { createPersona } from './persona.mjs';
-import { pickupCandidate, powerReadiness, actionReason } from './readability.mjs';
+import { pickupCandidate, aimCandidate, powerReadiness, actionReason } from './readability.mjs';
+import { normalizePresentation, DEFAULT_PRESENTATION } from './presentation.mjs';
 import { createExperience } from './experience.mjs';
 
 const $ = (selector) => document.querySelector(selector);
@@ -101,7 +102,7 @@ const keymap = {
   KeyH: 'targetNext',
   KeyJ: 'light',
   KeyK: 'heavy',
-  KeyL: 'blast',
+  KeyL: 'energy',
   KeyU: 'beam',
   KeyI: 'ultimate',
 };
@@ -216,6 +217,7 @@ let inputContext = '', resourceObservation = null, lastSample = {};
 let seriesBest = clamp(Math.floor(Number(readPreference('series-best-v6', '0')) || 0), 0, 1000000);
 let leaderboard = null, leaderboardRequestedAt = -Infinity;
 const storedLessons = safeJSON(readPreference('lessons-v1', '[]'));
+let presentation = normalizePresentation(safeJSON(readPreference('presentation-v1', 'null')));
 const completedLessons = new Set(Array.isArray(storedLessons) ? storedLessons.filter(id => DRILLS.some(d => d.id === id)).slice(0, DRILLS.length) : []);
 let onlineStatusTimer, onlinePoll, onlineRefreshAt = -Infinity, lessonId = 'move', pendingTournament = null;
 let soundOn = readPreference('sound', '1') === '1',
@@ -598,9 +600,10 @@ function sampleInput() {
   if (dropPending) { dropPending = false; return { drop:true }; }
   const input = {};
   if (cameraMode === 2 || cameraMode === 4) {
-    const aim = world.aimDirection();
-    if (cameraLook.manual || pending.has('interact') || evadeQueue.some(gesture => gesture.action === 'vanish')) {
-      Object.assign(input, {aimX:aim.x, aimY:aim.y, aimZ:aim.z});
+    const direct = pending.has('interact') || evadeQueue.some(gesture => gesture.action === 'vanish');
+    const aim = world.aimDirection(direct ? null : state.fighters[localSlot]);
+    if (cameraLook.manual || direct) {
+      Object.assign(input, {aimX:aim.x, aimY:aim.y, aimZ:aim.z,aimAssist:presentation.aimAssist});
     }
   }
   for (const { action } of sources.values())
@@ -1783,6 +1786,8 @@ function setCamera(value) {
 }
 function turnCamera(yaw, pitch) {
   if (mode === 'menu' || $('dialog[open]')) return;
+  yaw *= presentation.sensitivity;
+  pitch *= presentation.sensitivity * (presentation.invertY ? -1 : 1);
   const before = cameraLook.pitch;
   cameraLook.yaw = Math.atan2(Math.sin(cameraLook.yaw + yaw), Math.cos(cameraLook.yaw + yaw));
   cameraLook.pitch = clamp(cameraLook.pitch + pitch, -.75, .85);
@@ -2186,6 +2191,19 @@ function updateHUD(now) {
   $('#context-prompt').dataset.state = now < deniedUntil ? 'blocked' : 'ready';
   $('#context-prompt').hidden = !powerVisible || !$('#context-prompt').textContent;
   $('#aim-reticle').hidden = !powerVisible || ![2,4].includes(cameraMode);
+  const aimActive=powerVisible && [2,4].includes(cameraMode) && cameraLook.manual;
+  const aimed=aimActive && presentation.aimAssist ? aimCandidate(mine,state.fighters,world.aimDirection(mine)) : null;
+  $('#aim-reticle').classList.toggle('on-target',!!aimed);
+  $('#aim-target').hidden=!aimActive;
+  $('#aim-target').textContent=aimed ? `${byId[state.fighters[aimed.slot].char].name} · ${Math.round(aimed.distance)}m` : presentation.aimAssist ? 'FREE AIM' : 'ASSIST OFF';
+  const tracked=state.fighters[mine.target], cue=aimActive ? world.targetCue(tracked) : null;
+  const guide=$('#target-guide');
+  guide.hidden=!cue || cue.onScreen;
+  if (cue && !cue.onScreen) {
+    guide.style.left=`${cue.x*100}%`; guide.style.top=`${cue.y*100}%`;
+    guide.style.setProperty('--cue-angle',`${cue.angle}deg`);
+    guide.querySelector('span').textContent=`${byId[tracked.char].name} · ${Math.round(Math.hypot(tracked.x-mine.x,tracked.y-mine.y,tracked.z-mine.z))}m`;
+  }
   $('#camera-hint').hidden = !powerVisible || mouseLooking || ![2,4].includes(cameraMode);
   $('#timer').textContent =
     mode === 'training'
@@ -2881,6 +2899,29 @@ $('#effects-setting').addEventListener('change', (event) => {
   document.body.classList.toggle('reduced-effects', reduced);
   savePreference('reduced', reduced ? '1' : '0');
 });
+function syncPresentation() {
+  for (const input of $$('[data-presentation]')) {
+    const key=input.dataset.presentation;
+    if (input.type === 'checkbox') input.checked=presentation[key];
+    else input.value=String(presentation[key]);
+    const output=$(`#${input.id}-value`);
+    if (output) output.textContent=key==='sensitivity' ? `${presentation[key].toFixed(1)}×` : key==='fov' ? `${Math.round(presentation[key])}°` : `${presentation[key].toFixed(1)}m`;
+  }
+}
+for (const input of $$('[data-presentation]')) input.addEventListener('input', () => {
+  const value=input.type==='checkbox' ? input.checked : input.type==='range' ? Number(input.value) : input.value;
+  presentation=normalizePresentation({...presentation,[input.dataset.presentation]:value});
+  world?.configure(presentation);
+  savePreference('presentation-v1',JSON.stringify(presentation));
+  syncPresentation();
+});
+$('#reset-presentation').addEventListener('click', () => {
+  presentation=normalizePresentation(DEFAULT_PRESENTATION);
+  world?.configure(presentation);
+  savePreference('presentation-v1',JSON.stringify(presentation));
+  syncPresentation();
+});
+syncPresentation();
 $('#voice-preview').addEventListener('click', () => {
   voiceOn = true;
   $('#voice-setting').checked = true;
@@ -3136,6 +3177,7 @@ window.addEventListener('pagehide', () => {
 
 try {
   world = createWorld($('#arena'), ROSTER);
+  world.configure(presentation);
   for (const [index, fighter] of ROSTER.entries()) {
     portraits.set(fighter.id, world.portrait(fighter.id));
     const button = document.createElement('button');
@@ -3256,6 +3298,7 @@ try {
       },
       movementBasis: () => clone(movementBasis),
       cameraLook: () => clone(cameraLook),
+      presentation: () => clone(presentation),
       loadout: () => [...loadout],
       camera: () => cameraMode,
       replay: () => ({ recording:!!recorder, playing:!!replay?.playing, time:replay?.time || 0, duration:replay?.clip.duration || 0, clipId:replay?.clip.id || null, storage:replayStore.status() }),
