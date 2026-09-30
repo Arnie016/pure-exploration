@@ -13,14 +13,17 @@ const {resolve} = require('node:path');
     ...(process.env.UC_BROWSER ? {executablePath:process.env.UC_BROWSER} : {}),
     args:['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
   });
-  const page = await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1});
-  page.setDefaultTimeout(180000);
+  let page = await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1});
   const errors = [];
-  try {
-    page.on('pageerror', error => errors.push(error.message));
-    page.on('console', message => {
+  const monitor = target => {
+    target.setDefaultTimeout(180000);
+    target.on('pageerror', error => errors.push(error.message));
+    target.on('console', message => {
       if (message.type() === 'error' && /THREE|shader|WebGL|TypeError|ReferenceError/.test(message.text())) errors.push(message.text());
     });
+  };
+  monitor(page);
+  try {
     await page.goto(process.env.UC_URL || 'http://127.0.0.1:4199/games/universe-clash/');
     await page.waitForFunction(() => window.__UC__?.ready, null, {timeout:180000});
     const screenshot = async name => {
@@ -86,15 +89,25 @@ const {resolve} = require('node:path');
     await page.waitForFunction(() => window.__UC__.snapshot().events.some(e => e.type==='attack' && e.owner===0 && e.kind==='blast'));
     await screenshot('06-tutorial');
     await page.locator('#training-exit').click();
-    await page.setViewportSize({width:390,height:844});
-    await screenshot('07-mobile-menu');
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1), 'No horizontal page overflow');
     await page.reload();
     await page.waitForFunction(() => window.__UC__?.ready);
     assert.equal(await page.evaluate(() => window.__UC__.presentation().fov),70,'camera settings survive reload');
+    await page.close();
+    page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,hasTouch:true,isMobile:true});
+    monitor(page);
+    await page.addInitScript(() => localStorage.setItem('uc-presentation-v1',JSON.stringify({quality:'low'})));
+    await page.goto(process.env.UC_URL || 'http://127.0.0.1:4199/games/universe-clash/');
+    await page.waitForFunction(() => window.__UC__?.ready);
+    await screenshot('07-mobile-menu');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1), 'No horizontal page overflow');
     await page.locator('#guide-open').click();
     await page.waitForFunction(() => window.__UC__.mode() === 'training');
     await screenshot('08-mobile-training');
+    assert.ok(await page.locator('#thumbpad').isVisible(),'touch movement controls are visible');
+    assert.ok(await page.locator('#look-pad').isVisible(),'touch camera control is visible');
+    assert.ok(await page.evaluate(() => document.querySelector('.control-deck').getBoundingClientRect().top > window.__UC__.stats().camera.framing.local.bounds[3]*innerHeight),'mobile attack buttons clear the player silhouette');
+    await page.locator('#flight-button').tap();
+    await page.waitForFunction(() => window.__UC__.snapshot().fighters[0].flight);
     assert.deepEqual(errors, []);
     console.log(`Browser checks passed. Inspect screenshots in ${output}`);
   } catch (error) {
