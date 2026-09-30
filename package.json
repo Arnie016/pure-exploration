@@ -13,7 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "test:api": "node tests/api.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:universe-clash": "node --test tests/universe-clash/gameplay.test.mjs",
+    "test:universe-clash:browser": "node tests/universe-clash/browser-smoke.cjs"
   },
   "dependencies": {
     "@clerk/backend": "^3.21.0",

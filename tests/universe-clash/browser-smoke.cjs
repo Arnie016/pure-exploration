@@ -1,0 +1,75 @@
+// Optional browser acceptance pass. Requires Playwright and a Chromium install.
+// Serve public/ on 4199, or pass UC_URL. Screenshots are written outside source.
+const {chromium} = require('playwright');
+const assert = require('node:assert/strict');
+const {mkdirSync} = require('node:fs');
+const {resolve} = require('node:path');
+
+(async () => {
+  const output = resolve(process.env.UC_EVIDENCE || 'work/universe-clash-qa');
+  mkdirSync(output, {recursive:true});
+  const browser = await chromium.launch({
+    headless:true,
+    ...(process.env.UC_BROWSER ? {executablePath:process.env.UC_BROWSER} : {}),
+    args:['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
+  });
+  try {
+    const page = await browser.newPage({viewport:{width:1440,height:960},deviceScaleFactor:1});
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => {
+      if (message.type() === 'error' && /THREE|shader|WebGL|TypeError|ReferenceError/.test(message.text())) errors.push(message.text());
+    });
+    await page.goto(process.env.UC_URL || 'http://127.0.0.1:4199/games/universe-clash/');
+    await page.waitForFunction(() => window.__UC__?.ready, {timeout:60000});
+    const screenshot = name => page.screenshot({path:resolve(output, `${name}.png`)});
+    await screenshot('01-menu');
+
+    await page.locator('.main-nav [data-nav="studio"]').click();
+    await page.locator('#studio-roster [data-studio-fighter="vegeta"]').click();
+    assert.equal(await page.locator('#studio-name').innerText(), 'Vegeta');
+    await page.locator('[data-studio-form="1"]').click();
+    await page.waitForFunction(() => window.__UC__.preview().fighters[0].form === 1);
+    await screenshot('02-fighter-studio');
+    await page.locator('#studio-dialog [data-close]').click();
+
+    await page.locator('[data-mode="story"]').click();
+    await page.locator('#play').click();
+    assert.equal(await page.locator('#episode-list [data-episode]').count(), 16);
+    await page.locator('#saga-continue').click();
+    await screenshot('03-story');
+    await page.locator('#scene-skip').click();
+    await page.waitForFunction(() => window.__UC__.mode() === 'story' && window.__UC__.snapshot().phase === 'fight');
+    await page.mouse.click(730,410);
+    const yaw = await page.evaluate(() => window.__UC__.cameraLook().yaw);
+    await page.mouse.move(850,430,{steps:8});
+    await page.waitForFunction(before => window.__UC__.cameraLook().yaw !== before, yaw);
+    await page.keyboard.press('KeyZ');
+    await page.waitForFunction(() => window.__UC__.snapshot().events.some(e => e.owner === 0 && e.evadeKind === 'vanish'));
+    await screenshot('04-fight');
+    await page.keyboard.press('Escape');
+    await page.locator('#exit-match').click();
+
+    await page.locator('[data-mode="pit"]').click();
+    await page.locator('#play').click();
+    await page.waitForFunction(() => window.__UC__.snapshot().fighters.length === 12 && window.__UC__.snapshot().phase === 'fight');
+    await screenshot('05-pit');
+    const camera = await page.evaluate(() => window.__UC__.stats().camera);
+    assert.ok(camera.framing?.local.inFrame, 'The player must remain inside the viewport');
+    assert.ok(Math.abs(camera.framing.local.center[0]-.5)<.2, 'The player should stay close to horizontal center');
+    await page.keyboard.press('Escape');
+    await page.locator('#exit-match').click();
+
+    await page.locator('#guide-open').click();
+    await page.waitForFunction(() => window.__UC__.mode() === 'training');
+    await screenshot('06-tutorial');
+    await page.locator('#training-exit').click();
+    await page.setViewportSize({width:390,height:844});
+    await screenshot('07-mobile-menu');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1), 'No horizontal page overflow');
+    assert.deepEqual(errors, []);
+    console.log(`Browser checks passed. Inspect screenshots in ${output}`);
+  } finally {
+    await browser.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

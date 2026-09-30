@@ -33,6 +33,8 @@ import { createReplayStore, createReplayRecorder } from './replay.mjs';
 import { createWorld } from './world.mjs';
 import { createAudio } from './audio.mjs';
 import { createPersona } from './persona.mjs';
+import { pickupCandidate, powerReadiness, actionReason } from './readability.mjs';
+import { createExperience } from './experience.mjs';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -82,13 +84,13 @@ const keymap = {
   KeyA: 'left',
   KeyS: 'back',
   KeyD: 'right',
-  Space: 'power',
+  Space: 'flight',
   ShiftLeft: 'dodge',
   ShiftRight: 'dodge',
   KeyQ: 'dodge',
   KeyC: 'guard',
   KeyE: 'jump',
-  KeyX: 'energy',
+  KeyX: 'context',
   KeyF: 'special',
   KeyZ: 'vanish',
   KeyG: 'grab',
@@ -118,9 +120,9 @@ const abilityDefinitions = [
   ['heavy', 'Heavy', 'K', 'FINISHER', 'M5 9l7-5 7 5-7 11Z M5 9h14M12 4v16'],
   ['dodge', 'Evade', 'Q', '8 KI', 'm8 5 7 7-7 7M3 8h3M2 12h4M3 16h3'],
   ['guard', 'Guard', 'Hold C', 'HOLD / DESCEND', 'M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6Z M12 7v9'],
-  ['energy', 'Blast', 'X', '8 KI / 80 DMG', 'M8 12a5 5 0 1 0 10 0 5 5 0 1 0-10 0M2 8h3M1 12h4M2 16h3'],
+  ['energy', 'Ki blast', 'L', '8 KI / HOLD FOR BEAM', 'M8 12a5 5 0 1 0 10 0 5 5 0 1 0-10 0M2 8h3M1 12h4M2 16h3'],
   ['special', 'Technique', 'F', '20 KI', 'm12 3 2 6 7 3-7 3-2 6-2-6-7-3 7-3Z'],
-  ['power', 'Power/Flight', 'Space', '2 TAP / HOLD', 'm6 15 6-10 6 10M12 5v15M3 6l2-2M19 4l2 2'],
+  ['charge', 'Charge Ki', 'Hold T', 'STAND STILL', 'm6 15 6-10 6 10M12 5v15M3 6l2-2M19 4l2 2'],
   ['jump', 'Ascend', 'E', 'JUMP / RISE', 'm5 11 7-7 7 7M12 4v14M5 20h14'],
 ];
 const icons = {
@@ -166,7 +168,7 @@ const cooldownDuration = {
 };
 let selected = 'goku',
   opponent = 'jiren',
-  selectedMode = 'pit',
+  selectedMode = 'story',
   selectedStage = 'void',
   difficulty = 'normal';
 let loadout = [],
@@ -191,6 +193,7 @@ let lastDraw = readPreference('last-draw-v5', '');
 let powerGesture = null, lastPowerTap = -Infinity;
 let movementBasis = null, modePreview = null, pausePanel = 'root';
 let dropPending = false, cancellationTimer = null, kiUntil = 0;
+let impactUntil = 0;
 const grabQueue = [], evadeQueue = [], lookKeyAt = new Map(), chordKeys = new Set();
 const pointerCaptures = new Map();
 const menuQuotes = Object.fromEntries(Object.entries({
@@ -244,6 +247,7 @@ let tutorialComplete = readPreference('tutorial-v4', '') === 'complete';
 let tutorial = null;
 let matchmaking = { status: 'idle', mode:'duel', required:2, queued: 0, waited: 0 };
 const cameraLook = { yaw: 0, pitch: .2, manual: false };
+let mouseLooking = false, mouseLast = null;
 const lookKeys = new Set();
 let lookPointer = null;
 let previousState = null,
@@ -432,6 +436,8 @@ function clearInput() {
   }
 }
 function showDialog(id) {
+  if (document.pointerLockElement) document.exitPointerLock();
+  mouseLooking = false;
   clearInput();
   persona.cancel();
   $('#menu-quote').hidden = true;
@@ -494,23 +500,18 @@ function syncInputContext() {
   if (next !== inputContext) { inputContext = next; clearInput(); }
 }
 function transformEligible(fighter) {
-  const next = FORMS[fighter.char][fighter.form + 1];
-  return !!next && canInput() && state.phase === 'fight' && fighter.alive && !activeClash() &&
-    fighter.resolve >= next.minResolve && fighter.energy + 1e-8 >= next.kiCost &&
-    ['idle', 'run', 'charge', 'flight', 'jump'].includes(fighter.action) &&
-    !(fighter.dodgeTime > 0 || fighter.vanishTime > 0 || fighter.regeneration > 0 || fighter.heldProp >= 0) &&
+  return powerReadiness(fighter, FORMS[fighter.char]).ready && canInput() && state.phase === 'fight' && !activeClash() &&
     ![...sources.values()].some(value => value.action === 'guard');
 }
 function pulse(action) {
   const mine = state.fighters[localSlot];
   if (!mine?.alive || !canInput()) return;
-  if (costs[action] && mine.energy < costs[action]) {
-    denial = 'NEED KI'; deniedAction = action; deniedUntil = performance.now() + 1500;
-  }
+  const reason = actionReason(mine, action, costs[action] || 0);
+  if (reason && !['targetNext','interact'].includes(action)) { denial = reason; deniedAction = action; deniedUntil = performance.now() + 2200; }
   if (action === 'transform') {
-    const next = FORMS[mine.char][mine.form + 1];
-    if (!next || mine.resolve < next.minResolve || mine.energy < next.kiCost) {
-      denial = !next ? 'MAX FORM' : mine.resolve < next.minResolve ? 'LAND HITS' : 'NEED KI';
+    const readiness = powerReadiness(mine, FORMS[mine.char]);
+    if (!readiness.ready) {
+      denial = readiness.reason;
       deniedAction = 'transform';
       deniedUntil = performance.now() + 1500;
     }
@@ -528,6 +529,17 @@ function press(source, action, at = performance.now()) {
     return;
   }
   if (!canInput()) return;
+  if (action === 'context' && activeClash()) action = 'energy';
+  if (action === 'context') {
+    const mine = state.fighters[localSlot];
+    const prop = pickupCandidate(mine, state.props, world.aimDirection());
+    action = mine.heldProp >= 0 || prop ? 'interact' : 'energy';
+    if (action === 'interact' && mine.heldProp < 0 && (mine.energy < 10 || !['idle','run','flight','jump','charge'].includes(mine.action))) {
+      denial = actionReason(mine, 'grab', 10) || 'Finish your move to pick up';
+      deniedUntil = performance.now() + 2200;
+      return;
+    }
+  }
   if (activeClash()) {
     if (action === 'energy' || action === 'light') action = 'clashBoost';
     if (!['clashBoost', 'guard', 'targetNext'].includes(action)) return;
@@ -585,6 +597,12 @@ function sampleInput() {
   syncInputContext();
   if (dropPending) { dropPending = false; return { drop:true }; }
   const input = {};
+  if (cameraMode === 2 || cameraMode === 4) {
+    const aim = world.aimDirection();
+    if (cameraLook.manual || pending.has('interact') || evadeQueue.some(gesture => gesture.action === 'vanish')) {
+      Object.assign(input, {aimX:aim.x, aimY:aim.y, aimZ:aim.z});
+    }
+  }
   for (const { action } of sources.values())
     if (heldActions.has(action)) input[action] = true;
   // Consume once per simulation tick / outgoing packet, including fast physical taps.
@@ -657,6 +675,8 @@ function updateNavigation() {
     {
       'cup-dialog': 'tournament',
       'training-dialog': 'training',
+      'studio-dialog': 'studio',
+      'achievements-dialog': 'achievements',
       'locker-dialog': 'locker',
       'intel-dialog': 'intel',
     }[dialog] || 'play';
@@ -687,6 +707,7 @@ function updateMenu() {
   modePreview = null;
   $('#difficulty').value = difficulty;
   const fighter = byId[selected];
+  const storyMode = selectedMode === 'story';
   const explicitRival = ['duel', 'spectate'].includes(selectedMode);
   const fixture = selectedMode === 'series' ? nextLadderMatch(seriesDraw().ladder) : null;
   const shownRival = fixture?.b || opponent;
@@ -703,18 +724,18 @@ function updateMenu() {
   $('#stage-thumbnail').src = stageImages.get(shownStage);
   $('#stage-thumbnail').alt = stageById[shownStage].name;
   $('#stage-open').disabled = !!fixture;
-  $('#stage-open small').textContent = fixture ? 'SERIES MAP / AUTO' : 'MAP / 10 WORLDS ↗';
+  $('#stage-open small').textContent = fixture ? 'SERIES MAP / AUTO' : storyMode ? 'PREVIEW MAP / STORY SETS EACH ARENA' : 'MAP / 10 WORLDS ↗';
   $('#stage-open').setAttribute('aria-label', fixture ? `Series map: ${stageById[shownStage].name}, automatic` : `Choose map: ${stageById[shownStage].name}`);
   $('#opponent-select').value = opponent;
   $('#duel-options').hidden = !explicitRival;
   $('#rival-open').disabled = !explicitRival;
-  $('#rival-open').setAttribute('aria-label', explicitRival ? 'Choose your rival' : fixture ? `Series next opponent: ${byId[shownRival].name}` : 'Pit field: 11 AI rivals, automatic selection');
-  $('#rival-open small').textContent = explicitRival ? 'RIVAL' : fixture ? 'SERIES NEXT' : 'PIT FIELD';
-  $('#rival-open b').textContent = explicitRival ? 'CHANGE ↗' : fixture ? 'SEEDED / 1 OF 12' : 'AUTO / NOT DUEL RIVAL';
+  $('#rival-open').setAttribute('aria-label', explicitRival ? 'Choose your rival' : fixture ? `Series next opponent: ${byId[shownRival].name}` : storyMode ? 'Story episodes choose their cast and arena' : 'Pit field: 11 AI rivals, automatic selection');
+  $('#rival-open small').textContent = explicitRival ? 'RIVAL' : fixture ? 'SERIES NEXT' : storyMode ? 'STORY CAST' : 'PIT FIELD';
+  $('#rival-open b').textContent = explicitRival ? 'CHANGE ↗' : fixture ? 'SEEDED / 1 OF 12' : storyMode ? 'CAST CHANGES EACH EPISODE' : 'AUTO / NOT DUEL RIVAL';
   $('#rival-portrait').hidden = selectedMode === 'pit';
   $('#rival-portrait').src = portraits.get(shownRival);
   $('#rival-portrait').alt = byId[shownRival].name;
-  $('#rival-name').textContent = selectedMode === 'pit' ? '11 AI rivals' : byId[shownRival].name;
+  $('#rival-name').textContent = selectedMode === 'pit' ? '11 AI rivals' : storyMode ? '16 fighters' : byId[shownRival].name;
   $$('#rival-grid [data-rival]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.rival === opponent)));
   $$('#roster [data-fighter]').forEach((button) =>
     button.setAttribute(
@@ -736,9 +757,10 @@ function updateMenu() {
   if (mode === 'menu') state = menuState;
 }
 function setMode(value) {
-  if (!['pit', 'duel', 'spectate', 'series'].includes(value)) return;
+  if (!['story', 'pit', 'duel', 'spectate', 'series'].includes(value)) return;
   selectedMode = value;
   const copy = {
+    story:['THE <em>CONVERGENCE.</em>', 'Sixteen fighters. Ten fractured worlds. One wish that could erase them all.', 'ENTER STORY SAGA'],
     pit: [
       'THE <em>PIT.</em>',
       'You + 11 AI. Last fighter standing.',
@@ -917,6 +939,7 @@ function disconnect() {
   }
 }
 function startMatch(nextState, nextMode, matchSeed = null) {
+  impactUntil = 0;
   launchSeed = matchSeed;
   replayRequest++;
   replay = null;
@@ -930,7 +953,7 @@ function startMatch(nextState, nextMode, matchSeed = null) {
   mode = nextMode;
   state = nextState;
   recorder = nextMode === 'replay' ? null : createReplayRecorder({
-    stage:state.stage, kind:nextMode === 'series' ? 'duel' : nextMode,
+    stage:state.stage, kind:['series','story'].includes(nextMode) ? 'duel' : nextMode,
     label:state.kind === 'pit' ? `${byId[state.fighters[localSlot].char].name} / ${nextMode === 'network' ? 'Human Pool' : 'Local Pit'}` : `${byId[state.fighters[localSlot].char].name} vs ${byId[state.fighters[1 - localSlot].char].name}`,
   });
   resultShown = false;
@@ -986,6 +1009,7 @@ function startMatch(nextState, nextMode, matchSeed = null) {
   hudTick = 0;
 }
 function launchMode() {
+  if (selectedMode === 'story') { experience.openStory(); return; }
   if (selectedMode === 'series') { startSeries(); return; }
   disconnect();
   localSlot = 0;
@@ -1203,7 +1227,7 @@ function showResult() {
       ? `${byId[winner.char].name.toUpperCase()} WINS`
       : win
         ? 'YOU WIN.'
-        : 'YOU LOSE.';
+        : state.kind === 'pit' && (state.fighters[localSlot].rank || 12) <= 4 ? 'FINAL FOUR.' : 'KEEP GOING.';
   $('#result-description').textContent =
     state.kind === 'pit'
       ? `Your place: ${state.fighters[localSlot].rank || (win ? 1 : '-')}/12 / ${state.fighters[localSlot].aura || 0} Aura`
@@ -1236,6 +1260,14 @@ function showResult() {
     $('#result-description').textContent = `${series.aura} local Aura / browser best ${seriesBest}`;
     $('#rematch').textContent = nextLadderMatch(series) ? 'NEXT RIVAL' : 'NEW SERIES';
     $('#rematch-status').textContent = series.complete ? '12 rivals defeated.' : series.failed ? 'Series ended. Try a new run.' : 'Forms and mastery carry forward.';
+  }
+  if (win && !watching() && mode !== 'training' && mode !== 'replay') experience.win(state.kind);
+  if (mode === 'story') {
+    const chapter = experience.result(win);
+    $('#result-eyebrow').textContent = `THE CONVERGENCE · ${chapter.act}`;
+    $('#result-description').textContent = win ? 'Episode cleared. Continue to discover what the arena is hiding.' : 'The story waits for you. Try again or practice a move before returning.';
+    $('#rematch').textContent = win ? 'CONTINUE STORY →' : 'RETRY EPISODE';
+    $('#rematch-status').textContent = win ? 'Progress saved in this browser.' : chapter.objective;
   }
   if (mode === 'tournament') {
     // The bracket stores character IDs; the human was deliberately mapped to slot 0.
@@ -1752,8 +1784,8 @@ function setCamera(value) {
 function turnCamera(yaw, pitch) {
   if (mode === 'menu' || $('dialog[open]')) return;
   const before = cameraLook.pitch;
-  cameraLook.yaw += yaw;
-  cameraLook.pitch = clamp(cameraLook.pitch + pitch, -.35, .85);
+  cameraLook.yaw = Math.atan2(Math.sin(cameraLook.yaw + yaw), Math.cos(cameraLook.yaw + yaw));
+  cameraLook.pitch = clamp(cameraLook.pitch + pitch, -.75, .85);
   cameraLook.manual = true;
   movementBasis = null;
   if (mode === 'training') recordTrainingLook(training, Math.hypot(yaw, cameraLook.pitch - before));
@@ -1788,16 +1820,16 @@ function updateTraining() {
   $('#training-title').textContent = drill.title;
   $('#training-prompt').textContent = drill.prompt;
   $('#training-hint').textContent = drill.hint;
-  let keys = lesson.id === 'combo' ? ['J', 'J', 'K'] : lesson.id === 'flight' ? ['SPACE', 'SPACE'] : [drill.key];
+  let keys = lesson.id === 'combo' ? ['J', 'J', 'K'] : [drill.key];
   let nextKey = lesson.id === 'combo' ? Math.min(2, state.fighters[0].combo) : 0;
   if (lesson.id === 'transform' && !lesson.complete) {
     const mine = state.fighters[0], next = FORMS[mine.char][mine.form + 1];
     const remaining = next ? Math.max(0, next.minResolve - mine.resolve) : 0;
     const baseHits = Math.ceil(remaining / (80 * byId[mine.char].power * getLoadoutStats(mine.loadout).power * getLoadoutStats(mine.loadout).resolve * .045));
     $('#training-hint').textContent = next
-      ? `${Math.floor(mine.resolve)}/${next.minResolve} resolve. Land about ${baseHits} more X blasts (80 base damage; 0.045 resolve/damage). T refills ki only. With ${next.kiCost} ki, press R or hold Space 0.6s to transform.`
+      ? `${Math.floor(mine.resolve)}/${next.minResolve} resolve. Land about ${baseHits} more L blasts (80 base damage; 0.045 resolve/damage). T refills ki only. With ${next.kiCost} ki, press R to transform.`
       : drill.hint;
-    keys = [remaining > 0 ? 'X' : next && mine.energy < next.kiCost ? 'T' : 'R'];
+    keys = [remaining > 0 ? 'L' : next && mine.energy < next.kiCost ? 'T' : 'R'];
     $('#training-prompt').textContent = remaining > 0 ? `Land hits / about ${baseHits} blasts` : keys[0] === 'T' ? 'Hold T to refill ki' : 'Press R to transform';
   }
   const keyHTML = keys.map((key, index) => `<kbd class="${lesson.complete || index < nextKey ? 'done' : index === nextKey ? 'pending' : ''}">${escapeHTML(key)}</kbd>`).join('');
@@ -1806,7 +1838,7 @@ function updateTraining() {
   const gesture = `${lesson.id}:${keys.join()}`;
   if ($('#training-illustration').dataset.drill !== gesture) {
     $('#training-illustration').dataset.drill = gesture;
-    $('#training-illustration').innerHTML = lesson.id === 'transform' && keys[0] === 'X' ? icon('energy') : drillIcon(drill);
+    $('#training-illustration').innerHTML = lesson.id === 'transform' && keys[0] === 'L' ? icon('energy') : drillIcon(drill);
   }
   $('#training-damage').textContent = training.respawnIn > 0
     ? `DUMMY KO / respawn in ${training.respawnIn.toFixed(1)}s. Reset now below.`
@@ -1837,6 +1869,7 @@ function consumeEvents(now) {
   for (const event of state.events) {
     if (event.id <= lastEvent) continue;
     lastEvent = event.id;
+    if (mode !== 'replay' && !watching()) experience.observe(event,localSlot);
     audio.event(event);
     if (event.type === 'ki' && event.owner === localSlot && ['guard', 'evade'].includes(event.kind) && event.power > 0) {
       $('#ki-cue').textContent = `${event.kind === 'guard' ? 'FRONT GUARD' : 'PERFECT EVADE'} +${Number(event.power.toFixed(1))} KI / DEFENSE RETURN`;
@@ -1888,6 +1921,8 @@ function consumeEvents(now) {
       event.kind === 'perfect'
     )
       text = 'PERFECT EVADE / COUNTER NOW';
+    if (event.type === 'hit' && event.owner === localSlot && !reduced && !watching() && ['light','heavy','special'].includes(event.kind))
+      impactUntil = Math.max(impactUntil, now + (event.kind === 'heavy' ? 60 : 35));
     if (event.type === 'hit' && event.owner === localSlot)
       text = event.counter
         ? 'COUNTER HIT'
@@ -1991,15 +2026,21 @@ function updateHUD(now) {
   }
   updateClashHUD();
   const next = FORMS[mine.char][mine.form + 1];
+  const readiness = powerReadiness(mine, FORMS[mine.char]);
   const canTransform = transformEligible(mine);
   const clashing = !!activeClash();
-  $('#current-form').textContent = getForm(mine).label.toUpperCase();
-  $('#center-ki').textContent = `${Math.floor(mine.energy)} KI`;
+  $('#current-form').textContent = `${getForm(mine).label.toUpperCase()}${mine.form ? ` · ${getForm(mine).drain} KI/S` : ''}`;
+  $('#center-ki').textContent = `${Math.floor(mine.energy)} / 100 KI`;
   $('#center-ki').setAttribute('aria-label', `Ki: ${Math.floor(mine.energy)} of ${MAX_ENERGY}`);
   $('#power-rating').textContent = mine.flight ? `${mine.y.toFixed(1)}m ALT` : `PL ${mine.powerLevel.toLocaleString()}`;
-  $('#transform-requirement').textContent = !next
-    ? `${Math.floor(mine.resolve)} RESOLVE / MAX FORM`
-    : `RESOLVE ${Math.floor(mine.resolve)}/${next.minResolve} / ${next.label}: ${next.kiCost} KI`;
+  $('#next-form-name').textContent = next ? `NEXT · ${next.label}` : 'FULL POTENTIAL';
+  $('#transform-requirement').textContent = readiness.reason;
+  $('#resolve-label').textContent = next ? `Resolve ${Math.floor(mine.resolve)} / ${next.minResolve}` : `Resolve ${Math.floor(mine.resolve)}`;
+  $('#ki-label').textContent = next ? `Ki ${Math.floor(mine.energy)} / ${next.kiCost}` : `Ki ${Math.floor(mine.energy)} / 100`;
+  $('.transform-ki-track i').style.transform = `scaleX(${readiness.kiProgress})`;
+  $('#charge-status').textContent = readiness.charge;
+  $('#resolve-label').classList.toggle('met', !readiness.resolveMissing);
+  $('#ki-label').classList.toggle('met', !readiness.kiMissing);
   $('.power-readout .resolve-track i').style.transform =
     `scaleX(${next ? clamp(mine.resolve / next.minResolve) : 1})`;
   const held = new Set([...sources.values()].map((value) => value.action));
@@ -2009,15 +2050,18 @@ function updateHUD(now) {
       : next && mine.resolve < next.minResolve ? 'resolve' : 'ki';
   const powerVisible = state.phase === 'fight' && mine.alive && !watching() && mode !== 'replay' && !clashing;
   const deniedCost = !powerGesture && now < deniedUntil ? costs[deniedAction] : 0;
-  $('.power-key').textContent = held.has('charge') ? 'T' : 'SPACE';
-  $('#transform-ready').hidden = !canTransform;
+  $('.power-key').textContent = 'T';
+  $('#transform-ready').hidden = !next;
+  $('#transform-ready').innerHTML = `<kbd>R</kbd> ${canTransform ? 'TRANSFORM NOW' : 'TRANSFORM'}`;
+  $('#transform-ready').classList.toggle('unavailable', !canTransform);
+  $('#transform-ready').setAttribute('aria-label', `Transform: ${readiness.reason}`);
   $('.power-readout').hidden = !powerVisible;
   $('.power-readout').classList.toggle('charging', mine.action === 'charge');
   $('.power-readout').style.setProperty('--charge', `${Math.round(clamp(powerAge / 600) * 360)}deg`);
   $('#power-meter').hidden = !powerGesture && !held.has('charge') && now >= deniedUntil;
   $('#power-meter').dataset.phase = powerPhase;
   $('#power-meter i').style.width = `${clamp(powerAge / 600) * 100}%`;
-  $('#power-phase').textContent = now < deniedUntil && !powerGesture ? `${denial}${deniedCost ? ` / ${deniedCost} KI` : ''}` : held.has('charge') ? 'REFILL KI / NO RESOLVE' : {
+  $('#power-phase').textContent = now < deniedUntil && !powerGesture ? `${denial}${deniedCost ? ` / ${deniedCost} KI` : ''}` : held.has('charge') ? readiness.charge : {
     idle:'T REFILLS KI', flight:'FLY', attempted:'RELEASE', tap:'2x FLY',
     hold:'HOLD 0.6s', resolve:'LAND HITS', ki:canTransform ? 'READY' : next ? 'NEED KI' : 'CHARGE',
   }[powerPhase];
@@ -2031,7 +2075,7 @@ function updateHUD(now) {
   const shotName = energyTier === 'blast' ? 'Ki Blast' : byId[mine.char][energyTier];
   const tierLabel = `${energyTier.toUpperCase()}: ${shotName} / ${costs[energyTier]} KI`;
   $('#energy-tier').textContent = `${tierLabel}${mine.energy < costs[energyTier] ? ' / NEED KI' : ''}`;
-  $('#shot-readiness').textContent = `X / ${tierLabel}`;
+  $('#shot-readiness').textContent = `L blast · U beam ${costs.beam} Ki`;
   $('#resource-gain').hidden = now >= Number($('#resource-gain').dataset.until || 0) || !powerVisible;
   $('#energy-meter i').style.width = `${clamp(energyAge / 1200) * 100}%`;
   const lessonAction =
@@ -2049,7 +2093,7 @@ function updateHUD(now) {
         ? mine.dodgeCooldown || 0
         : Math.max(mine.cooldowns?.[actual] || 0, regrow ? mine.regenCooldown || 0 : 0);
     const ready =
-      action === 'power'
+      ['power','transform'].includes(action)
         ? canTransform
         : action === 'ultimate'
           ? mine.energy >= 100 && cooldown <= 0
@@ -2080,7 +2124,7 @@ function updateHUD(now) {
     button.classList.toggle('ready', ready);
     button.classList.toggle(
       'unavailable',
-      cooldown > 0 || mine.energy < (costs[actual] || 0),
+      cooldown > 0 || mine.energy < (costs[actual] || 0) || action === 'transform' && !canTransform,
     );
     button.classList.toggle(
       'lesson-action',
@@ -2105,7 +2149,9 @@ function updateHUD(now) {
           : action === 'energy'
             ? energyPress
               ? `RELEASE: ${energyTier.toUpperCase()}`
-              : 'TAP / HOLD'
+              : '8 KI · HOLD'
+          : action === 'charge'
+            ? mine.energy >= 99.99 ? 'KI FULL' : 'STAND STILL'
              : action === 'jump' ? 'JUMP / RISE'
             : cooldown > 0.05
               ? `${cooldown.toFixed(1)}s`
@@ -2123,17 +2169,24 @@ function updateHUD(now) {
       );
   }
   const holdingProp = Number.isInteger(mine.heldProp) && mine.heldProp >= 0;
-  const nearProp = (state.props || []).some(prop => prop.heldBy === -1 && prop.hp > 0 && prop.respawn === 0 && Math.hypot(prop.x - mine.x, prop.y - mine.y - 1.5, prop.z - mine.z) <= 5);
+  const nearProp = pickupCandidate(mine, state.props, world.aimDirection());
   $('#utility-dock').hidden = state.phase !== 'fight' || watching() || mode === 'replay';
-  $('#grab-button b').textContent = holdingProp ? 'Throw' : 'Grab';
-  $('#grab-button .ability-status').textContent = holdingProp ? 'RELEASE G' : nearProp ? '10 KI / HOLD' : '10 KI / NEAR PROP';
-  $('#grab-button').classList.toggle('unavailable', !holdingProp && (!nearProp || mine.energy < 10));
-  $('#grab-button').setAttribute('aria-label', holdingProp ? 'Release to throw prop' : 'Hold to grab nearby prop, 10 ki');
+  $('#grab-button b').textContent = holdingProp ? 'Throw' : nearProp ? 'Pick up' : 'Ki blast';
+  $('#grab-button .ability-status').textContent = holdingProp ? 'AIM · TAP X' : nearProp ? '10 KI · TAP X' : '8 KI · HOLD: BEAM';
+  $('#grab-button').classList.toggle('unavailable', !holdingProp && mine.energy < (nearProp ? 10 : 8));
+  $('#grab-button').setAttribute('aria-label', holdingProp ? 'Press X to throw the held object' : nearProp ? 'Press X to pick up the highlighted object, 10 Ki' : 'Press X to fire a Ki blast');
   $('#grab-button').setAttribute('aria-pressed', String(holdingProp));
   $('#vanish-button').setAttribute('aria-label', `Vanish, ${$('#vanish-button .ability-status').textContent}`);
   $('#flight-hint').textContent = mine.flight
     ? `${mine.y.toFixed(1)}m / E UP / C DOWN`
-    : '2x SPACE: FLY / HOLD: POWER';
+    : 'SPACE: FLY · T: CHARGE · R: TRANSFORM';
+  $('#flight-button b').textContent = mine.flight ? 'Land' : 'Fly';
+  $('#flight-button .ability-status').textContent = mine.flight ? 'E UP · C DOWN' : 'PRESS SPACE';
+  $('#context-prompt').textContent = now < deniedUntil ? denial : holdingProp ? 'X  THROW · Aim with the mouse' : nearProp ? `X  PICK UP · Highlighted object · ${mine.energy >= 10 ? '10 Ki' : `need ${Math.ceil(10-mine.energy)} more Ki`}` : '';
+  $('#context-prompt').dataset.state = now < deniedUntil ? 'blocked' : 'ready';
+  $('#context-prompt').hidden = !powerVisible || !$('#context-prompt').textContent;
+  $('#aim-reticle').hidden = !powerVisible || ![2,4].includes(cameraMode);
+  $('#camera-hint').hidden = !powerVisible || mouseLooking || ![2,4].includes(cameraMode);
   $('#timer').textContent =
     mode === 'training'
       ? '--'
@@ -2348,13 +2401,13 @@ function frame(now) {
   if (!paused && mode !== 'menu') {
     const evading = evadeQueue.length || [...sources.values()].some(value => ['dodge', 'vanish'].includes(value.action));
     const looking = key => !evading && !chordKeys.has(key) && lookKeys.has(key) && now - lookKeyAt.get(key) >= 40;
-    const yaw = (Number(looking('ArrowRight')) - Number(looking('ArrowLeft'))) * dt * 1.5;
-    const pitch = (Number(looking('ArrowUp')) - Number(looking('ArrowDown'))) * dt;
+    const yaw = (Number(looking('ArrowLeft')) - Number(looking('ArrowRight'))) * dt * 1.5;
+    const pitch = (Number(looking('ArrowDown')) - Number(looking('ArrowUp'))) * dt;
     if (yaw || pitch) turnCamera(yaw, pitch);
     advanceTutorial(now);
   }
   if (mode === 'replay') updateReplay(paused ? 0 : dt);
-  if (mode !== 'menu' && mode !== 'network' && mode !== 'replay' && !paused) {
+  if (mode !== 'menu' && mode !== 'network' && mode !== 'replay' && !paused && now >= impactUntil) {
     accumulator = Math.min(0.15, accumulator + dt);
     while (accumulator >= 1 / 60) {
       if (mode === 'tournament' && cup && !cupPaused) {
@@ -2433,6 +2486,7 @@ function frame(now) {
     mode === 'replay' ? (paused || !replay.playing ? 0 : dt * replay.speed) : paused && !menu && mode !== 'network' ? 0 : dt,
     {
       menu:menu && !modePreview,
+      studio:experience.studio(),
       previewViewport,
       cameraMode:modePreview ? 1 : cameraMode,
       cameraLook,
@@ -2470,6 +2524,22 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+const experience = createExperience({
+  portraits, stageImages,
+  read:(key,fallback)=>safeJSON(readPreference(key,JSON.stringify(fallback))) ?? fallback,
+  save:(key,value)=>savePreference(key,JSON.stringify(value)),
+  show:showDialog,closeAll:closeDialogs,menu:returnToMenu,
+  selection:()=>({fighter:selected,form:previewForm,loadout}),select:selectFighter,
+  form:index=>{previewForm=index;previewUntil=performance.now()+1000;updateMenu();},
+  gear:id=>{const gear=gearById[id];if(!gear)return;const equipped=loadout.includes(id);loadout=loadout.filter(x=>gearById[x].slot!==gear.slot);if(!equipped)loadout.push(id);applyLoadout();},
+  train:id=>startTraining('combo',id),
+  preview:chapter=>{if(mode!=='menu')returnToMenu();selected=chapter.player;opponent=chapter.rival;selectedStage=chapter.stage;previewForm=0;updateMenu();},
+  startEpisode:(chapter,index)=>{disconnect();training=null;cup=null;series=null;activeFixture=null;localSlot=0;const matchSeed=0xc0ffee+index;startMatch(createMatch(chapter.player,chapter.rival,{stage:chapter.stage,difficulty,seed:matchSeed,loadouts:[loadout],tints:[tint]}),'story',matchSeed);},
+});
+$('#form-path-open').addEventListener('click',()=>experience.openPath(state.fighters[localSlot]));
+$('#credits-open').addEventListener('click',()=>showDialog('credits-dialog'));
+$('#guide-open').addEventListener('click',startTutorial);
+
 $('#ability-dock').innerHTML = [abilityDefinitions.slice(0, 4), abilityDefinitions.slice(4)].map((cluster, index) =>
   `<div id="abilities-${index ? 'right' : 'left'}" class="ability-cluster">${cluster
   .map(
@@ -2477,7 +2547,7 @@ $('#ability-dock').innerHTML = [abilityDefinitions.slice(0, 4), abilityDefinitio
       `<button class="ability" data-action="${action}" aria-label="${label}, ${action === 'dodge' ? 'Q or Shift; arrows choose direction without orbit' : action === 'power' ? 'Space twice for flight, hold to charge and transform; T charge, R transform' : key}"><span class="ability-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${icon}"/></svg></span><b>${label}</b><kbd>${key}</kbd><small class="${['guard'].includes(action) ? '' : 'ability-status'}">${status}</small><i class="ability-fill"></i></button>`,
   )
   .join('')}</div>`).join('');
-$('#training-drills').innerHTML = DRILLS.map((drill, index) => `<article class="lesson-card"><button class="lesson-poster" data-lesson="${drill.id}" aria-label="Watch ${escapeHTML(drill.title)} demonstration"><img src="/games/universe-clash/assets/training-${drill.id}.png" loading="lazy" alt="${escapeHTML(drill.title)} in-game demonstration"><span>▶ WATCH DEMO</span></button><span class="eyebrow">${String(index + 1).padStart(2, '0')} / ${index < 2 ? 'MOVEMENT' : index < 5 ? 'CLOSE COMBAT' : 'POWER & ENERGY'}</span><h3>${escapeHTML(drill.title)} <kbd>${escapeHTML(drill.key)}</kbd></h3><p>${escapeHTML(drill.prompt)}</p><small data-lesson-progress="${drill.id}"></small><div><button data-drill="${drill.id}" aria-label="Practice ${escapeHTML(drill.title)}">Practice</button></div></article>`).join('');
+$('#training-drills').innerHTML = DRILLS.map((drill, index) => `<article class="lesson-card"><button class="lesson-poster" ${["charge","blink","prop"].includes(drill.id)?`data-drill="${drill.id}"`:`data-lesson="${drill.id}"`} aria-label="Watch ${escapeHTML(drill.title)} demonstration"><img src="/games/universe-clash/assets/training-${["charge","blink","prop"].includes(drill.id)?"move":drill.id}.png" loading="lazy" alt="${escapeHTML(drill.title)} in-game demonstration"><span>${["charge","blink","prop"].includes(drill.id)?"TRY IT LIVE":"▶ WATCH DEMO"}</span></button><span class="eyebrow">${String(index + 1).padStart(2, '0')} / ${index < 2 ? 'MOVEMENT' : index < 5 ? 'CLOSE COMBAT' : 'POWER & ENERGY'}</span><h3>${escapeHTML(drill.title)} <kbd>${escapeHTML(drill.key)}</kbd></h3><p>${escapeHTML(drill.prompt)}</p><small data-lesson-progress="${drill.id}"></small><div><button data-drill="${drill.id}" aria-label="Practice ${escapeHTML(drill.title)}">Practice</button></div></article>`).join('');
 $('#pause-drills').innerHTML = DRILLS.filter(drill => ['move', 'combo', 'transform', 'flight'].includes(drill.id)).map(drill => `<button class="pause-tile" data-drill="${drill.id}">${drillIcon(drill)}<b>${drill.title}</b></button>`).join('');
 $$('[data-icon]').forEach(node => { node.innerHTML = icon(node.dataset.icon); });
 $('#gear-slots').innerHTML = GEAR_SLOTS.map(
@@ -2624,6 +2694,8 @@ $$('[data-nav]').forEach((button) =>
       $('#play').focus({ preventScroll: true });
     } else if (action === 'tournament') openCup();
     else if (action === 'training') openTraining();
+    else if (action === 'studio') experience.openStudio();
+    else if (action === 'achievements') experience.openAchievements();
     else if (action === 'locker') openLocker();
     else if (action === 'intel') openIntel();
   }),
@@ -2651,7 +2723,7 @@ $('#random-rival').addEventListener('click', () => {
   restorePreview();
 });
 $('#stage-open').addEventListener('click', () => showDialog('stages-dialog'));
-$('#roster-open').addEventListener('click', () => showDialog('roster-dialog'));
+$('#roster-open').addEventListener('click', () => experience.openStudio());
 $('#random-fighter').addEventListener('click', () => {
   const others = ROSTER.filter((fighter) => fighter.id !== selected);
   selectFighter(others[Math.floor(Math.random() * others.length)].id);
@@ -2830,6 +2902,8 @@ $('#rematch').addEventListener('click', () => {
     autoPaused = false;
     cupPaused = false;
     startCupMatch();
+  } else if (mode === 'story') {
+    experience.advance();
   } else if (mode === 'series') {
     if (nextLadderMatch(series)) startSeriesMatch();
     else startSeries();
@@ -2929,7 +3003,7 @@ $$('#battle [data-action]').forEach((button) => {
   button.addEventListener('click', (event) => {
     if (event.detail !== 0) return;
     const action = button.dataset.action;
-    if (['guard', 'power', 'grab'].includes(action)) {
+    if (['guard', 'power', 'grab', 'charge'].includes(action)) {
       const source = `accessible:${action}`;
       if (sources.has(source)) release(source);
       else press(source, action);
@@ -2948,7 +3022,7 @@ $('#look-pad').addEventListener('pointerdown', (event) => {
 });
 $('#look-pad').addEventListener('pointermove', (event) => {
   if (lookPointer?.id !== event.pointerId) return;
-  turnCamera((event.clientX - lookPointer.x) * .008, (lookPointer.y - event.clientY) * .008);
+  turnCamera((lookPointer.x - event.clientX) * .008, (event.clientY - lookPointer.y) * .008);
   lookPointer.x = event.clientX; lookPointer.y = event.clientY;
 });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
@@ -2996,9 +3070,33 @@ $('#arena').addEventListener('pointerdown', (event) => {
     return;
   event.preventDefault();
   syncInputContext();
+  if (event.pointerType !== 'touch' && !mouseLooking && (cameraMode === 2 || cameraMode === 4)) {
+    mouseLooking = true;
+    mouseLast = {x:event.clientX,y:event.clientY};
+    turnCamera(0,0);
+    try { const request = $('#arena').requestPointerLock?.(); request?.catch?.(() => {}); } catch { /* Drag-free look also works without pointer lock in embedded browsers. */ }
+    return;
+  }
   $('#arena').setPointerCapture(event.pointerId);
   pointerCaptures.set(event.pointerId, $('#arena'));
   press(`arena:${event.pointerId}`, event.button === 2 ? 'heavy' : activeClash() ? 'guard' : 'light', event.timeStamp);
+});
+window.addEventListener('pointermove', event => {
+  if (!mouseLooking || !canInput() || ![2,4].includes(cameraMode) || event.pointerType === 'touch') return;
+  const locked = document.pointerLockElement === $('#arena');
+  if (!locked && event.target !== $('#arena')) { mouseLast = null; return; }
+  const dx = locked ? event.movementX : mouseLast ? event.clientX-mouseLast.x : 0;
+  const dy = locked ? event.movementY : mouseLast ? event.clientY-mouseLast.y : 0;
+  mouseLast = {x:event.clientX,y:event.clientY};
+  // Screen-right mouse movement rotates the viewing direction to screen right.
+  turnCamera(-clamp(dx,-100,100)*.003, clamp(dy,-100,100)*.0025);
+});
+document.addEventListener('pointerlockchange', () => {
+  document.body.classList.toggle('mouse-locked', !!document.pointerLockElement);
+  if (!document.pointerLockElement && mouseLooking) {
+    mouseLooking = false; mouseLast = null; clearInput();
+    if (canInput()) openSettings();
+  }
 });
 window.addEventListener('pointerup', (event) => {
   release(`arena:${event.pointerId}`, false, event.timeStamp);
@@ -3102,12 +3200,13 @@ try {
   }
   $$('[data-mode]').forEach((button, index) => {
     const stage = STAGES[(index * 2 + 1) % STAGES.length];
+    if (!button.querySelector('img')) return;
     button.querySelector('img').src = stageImages.get(stage.id);
     button.querySelector('img').alt = `${stage.name}, rendered in-game preview`;
   });
   updateMenu();
   updateSound();
-  setMode('pit');
+  setMode('story');
   setCamera(2);
   document.body.classList.toggle('reduced-effects', reduced);
   $('#training-fighter-select').value = $('#training-live-fighter').value = trainingFighter;
@@ -3117,7 +3216,10 @@ try {
     $('#replay-storage').textContent = `Storage unavailable (${error.code || 'ERROR'}): ${error.message}`;
   });
   if (!multiplayerEnabled) {
-    $('.friend-actions > span').textContent = 'OFFLINE PREVIEW · SOLO MODES AVAILABLE';
+    $('.friend-actions > span').textContent = 'Story · duels · tournaments · local AI';
+    $('#online-open').disabled = true;
+    $('#online-open').textContent = 'ONLINE · UNAVAILABLE';
+    $('#online-open').title = 'This edition has no multiplayer server connected.';
     for (const button of $$('#create-room, #join-room, #join-submit, #quick-match, #pool-match, #leaderboard-open')) {
       button.disabled = true;
       button.title = 'Online friend rooms need the separate multiplayer server.';

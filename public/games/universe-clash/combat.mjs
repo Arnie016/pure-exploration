@@ -1,5 +1,6 @@
 import { ROSTER, FORMS, STAGES } from './catalog.mjs';
 import { normalizeLoadout, getLoadoutStats, randomLoadout } from './gear.mjs';
+import { pickupCandidate, normalizedAim, PICKUP_COST, BLINK_COST, BLINK_DISTANCE, BLINK_COOLDOWN } from './readability.mjs';
 export { ROSTER } from './catalog.mjs';
 
 export const MAX_HP = 1000;
@@ -10,7 +11,7 @@ const STATS = Object.fromEntries(ROSTER.map((f) => [f.id, f]));
 const KI_POWER = { goku: 1, vegeta: 1.15, jiren: 0.95, frieza: 1.08, beerus: 1.18, gohan: 1.04, piccolo: 1.12, trunks: 0.96, android18: 1, cell: 1.08, buu: 1.06, hit: 0.98, broly: 1.12, android17: 1.03, krillin: 1.02, tien: 1.14 };
 const LEVELS = [300, 800, 1500, 2400];
 const AURA = { combo: 25, 'skill-chain': 40, 'round-win': 100, 'match-win': 200, 'pit-win': 200 };
-const KEYS = ['left', 'right', 'forward', 'back', 'jump', 'flight', 'targetNext', 'guard', 'light', 'heavy', 'blast', 'beam', 'ultimate', 'dash', 'dodge', 'vanish', 'grab', 'drop', 'charge', 'transform', 'special', 'clashBoost'];
+const KEYS = ['left', 'right', 'forward', 'back', 'jump', 'flight', 'targetNext', 'guard', 'light', 'heavy', 'blast', 'beam', 'ultimate', 'dash', 'dodge', 'vanish', 'grab', 'interact', 'drop', 'charge', 'transform', 'special', 'clashBoost'];
 const CLASH = { limit: 6, duration: 18, boostCost: 4, boostCooldown: 0.3, boost: 0.55, cueBoost: 0.95, braceCost: 2, bracePower: 0.35, decay: 2, pressure: 0.22, powerCap: 6, releaseCap: 450 };
 const SPLASH = { blast: 1.6, beam: 2.8, ultimate: 6 };
 const ATTACKS = {
@@ -101,7 +102,7 @@ function held(input) {
   let z = analog ? (Number.isFinite(input.moveZ) ? clamp(input.moveZ, -1, 1) : 0) : Number(result.back) - Number(result.forward);
   const length = Math.max(1, Math.hypot(x, z));
   // Keep the raw axis ratio for 3D dodges without changing ordinary X/Z movement.
-  return { ...result, moveX: x / length, moveZ: z / length, moveScale: length, grabRelease: Object.hasOwn(input, 'grab') && input.grab === false };
+  return { ...result, aim:normalizedAim(input), moveX: x / length, moveZ: z / length, moveScale: length, grabRelease: Object.hasOwn(input, 'grab') && input.grab === false };
 }
 const living = (f) => !!f && f.alive && f.hp > 0;
 const distanceTo = (a, b) => Math.hypot(b.x - a.x, b.z - a.z);
@@ -261,7 +262,7 @@ function releaseProp(state, slot, throwing = false, positions) {
   if (!prop) return;
   if (throwing) {
     const target = positions[f.target];
-    let dx = target ? target.x - prop.x : Math.sin(f.heading), dy = target ? target.y + 1.5 - prop.y : 0, dz = target ? target.z - prop.z : Math.cos(f.heading);
+    let dx = d.aim ? d.aim.x : target ? target.x - prop.x : Math.sin(f.heading), dy = d.aim ? d.aim.y : target ? target.y + 1.5 - prop.y : 0, dz = d.aim ? d.aim.z : target ? target.z - prop.z : Math.cos(f.heading);
     const length = Math.hypot(dx, dy, dz) || 1;
     dx /= length; dy /= length; dz /= length;
     const damage = Math.round(110 * STATS[f.char].power * getForm(f).damage * levelBonus(f) * gearFor(f).power * (f.surge > 0 ? 1.12 : 1));
@@ -272,7 +273,7 @@ function releaseProp(state, slot, throwing = false, positions) {
   } else if (f.action === 'lift') { f.action = 'idle'; f.actionTime = 0; }
   event(state, 'prop', slot, -1, throwing ? 'throw' : 'drop', 0, prop.x, prop.y, prop.z, { propId: prop.id });
   prop.heldBy = -1; prop.hp = 0; prop.respawn = 8;
-  d.heldProp = f.heldProp = -1; d.holdTime = 0;
+  d.heldProp = f.heldProp = -1; d.holdTime = 0; d.toggleHold = false;
 }
 
 function environmentStep(state, dt) {
@@ -357,6 +358,7 @@ function startAttack(state, slot, kind, positions) {
   f.combo = launcher ? 3 : kind === 'light' ? (d.comboTime > 0 && f.combo < 3 ? f.combo + 1 : 1) : 0;
   d.comboTime = kind === 'light' || launcher ? 0.95 : 0;
   const move = { ...base, kind, age: 0, fired: false, shotsFired: 0, dx: Math.sin(f.heading), dy: 0, dz: Math.cos(f.heading), launcher, counter: f.counterWindow > 0 };
+  if (d.aim && base.speed) Object.assign(move, {dx:d.aim.x, dy:d.aim.y, dz:d.aim.z});
   if (kind === 'ultimate' && f.char === 'beerus') {
     const target = positions[f.target] || positions[slot];
     Object.assign(move, { meteor: true, targetX: target.x, targetY: clamp(target.y + 1.5, 1.5, 7.5), targetZ: target.z, splashRadius: 6 });
@@ -367,7 +369,8 @@ function startAttack(state, slot, kind, positions) {
     if (target) {
       const dx = target.x - origin.x, dy = target.y - origin.y, dz = target.z - origin.z;
       const length = Math.hypot(dx, dy, dz);
-      if (length > 1e-8) Object.assign(move, { dx: dx / length, dy: dy / length, dz: dz / length });
+      const aligned = !d.aim || (dx*d.aim.x+dy*d.aim.y+dz*d.aim.z)/(length || 1) > .94;
+      if (length > 1e-8 && aligned) Object.assign(move, { dx: dx / length, dy: dy / length, dz: dz / length });
     }
     if (state.kind === 'pit') move.life = Math.min(3, Math.max(move.life, 44 / move.speed));
   }
@@ -882,7 +885,7 @@ function simulate(state, inputs, dt) {
     const d = data.fighters[slot];
     const input = controls[slot];
     const edge = edges[slot];
-    const emptyAtStart = f.energy < 1e-8;
+    d.aim = input.aim;
     for (const key of Object.keys(d.cooldowns)) d.cooldowns[key] = Math.max(0, d.cooldowns[key] - dt);
     d.regenCooldown = Math.max(0, d.regenCooldown - dt);
     // Renderer mirrors only: client/snapshot values never grant a channel or clear its cooldown.
@@ -921,9 +924,10 @@ function simulate(state, inputs, dt) {
       event(state, 'flight', slot, -1, f.flight ? 'on' : 'off', 0, f.x, f.y, f.z, { height: f.y });
     }
     const vanish = edge.vanish;
-    if ((vanish || dodgeEdge) && (!vanish || !d.attack) && f.energy >= (vanish ? 16 : 8) && (vanish ? (d.cooldowns.vanish || 0) : d.dodgeCooldown) <= 1e-8 && canEscape && !evading()) {
+    if ((vanish || dodgeEdge) && (!vanish || !d.attack) && f.energy >= (vanish ? BLINK_COST : 8) && (vanish ? (d.cooldowns.vanish || 0) : d.dodgeCooldown) <= 1e-8 && canEscape && !evading()) {
       let dx = input.moveX * input.moveScale, dz = input.moveZ * input.moveScale;
       let dy = f.flight ? Number(input.jump) - Number(input.guard) : 0;
+      if (vanish && input.aim) { dx = input.aim.x; dy = input.aim.y; dz = input.aim.z; }
       if (!dx && !dy && !dz && other) {
         const origin = positions[slot], target = positions[f.target];
         dx = origin.x - target.x; dy = f.flight ? origin.y - target.y : 0; dz = origin.z - target.z;
@@ -936,11 +940,12 @@ function simulate(state, inputs, dt) {
       f.dodgeX = d.dodgeX = dx / length; f.dodgeY = d.dodgeY = dy / length; f.dodgeZ = d.dodgeZ = dz / length;
       d.perfect = false; d.takeoff = false;
       d.attack = null; d.queue.length = 0;
-      f.energy -= vanish ? 16 : 8; d.dodgeTime = 0.18;
+      f.energy -= vanish ? BLINK_COST : 8; d.dodgeTime = 0.18;
       d.evadeKind = vanish ? 'vanish' : 'normal';
       if (vanish) {
-        d.cooldowns.vanish = 2;
-        f.x += d.dodgeX * 2.4; f.y = clamp(f.y + d.dodgeY * 2.4, 0, 6); f.z += d.dodgeZ * 2.4;
+        d.cooldowns.vanish = BLINK_COOLDOWN;
+        const distance = input.aim ? BLINK_DISTANCE : 2.4;
+        f.x += d.dodgeX * distance; f.y = clamp(f.y + d.dodgeY * distance, 0, 6); f.z += d.dodgeZ * distance;
         constrain(state, f);
         f.vx = f.vy = f.vz = 0;
         // A teleport has no swept body path through the space it skipped.
@@ -955,14 +960,14 @@ function simulate(state, inputs, dt) {
     f.vanishTime = d.evadeKind === 'vanish' ? d.dodgeTime : 0; f.evadeKind = d.evadeKind;
     if (d.heldProp >= 0) {
       d.holdTime += dt;
-      if (edge.drop || d.stun > 1e-8 || d.holdTime >= 2 - 1e-8 || !input.grab) {
-        releaseProp(state, slot, !edge.drop && d.stun <= 1e-8 && d.holdTime < 2 - 1e-8 && input.grabRelease, positions);
+      if (d.aim) { f.heading = Math.atan2(d.aim.x, d.aim.z); f.face = Math.sign(d.aim.x) || f.face; }
+      if (edge.drop || d.stun > 1e-8 || edge.interact || (!d.toggleHold && (d.holdTime >= 2 - 1e-8 || !input.grab))) {
+        releaseProp(state, slot, !edge.drop && d.stun <= 1e-8 && (edge.interact || (!d.toggleHold && d.holdTime < 2 - 1e-8 && input.grabRelease)), positions);
       }
-    } else if (edge.grab && !input.drop && !d.attack && canEscape && !evading() && f.energy >= 10) {
-      const prop = state.props.filter(p => p.heldBy === -1 && p.hp > 0 && p.respawn === 0 && Math.hypot(p.x - f.x, p.y - f.y - 1.5, p.z - f.z) <= 5)
-        .sort((a, b) => distanceTo(f, a) - distanceTo(f, b) || a.id - b.id)[0];
+    } else if ((edge.grab || edge.interact) && !input.drop && !d.attack && canEscape && !evading() && f.energy >= PICKUP_COST) {
+      const prop = pickupCandidate(f, state.props, d.aim);
       if (prop) {
-        f.energy -= 10; d.heldProp = f.heldProp = prop.id; prop.heldBy = slot; d.holdTime = 0;
+        f.energy -= PICKUP_COST; d.heldProp = f.heldProp = prop.id; prop.heldBy = slot; d.holdTime = 0; d.toggleHold = !!edge.interact;
         d.queue.length = 0; f.action = 'lift'; f.actionTime = 2;
         event(state, 'prop', slot, -1, 'lift', 0, prop.x, prop.y, prop.z, { propId: prop.id });
       }
@@ -970,9 +975,22 @@ function simulate(state, inputs, dt) {
     const busy = d.clashId >= 0 || d.attack || d.transform || d.regeneration || d.heldProp >= 0 || d.throwTime > 1e-8 || d.stun > 1e-8 || evading() || f.action === 'surge';
     if (!busy) {
       // Guard and committed moves lock facing; jumping over a guard can cross it up.
-      if ((f.action !== 'guard' || !input.guard) && other) {
-        f.heading = Math.atan2(other.x - f.x, other.z - f.z);
-        f.face = Math.sign(other.x - f.x) || f.face;
+      if (f.action !== 'guard' || !input.guard) {
+        if (d.aim) {
+          f.heading = Math.atan2(d.aim.x, d.aim.z);
+          f.face = Math.sign(d.aim.x) || f.face;
+          // Close-range assistance selects a visible opponent, never a fighter behind you.
+          if (edge.light || edge.heavy || edge.special) {
+            const nearest = state.fighters.map((enemy,index) => ({enemy,index,distance:distanceTo(f,enemy)}))
+              .filter(({enemy,index,distance}) => index !== slot && living(enemy) && distance < 4 &&
+                ((enemy.x-f.x)*d.aim.x+(enemy.z-f.z)*d.aim.z)/(distance || 1) > .45)
+              .sort((a,b) => a.distance-b.distance)[0];
+            if (nearest) { f.target = nearest.index; f.heading = Math.atan2(nearest.enemy.x-f.x,nearest.enemy.z-f.z); }
+          }
+        } else if (other) {
+          f.heading = Math.atan2(other.x - f.x, other.z - f.z);
+          f.face = Math.sign(other.x - f.x) || f.face;
+        }
       }
       f.action = f.flight ? 'flight' : f.y > 0 ? 'jump' : 'idle';
       f.actionTime = 0;
@@ -1025,7 +1043,9 @@ function simulate(state, inputs, dt) {
     // The paid transform channel pauses upkeep, but offers no defense or ki regen.
     if (!d.transform && f.form > 0) {
       f.energy = Math.max(0, f.energy - getForm(f).drain * dt);
-      if ((emptyAtStart || f.energy < 1e-8) && d.revertTime < 1e-8) {
+      // Evaluate the balance after this tick's charging, recovery and upkeep.
+      // Paying the exact transformation cost must not undo a sustainable form.
+      if (f.energy < 1e-8 && d.revertTime < 1e-8) {
         if (f.energy < 1e-8) f.energy = 0;
         f.form--;
         d.revertTime = 1;
@@ -1337,6 +1357,7 @@ function simulate(state, inputs, dt) {
       if (d.transform && d.transform.age + 1e-8 >= 1) {
         f.form = d.transform.form;
         d.transform = null;
+        d.revertTime = 2; // A brief chance to recharge after paying the form's entry cost.
         f.action = f.flight ? 'flight' : f.y > 0 ? 'jump' : 'idle';
         f.actionTime = 0;
         progress(f);

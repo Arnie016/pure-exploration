@@ -3,6 +3,7 @@ import { GLTFLoader } from '/games/universe-clash/vendor/loaders/GLTFLoader.js';
 import { mergeGeometries } from '/games/universe-clash/vendor/utils/BufferGeometryUtils.js';
 import { FORMS, STAGES } from './catalog.mjs';
 import { normalizeLoadout } from './gear.mjs';
+import { pickupCandidate } from './readability.mjs';
 
 const PI = Math.PI;
 const TAU = PI * 2;
@@ -75,12 +76,11 @@ export function createWorld(canvas, roster = []) {
   let lastPresentationState = null;
   let lastCalls = 0, lastTriangles = 0;
   let cameraMode = 2, localSlot = 0, targetSlot = -1, frameMs = 0;
-  let shoulderAngle = .68, firstPerson = false, effectOwner = -1;
+  let shoulderAngle = .12, firstPerson = false, effectOwner = -1;
   const meshBounds = new THREE.Box3(), frameBounds = new THREE.Box3();
   const projectionPoint = new THREE.Vector3(), armDirection = new THREE.Vector3();
   const armRotation = new THREE.Quaternion(), downAxis = new THREE.Vector3(0, -1, 0);
   const legFrame = new THREE.Matrix4(), legHinge = new THREE.Vector3(), legUp = new THREE.Vector3(), legForward = new THREE.Vector3();
-  const framingCamera = new THREE.PerspectiveCamera();
   let chaseHeading = 0, chasePitch = 0, targetCatchup = 0, groundClock = 0, impactCursor = 0, markCursor = 0;
   const lookInput = { yaw: 0, pitch: .2, manual: false };
   let previewViewport = null;
@@ -180,7 +180,25 @@ export function createWorld(canvas, roster = []) {
   const cube = geometry(new THREE.BoxGeometry(1, 1, 1));
   const cone = geometry(new THREE.ConeGeometry(1, 1, 7));
   const dome = geometry(new THREE.SphereGeometry(1, 28, 12, 0, TAU, 0, PI / 2));
-  const standard = (color, roughness = 0.6, extra = {}) => material(new THREE.MeshStandardMaterial({ color, roughness, ...extra }));
+  const standard = (color, roughness = 0.6, extra = {}) => {
+    const mat = material(new THREE.MeshStandardMaterial({ color, roughness, ...extra }));
+    // Character-only light bands and a view-dependent ink edge retain the cloth
+    // normals and PBR lighting without doubling every mesh for an outline pass.
+    if (resourceOwner && resourceOwner !== assetResources) {
+      mat.onBeforeCompile = shader => {
+        shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+          float ucLuma = max(dot(outgoingLight, vec3(.2126,.7152,.0722)), .001);
+          float ucBand = (floor(ucLuma * 5.) + .5) / 5.;
+          outgoingLight *= mix(1., ucBand / ucLuma, .22);
+          float ucEdge = smoothstep(.035, .24, abs(dot(normalize(normal), normalize(vViewPosition))));
+          outgoingLight *= mix(.48, 1., ucEdge);
+          #include <opaque_fragment>
+        `);
+      };
+      mat.customProgramCacheKey = () => 'uc-character-ink-v1';
+    }
+    return mat;
+  };
   const basic = (color, extra = {}) => material(new THREE.MeshBasicMaterial({ color, ...extra }));
   const billboard = (mat) => {
     const sprite = new THREE.Sprite(mat);
@@ -392,7 +410,7 @@ export function createWorld(canvas, roster = []) {
   key.shadow.normalBias = 0.026;
   key.shadow.radius = 3;
   scene.add(key, key.target);
-  const ambient = new THREE.HemisphereLight('#b6befa', '#242030', 1.25); scene.add(ambient);
+  const ambient = new THREE.HemisphereLight('#c6d9ff', '#262039', 1.0); scene.add(ambient);
   const rim = new THREE.DirectionalLight('#73dfff', 3.8);
   rim.position.set(5, 6, -5); scene.add(rim);
   const front = new THREE.DirectionalLight('#e4d7ff', 1.05);
@@ -2103,6 +2121,7 @@ export function createWorld(canvas, roster = []) {
   let finaleEase=0, zoneRadius=0, zoneProgress=0;
 
   function updateArenaState(state,menu,reduced,dt) {
+    const candidate = menu || state?.fighters?.[localSlot]?.heldProp >= 0 ? null : pickupCandidate(state?.fighters?.[localSlot], state?.props, aimDirection());
     for(let i=0;i<propVisuals.length;i++) {
       const v=propVisuals[i],p=menu?null:state?.props?.[i];
       v.root.visible=!!p&&finite(p.hp)>0&&finite(p.respawn)<=0;
@@ -2113,7 +2132,7 @@ export function createWorld(canvas, roster = []) {
       // An inscribed block/stone at the exact engine center. Never bob its collision proxy.
       v.root.scale.setScalar(v.radius*(i%2?1.1547:1));v.root.rotation.set(0,i*.71,0);
       const held=v.heldBy>=0,owner=state.fighters?.[v.heldBy];
-      v.outline.visible=held;v.outline.material.color.set(owner?formAt(IDS.includes(owner.char)?owner.char:'goku',owner.form).aura:'#81e5ff');
+      v.outline.visible=held || p.id===candidate?.id;v.outline.material.color.set(owner?formAt(IDS.includes(owner.char)?owner.char:'goku',owner.form).aura:'#ffce67');
       v.marker.visible=!held;v.marker.position.set(p.x,.034,p.z);v.marker.scale.setScalar(v.radius*1.15);
       // Eye view omits only the carried object's draw, not its authoritative position.
       if(firstPerson&&v.heldBy===localSlot)v.root.visible=false;
@@ -2684,7 +2703,7 @@ export function createWorld(canvas, roster = []) {
     const cameraCut=firstFrame||requestedCamera!==cameraMode||menuChanged||matchReset;
     cameraMode=requestedCamera;
     lookInput.yaw = finite(options.cameraLook?.yaw);
-    lookInput.pitch = clamp(finite(options.cameraLook?.pitch, .2), -.35, .85);
+    lookInput.pitch = clamp(finite(options.cameraLook?.pitch, .2), -.75, .85);
     lookInput.manual = !menu && options.cameraLook?.manual === true;
     firstPerson = !menu && cameraMode === 4;
     let fighterStates;
@@ -2698,17 +2717,18 @@ export function createWorld(canvas, roster = []) {
       const hero = getModel(0, menuStates[0].char), rival = getModel(menuStates[0].char===menuStates[1].char?1:0, menuStates[1].char);
       applyForm(hero, menuStates[0].form); applyForm(rival, menuStates[1].form);
       const displayHeight = Math.max(3.35, hero.visualHeight, rival.visualHeight);
-      const heroHeight = height <= 500 ? clamp(height * .55, 160, 240) : mobile ? clamp(height * 0.32, 205, 270) : clamp(height * 0.41, 280, 420);
+      const studio = options.studio?.open === true;
+      const heroHeight = studio ? height * (mobile ? .37 : .67) : height <= 500 ? clamp(height * .55, 160, 240) : mobile ? clamp(height * 0.32, 205, 270) : clamp(height * 0.48, 300, 510);
       const visibleHeight = displayHeight * height / heroHeight;
-      const stageCenter = height <= 500 ? height * .5 : mobile ? clamp(height * 0.39, 275, 355) : (height - 190) * 0.5;
+      const stageCenter = studio ? height * (mobile ? .39 : .49) : height <= 500 ? height * .5 : mobile ? clamp(height * 0.39, 275, 355) : (height - 190) * 0.5;
       const targetY = displayHeight * .47 - (0.5 - stageCenter / height) * visibleHeight;
       const distance = visibleHeight / (2 * Math.tan(34 * PI / 360));
       desiredLook.set(0, targetY, 0);
-      desiredCamera.set(0, targetY + (activeStageId === 'void' ? 2.7 : 1.35), distance);
+      desiredCamera.set(0, targetY + (studio ? .6 : activeStageId === 'void' ? 1.5 : 1.0), distance);
       const visibleWidth = visibleHeight * camera.aspect;
-      menuStates[0].x = visibleWidth * (mobile ? -0.215 : 0.117);
+      menuStates[0].x = visibleWidth * (studio ? (mobile ? 0 : -.02) : mobile ? -0.215 : 0.117);
       menuStates[1].x = visibleWidth * (mobile ? 0.215 : 0.315);
-      fighterStates = menuStates;
+      fighterStates = studio ? menuStates.slice(0,1) : menuStates;
       camera.fov = mix(camera.fov, 34, firstFrame ? 1 : damping);
     } else fighterStates = [2,12].includes(state?.fighters?.length) ? state.fighters : menuStates;
     const previousLocal=localSlot,previousTarget=targetSlot;
@@ -2736,7 +2756,7 @@ export function createWorld(canvas, roster = []) {
       const detailed=menu||slot===localSlot||slot===targetSlot||fighterStates.length===2;
       if(m.detailed!==detailed){m.detailed=detailed;m.root.traverse(o=>{if(o.isMesh){o.castShadow=detailed;o.receiveShadow=detailed;}});}
       m.root.position.set(finite(f.x), finite(f.y), menu ? (slot ? -.15 : .6) : finite(f.z));
-      const angle=menu?(slot?-.38:.4):headingOf(f);
+      const angle=menu?(options.studio?.open ? finite(options.studio.rotation,.4) : slot?-.38:.4):headingOf(f);
       const delta=Math.atan2(Math.sin(angle-m.root.rotation.y),Math.cos(angle-m.root.rotation.y));
       m.root.rotation.y+=delta*(cameraCut||id==='buu'&&f.action==='heavy'?1:1-Math.exp(-dt*18));
       const speed=Math.hypot(finite(f.vx),finite(f.vz));
@@ -2777,10 +2797,11 @@ export function createWorld(canvas, roster = []) {
     for(const slot of extraModels.keys())if(!usedExtras.has(slot))releaseExtra(slot);
     for(let slot=fighterStates.length;slot<stageEffects.length;slot++)for(const node of stageEffects[slot].visuals)node.visible=false;
     const living=fighterStates.map((f,i)=>isAlive(f)?i:-1).filter(i=>i>=0);
-    const manualShoulder=cameraMode===2&&lookInput.manual;
-    const fitSlots=cameraMode===4?[localSlot]:cameraMode===2?[localSlot,...(manualShoulder||targetSlot<0?[]:[targetSlot])]:living.length?living:fighterStates.map((f,i)=>i);
+    // A player-follow camera frames the player. Arena and Tactical retain group framing.
+    const playerFollow=cameraMode===2;
+    const fitSlots=playerFollow||cameraMode===4?[localSlot]:living.length?living:fighterStates.map((f,i)=>i);
     if(!menu) {
-      const targetFov=firstPerson?76:cameraMode===2?58:cameraMode===3?46:38;
+      const targetFov=firstPerson?76:cameraMode===2?62:cameraMode===3?46:38;
       camera.fov=mix(camera.fov,targetFov,cameraCut?1:1-Math.exp(-dt*8));
       frameBounds.makeEmpty();for(const slot of fitSlots)frameBounds.union(activeModels[slot].bounds);
       frameBounds.getCenter(desiredLook);
@@ -2791,43 +2812,26 @@ export function createWorld(canvas, roster = []) {
         const turn=Math.atan2(Math.sin(heading-chaseHeading),Math.cos(heading-chaseHeading));
         if(firstFrame||matchReset||menuChanged||previousLocal!==localSlot)chaseHeading=heading;
         else if(!lookInput.manual)chaseHeading+=clamp(turn*(1-Math.exp(-dt*(targetCatchup>0?9:5))),-dt*2.6,dt*2.6);
-        if(cameraCut&&!lookInput.manual)shoulderAngle=.68;
+        if(cameraCut)shoulderAngle=.12;
         const own=activeModels[localSlot],other=activeModels[targetSlot];
         const origin=firstPerson?own.eye:own.chest;
         const wanted=other?-Math.atan2(other.chest.y-origin.y,Math.max(.05,Math.hypot(other.chest.x-(firstPerson?finite(local.x):origin.x),other.chest.z-(firstPerson?finite(local.z):origin.z)))):0;
         if(!lookInput.manual)chasePitch=cameraCut?clamp(wanted,-1.4,1.4):chasePitch+clamp((clamp(wanted,-1.4,1.4)-chasePitch)*(1-Math.exp(-dt*7)),-dt*2,dt*2);
-        const yaw=chaseHeading+lookInput.yaw+(firstPerson?0:shoulderAngle),pitch=firstPerson?(lookInput.manual?clamp(lookInput.pitch-.2,-.55,.65):chasePitch):lookInput.manual?clamp(.1+lookInput.pitch,.08,.95):clamp(.1+lookInput.pitch+chasePitch,-.9,1.3);
+        const yaw=chaseHeading+lookInput.yaw+(firstPerson?0:shoulderAngle),pitch=firstPerson?(lookInput.manual?clamp(lookInput.pitch-.2,-.75,.65):chasePitch):lookInput.manual?clamp(.1+lookInput.pitch,-.55,.95):clamp(.1+lookInput.pitch+chasePitch,-.9,1.3);
         viewBack.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
-        if(manualShoulder)desiredLook.set(finite(local.x),finite(local.y)+activeModels[localSlot].visualHeight*.48,finite(local.z));
+        if(playerFollow) {
+          desiredLook.set(finite(local.x),finite(local.y)+activeModels[localSlot].visualHeight*.57,finite(local.z));
+          // A small forward lead opens the arena while keeping the fighter near centre.
+          desiredLook.x += Math.sin(yaw)*1.1 + Math.cos(yaw)*.3;
+          desiredLook.z += Math.cos(yaw)*1.1 - Math.sin(yaw)*.3;
+        }
       }else {
         const pitch=clamp((cameraMode===3?1.13:.26)+lookInput.pitch,.12,1.42);
         viewBack.set(Math.sin(lookInput.yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(lookInput.yaw)*Math.cos(pitch));
       }
       const followDistance=Math.max(6.8,activeModels[localSlot].visualHeight/(Math.tan(camera.fov*PI/360)*Math.min(1,camera.aspect)*.95));
-      const distance=manualShoulder?followDistance:fitView(fitSlots,desiredLook,viewBack,cameraMode===2?followDistance:cameraMode===3?19:10.8);
+      const distance=playerFollow?followDistance:fitView(fitSlots,desiredLook,viewBack,cameraMode===2?followDistance:cameraMode===3?19:10.8);
       desiredCamera.copy(desiredLook).addScaledVector(viewBack,distance);
-      if(cameraMode===2&&!lookInput.manual&&targetSlot>=0){
-        // Fixed-side, bounded shoulder solve. Never run this while Arrow-look is
-        // manual. The tested rectangles come from the visible posed mesh bounds.
-        framingCamera.fov=camera.fov;framingCamera.aspect=camera.aspect;framingCamera.near=camera.near;framingCamera.far=camera.far;framingCamera.updateProjectionMatrix();
-        const previousShoulder=shoulderAngle;
-        const start=Math.max(.68,shoulderAngle-dt*.18), pitch=clamp(.1+lookInput.pitch+chasePitch,-.9,1.3);
-        for(let attempt=0;attempt<9;attempt++){
-          shoulderAngle=mix(start,1.38,attempt/8);
-          const yaw=chaseHeading+lookInput.yaw+shoulderAngle;
-          viewBack.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
-          const fit=fitView(fitSlots,desiredLook,viewBack,followDistance);
-          desiredCamera.copy(desiredLook).addScaledVector(viewBack,fit);
-          framingCamera.position.copy(desiredCamera);framingCamera.lookAt(desiredLook);framingCamera.updateMatrixWorld();
-          if(pairFraming(framingCamera).readable)break;
-        }
-        // A changing target rectangle is not a camera cut. Limit the solved orbit
-        // even at contact/board edges; fitting may change distance, never the FOV.
-        shoulderAngle=cameraCut?shoulderAngle:previousShoulder+clamp(shoulderAngle-previousShoulder,-dt*.18,dt*1.6);
-        const yaw=chaseHeading+lookInput.yaw+shoulderAngle;
-        viewBack.set(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
-        desiredCamera.copy(desiredLook).addScaledVector(viewBack,fitView(fitSlots,desiredLook,viewBack,followDistance));
-      }
       if(firstPerson){
         const m=activeModels[localSlot];
         // Actual eye height excludes horns/hair/gear; x/z stay on authority so
@@ -2841,7 +2845,7 @@ export function createWorld(canvas, roster = []) {
     const cameraBlend=targetCatchup>0&&!lookInput.manual?1-Math.exp(-dt*9):damping;
     cameraLook.lerp(desiredLook, cameraCut || firstPerson ? 1 : cameraBlend);
     camera.position.lerp(desiredCamera, cameraCut || firstPerson ? 1 : cameraBlend);
-    if(!menu&&!manualShoulder&&!firstPerson){
+    if(!menu&&!playerFollow&&!firstPerson){
       // Solve against the *smoothed* basis as well: aspect changes, flight and target
       // switches may pull back immediately, but never crop while tracking catches up.
       viewBack.copy(camera.position).sub(cameraLook).normalize();
@@ -3338,5 +3342,6 @@ export function createWorld(canvas, roster = []) {
     const x=scratch.x,z=scratch.z,length=Math.hypot(x,z)||1;
     return {x:x/length,z:z/length};
   }
-  return { update, portrait, dispose, stats, movementBasis };
+  function aimDirection(){ camera.getWorldDirection(scratch); return {x:scratch.x,y:scratch.y,z:scratch.z}; }
+  return { update, portrait, dispose, stats, movementBasis, aimDirection };
 }
