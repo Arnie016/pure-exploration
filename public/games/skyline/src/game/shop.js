@@ -1,5 +1,8 @@
 // The Web Shop: spend banked coins on permanent upgrades and consumable gadgets.
 // Core loop: run -> bank coins -> upgrade -> run longer -> bank more.
+import { mountPlayShop } from './play-shop.js';
+
+if (typeof document !== 'undefined') mountPlayShop();
 
 export const UPGRADES = [
   { id: 'hearts', name: 'EXTRA HEART', icon: '❤', desc: '+1 heart per run.', max: 2, costs: [1200, 3500] },

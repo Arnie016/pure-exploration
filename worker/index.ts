@@ -1,5 +1,5 @@
 import {explorers,type ExplorerEnv} from './explorers';
-import {skylineBilling,type SkylineEnv} from './skyline-billing';
+import {skylineBilling,skylineDeletionMaintenance,type SkylineEnv} from './skyline-billing';
 import {owner} from './private';
 import { activity } from "./activity";
 /** Cloudflare Worker entry point for the vinext-starter template. */
@@ -31,6 +31,11 @@ interface ExecutionContext {
 // const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
 
 const worker = {
+  // A handler does not create a Cron Trigger. Verify host scheduling before promising retention.
+  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    if(env.SKYLINE_DELETION_PROCESSING_ENABLED!=="true")return;
+    await skylineDeletionMaintenance(env,Date.now(),"scheduled");
+  },
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/api/explorers") return explorers(request,env);

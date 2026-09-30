@@ -97,17 +97,17 @@ export const SKINS = [
 export const DEFAULT_LOOK = {
   body: 'A', skin: '#8a5a44', hair: 'short', hairColor: '#1b1030', hood: 'up', mask: 'full', eyes: 'visor',
   suit: '#ff3fa4', pants: '#232a5c', shoes: '#ffd84a', trim: '#1b1030', accent: '#3fe0ff',
-  pattern: 'solid', emblem: 'bolt', backpack: true, headphones: false, scarf: false, scarfColor: '#ff3fa4',
+  outfit: 'street', pattern: 'solid', emblem: 'bolt', backpack: true, headphones: false, scarf: false, scarfColor: '#ff3fa4',
 };
 
 export const PRESETS = [
   { id: 'volt', name: 'VOLT', cost: 0, look: {} },
   { id: 'blonde', name: 'BLONDE BOLT', cost: 0, look: { body: 'B', skin: '#f1c7a5', hood: 'down', hair: 'long', hairColor: '#f2cf6b', mask: 'eye', suit: '#fff1f8', pants: '#ff3fa4', shoes: '#3fc7ff', accent: '#ff3fa4', trim: '#1b1030', emblem: 'star', scarf: true, scarfColor: '#3fc7ff' } },
-  { id: 'night', name: 'NIGHT SHIFT', cost: 250, look: { suit: '#2b2640', pants: '#15131f', shoes: '#a8f03a', accent: '#a8f03a', trim: '#5a5480', pattern: 'circuit', emblem: 'v' } },
+  { id: 'night', name: 'NIGHT SHIFT', cost: 250, look: { outfit: 'suit', mask: 'full', eyes: 'lenses', hood: 'down', backpack: false, suit: '#2b2640', pants: '#15131f', shoes: '#a8f03a', accent: '#a8f03a', trim: '#5a5480', pattern: 'circuit', emblem: 'v' } },
   { id: 'bronx', name: 'BRONX BEAT', cost: 400, look: { skin: '#6b4432', hood: 'down', hair: 'afro', hairColor: '#1b1030', mask: 'eye', eyes: 'goggles', suit: '#ffd84a', pants: '#232a5c', pattern: 'graffiti', headphones: true, emblem: 'spiral', accent: '#ff3fa4' } },
-  { id: 'sun', name: 'SUNBURST', cost: 500, look: { suit: '#ffc02e', pants: '#19b6a0', accent: '#ff3fa4', shoes: '#ff6b3d', trim: '#ff7a1a', pattern: 'halftone', emblem: 'star' } },
-  { id: 'noir', name: 'NOIR', cost: 650, look: { suit: '#f4f4f4', pants: '#111111', shoes: '#f4f4f4', accent: '#ffffff', trim: '#111111', pattern: 'stripes', emblem: 'eye', scarf: true, scarfColor: '#111111' } },
-  { id: 'glacier', name: 'GLACIER', cost: 800, look: { body: 'B', suit: '#eaf6ff', pants: '#6a79c9', accent: '#b56bff', shoes: '#3fc7ff', trim: '#9ad8ff', hood: 'down', hair: 'ponytail', hairColor: '#f5f5ff', mask: 'eye', skin: '#c68a64' } },
+  { id: 'sun', name: 'SUNBURST', cost: 500, look: { outfit: 'suit', mask: 'full', eyes: 'lenses', hood: 'down', backpack: false, suit: '#ffc02e', pants: '#19b6a0', accent: '#ff3fa4', shoes: '#ff6b3d', trim: '#ff7a1a', pattern: 'halftone', emblem: 'star' } },
+  { id: 'noir', name: 'NOIR', cost: 650, look: { outfit: 'suit', mask: 'full', eyes: 'lenses', hood: 'down', backpack: false, suit: '#f4f4f4', pants: '#111111', shoes: '#f4f4f4', accent: '#ffffff', trim: '#111111', pattern: 'stripes', emblem: 'eye', scarf: true, scarfColor: '#111111' } },
+  { id: 'glacier', name: 'GLACIER', cost: 800, look: { outfit: 'suit', mask: 'full', eyes: 'lenses', hood: 'down', backpack: false, body: 'B', suit: '#eaf6ff', pants: '#6a79c9', accent: '#b56bff', shoes: '#3fc7ff', trim: '#9ad8ff', hair: 'ponytail', hairColor: '#f5f5ff', skin: '#c68a64' } },
   { id: 'rift', name: 'RIFT RUNNER', cost: 1000, look: { suit: '#19d3b5', pants: '#2b2640', accent: '#ff9a2e', eyes: 'goggles', pattern: 'camo', scarf: true, scarfColor: '#ff9a2e', emblem: 'bolt', hood: 'down', hair: 'mohawk', hairColor: '#ff3fa4', mask: 'eye', skin: '#a86c4c' } },
 ];
 

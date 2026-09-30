@@ -82,15 +82,30 @@ export class Input {
         else this.push(dy > 0 ? 'down' : 'up');
       }
     });
-    const end = (e, cancel) => {
-      if (e.pointerId !== id) return;
+    const resetGesture = (resetAim = false) => {
       id = null;
       clearTimeout(holdTimer);
-      if (this.holding) this.hold(false);
-      else if (!cancel && !fired && performance.now() - st < 350) this.push(webSide ? 'web' : 'up');
+      holdTimer = 0;
+      fired = false;
+      // Clear the state even if input was disabled while the app lost focus.
+      const wasHolding = this.holding;
+      this.holding = false;
+      if (wasHolding) this.push('holdEnd');
+      if (resetAim) this.aim.active = false;
+    };
+    const end = (e, cancel) => {
+      if (e.pointerId !== id) return;
+      const tap = !this.holding && !cancel && !fired && performance.now() - st < 350;
+      resetGesture(cancel);
+      if (tap) this.push(webSide ? 'web' : 'up');
     };
     target.addEventListener('pointerup', (e) => end(e, false));
     target.addEventListener('pointercancel', (e) => end(e, true));
+    target.addEventListener('lostpointercapture', (e) => end(e, true));
+    window.addEventListener('blur', () => resetGesture(true));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) resetGesture(true);
+    });
   }
 
   setAim(cx, cy) {

@@ -162,7 +162,7 @@ export class Hero {
       const sole = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.32), M.sole);
       sole.position.set(0, -0.5, 0.06);
       knee.add(sole);
-      return { hip, knee };
+      return { hip, knee, shin, shoe };
     });
 
     // Torso.
@@ -236,7 +236,7 @@ export class Hero {
       const hand = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), M.trim);
       hand.position.y = -0.35;
       elbow.add(hand);
-      return { shoulder, elbow, hand };
+      return { shoulder, elbow, hand, fore };
     });
     for (const g of this.glowParts) g.layers.set(LAYER_NO_OUTLINE);
 
@@ -326,6 +326,21 @@ export class Hero {
       lens.layers.set(LAYER_NO_OUTLINE);
     }
     add(goggles, new THREE.BoxGeometry(0.34, 0.035, 0.02), M.gear, [0, 0.18, 0.1]);
+    // Fitted suit pieces follow the existing rig; no extra animation skeleton.
+    const suitPanels = new THREE.Group();
+    this.torso.add(suitPanels);
+    for (const side of [-1, 1]) {
+      add(suitPanels, new THREE.BoxGeometry(0.085, 0.3, 0.035), M.trim, [side * 0.15, 0.28, 0.17], [0, 0, side * 0.12]);
+    }
+    const lenses = new THREE.Group();
+    this.neck.add(lenses);
+    for (const side of [-1, 1]) {
+      add(lenses, new THREE.SphereGeometry(1, 12, 8), M.trim, [side * 0.073, 0.17, 0.135], [0, 0, side * 0.15], [0.063, 0.042, 0.026]);
+      const lens = add(lenses, new THREE.SphereGeometry(1, 12, 8), M.glow, [side * 0.073, 0.17, 0.157], [0, 0, side * 0.15], [0.048, 0.027, 0.014]);
+      lens.layers.set(LAYER_NO_OUTLINE);
+    }
+    const bootCuffs = this.legs.map(({ knee }) => add(knee, new THREE.CylinderGeometry(0.093, 0.086, 0.2, 10), M.shoes, [0, -0.32, 0]));
+    const gloveCuffs = this.arms.map(({ elbow }) => add(elbow, new THREE.CylinderGeometry(0.07, 0.076, 0.12, 10), M.trim, [0, -0.29, 0]));
     // Chest emblem (canvas decal).
     this.emblemCanvas = document.createElement('canvas');
     this.emblemCanvas.width = this.emblemCanvas.height = 128;
@@ -342,7 +357,7 @@ export class Hero {
       this.scarf.pts.push(new THREE.Vector3());
       this.scarf.prev.push(new THREE.Vector3());
     }
-    Object.assign(this.parts, { eyeMask, collar, hair, phones, goggles, emblem });
+    Object.assign(this.parts, { eyeMask, collar, hair, phones, goggles, emblem, lenses, suitPanels, bootCuffs, gloveCuffs });
     this.scarfNeck = new THREE.Object3D();
     this.scarfNeck.position.set(0, 0.02, -0.12);
     this.neck.add(this.scarfNeck);
@@ -369,15 +384,23 @@ export class Hero {
     this.arms.forEach((a) => a.shoulder.scale.setScalar(b ? 0.92 : 1));
     this.legs.forEach((l) => l.hip.scale.set(b ? 0.95 : 1, b ? 0.96 : 1, b ? 0.95 : 1));
     // Head: mask style + hood + hair.
+    const fitted = look.outfit === 'suit';
     const full = look.mask === 'full';
+    M.mask.color.copy(c(fitted ? look.suit : '#1b1030'));
+    P.suitPanels.visible = fitted;
+    P.pocket.visible = !fitted;
+    P.stripe.visible = !fitted;
+    P.bootCuffs.forEach((m) => { m.visible = fitted; });
+    P.gloveCuffs.forEach((m) => { m.visible = fitted; });
     P.head.material = full ? M.mask : M.skin;
     P.eyeMask.visible = !full;
     const hoodUp = look.hood === 'up';
     P.hood.visible = hoodUp;
     P.collar.visible = !hoodUp;
-    for (const [k, g] of Object.entries(P.hair)) g.visible = !hoodUp && k === look.hair;
+    for (const [k, g] of Object.entries(P.hair)) g.visible = !hoodUp && !full && k === look.hair;
     P.visor.visible = look.eyes === 'visor';
     P.goggles.visible = look.eyes === 'goggles';
+    P.lenses.visible = look.eyes === 'lenses';
     P.brow.visible = look.eyes === 'visor';
     P.phones.visible = !!look.headphones;
     P.pack.visible = P.coil.visible = !!look.backpack;
@@ -559,6 +582,6 @@ export class Hero {
 
     const hand = this.arms[this.lineSide > 0 ? 1 : 0].hand;
     hand.getWorldPosition(this.handWorld);
-    for (const g of this.glowParts) g.visible = true;
+    // Visibility is owned by setLook; animation must not restore hidden visors.
   }
 }

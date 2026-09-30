@@ -14,6 +14,7 @@ import { Input } from './game/input.js';
 import { Audio } from './game/audio.js';
 import { loadSave, writeSave } from './game/save.js';
 import { UI } from './game/ui.js';
+import { paidInventory } from './game/paid-inventory.js';
 import { Intro } from './game/intro.js';
 import { ACHIEVEMENTS, settleRun, liveCheck, levelOf, xpFor } from './game/progress.js';
 import { Webs } from './game/webs.js';
@@ -24,6 +25,7 @@ import { Lobby } from './game/lobby.js';
 import { UPGRADES, GADGETS, buy, stats, nextGoal, canAffordAny } from './game/shop.js';
 import { SkillChain } from './game/skills.js';
 import { HOWTO_PAGES } from './game/howto.js';
+import { Tutorial } from './game/tutorial.js';
 import { Physics } from './game/physics.js';
 import { Hazards } from './game/hazards.js';
 import { Director } from './game/director.js';
@@ -134,6 +136,12 @@ class Game {
       studioRefresh: () => this.ui.studio(this.save, this.look()),
       click: () => this.audio.play('ui'),
     });
+    paidInventory.setEffectHandler((item) => {
+      if (this.state !== 'playing') return false;
+      this.applyGadgetEffect(item);
+      return true;
+    });
+    paidInventory.subscribe(() => { this.ui.gadgets(this.save); this.applyLook(); });
     this.intro = new Intro(this);
     this.skills = new SkillChain(this.ui);
     this.physics = new Physics(scene);
@@ -309,6 +317,7 @@ class Game {
   }
 
   toTitle() {
+    this.tutorial?.hide();
     this.state = 'title';
     this.resetWorld();
     this.resetRun();
@@ -326,6 +335,7 @@ class Game {
   }
 
   startRun(fromIntro = false) {
+    this.tutorial?.hide();
     const actIdx = fromIntro ? 0 : (this.save.checkpointAct || 0) % ACTS.length;
     this.lobby.clear();
     if (!fromIntro) this.resetWorld(ACTS[actIdx].zone);
@@ -358,6 +368,7 @@ class Game {
     setTimeout(() => this.state === 'playing' && this.ui.zone(ZONE_NAMES[this.lastZone]), 500);
     this.audio.playing = true;
     this.story.begin(actIdx);
+    paidInventory.deliverReady();
   }
 
   // ───────────────────────── UI handlers ─────────────────────────
@@ -532,6 +543,7 @@ class Game {
   }
 
   onSkin(id) {
+    paidInventory.clearSuit();
     const s = SKINS.find((k) => k.id === id);
     if (!this.save.unlocked.includes(id)) {
       if (this.save.bank < s.cost) {
@@ -556,19 +568,16 @@ class Game {
     this.applySkin();
   }
 
-  /** Comic-page tutorial (first run, or from the title). */
+  /** Safe rooftop practice, separate from the chase and its economy. */
   showHowto() {
-    this.resetWorld();
-    this.resetRun();
-    this.state = 'howto';
-    this.titleT = 0;
-    this.monster.root.visible = false;
-    this.line.hide();
-    this.ui.showHud(false);
-    this.howtoPage = 0;
-    this.ui.howto(HOWTO_PAGES, 0, false);
-    this.ui.screen('howto');
+    this.toTitle();
+    this.state = 'training';
+    this.ui.screen(null);
+    this.tutorial ||= new Tutorial(this);
+    this.tutorial.start();
   }
+
+  persistTutorial() { writeSave(this.save); }
 
   finishHowto(customize) {
     this.save.seenTutorial = true;
@@ -582,7 +591,7 @@ class Game {
   }
 
   look() {
-    return { ...DEFAULT_LOOK, ...(this.save.look || {}) };
+    return { ...DEFAULT_LOOK, ...(this.save.look || {}), ...(paidInventory.suit()?.look || {}) };
   }
 
   applyLook() {
@@ -592,6 +601,7 @@ class Game {
   }
 
   onLook(k, v, fromInput) {
+    paidInventory.clearSuit();
     if (k === 'preset') {
       const p = PRESETS.find((x) => x.id === v);
       if (!p) return;
@@ -619,6 +629,7 @@ class Game {
   }
 
   randomLook() {
+    paidInventory.clearSuit();
     const r = (a) => a[Math.floor(Math.random() * a.length)];
     const S = STUDIO;
     this.save.look = {
@@ -709,6 +720,8 @@ class Game {
       this.ambient.update(dt);
     } else if (this.state === 'studio') {
       this.updateTitle(dt, true);
+    } else if (this.state === 'training') {
+      this.updateTitle(dt);
     } else if (this.state === 'howto') {
       this.updateTitle(dt);
     } else if (this.state === 'playing') {
@@ -773,10 +786,13 @@ class Game {
     this.updateAtmos(dt, 'roof');
     const seg = this.path.segments[0];
     let p = seg.toWorld(40, 0, 1.05);
-    const playable = this.state === 'title' && this.lobby.active;
+    const playable = (this.state === 'title' || this.state === 'training') && this.lobby.active;
     if (playable) {
       // The lobby is playable: pointer webs, hold swings, space hops.
-      this.lobby.update(dt, this.input.drain(), this.input.aim);
+      let actions = this.input.drain();
+      if (this.state === 'training') actions = this.tutorial.before(actions);
+      this.lobby.update(dt, actions, this.input.aim);
+      if (this.state === 'training') this.tutorial.after(dt, actions);
       p = this.lobby.pos.clone();
     } else {
       if (this.lobby.active) {
@@ -798,7 +814,7 @@ class Game {
     target.y += playable ? 3.2 : portrait ? 0.9 : 1.1;
     this.camera.position.lerp(target, 1 - Math.exp(-3 * dt));
     const look = _v2.copy(p).setY(p.y + (studio ? (portrait ? -0.75 : 0.1) : portrait ? 0.2 : 0.5));
-    if (!portrait) {
+    if (!portrait && this.state !== 'training') {
       // Title: hero in the right third. Studio: hero in the left third (panel is right).
       const toCam = this.camera.position.clone().sub(p).setY(0).normalize();
       look.add(new THREE.Vector3(-toCam.z, 0, toCam.x).multiplyScalar(studio ? 1.5 : -2.2));
@@ -1408,13 +1424,19 @@ class Game {
 
   useGadget(id) {
     const gd = this.save.gadgets || {};
-    if (!(gd[id] > 0) || this.state !== 'playing') {
-      this.ui.pop('NONE LEFT — VISIT THE SHOP', '#fff1d6', 50, 70, 26);
+    if (this.state !== 'playing' || !['net','smoke'].includes(id)) return;
+    if (!(gd[id] > 0)) {
+      if (paidInventory.spend(id)) this.ui.pop('CHECKING PURCHASE GADGET…', '#fff1d6', 50, 70, 24);
+      else this.ui.pop(paidInventory.pending ? 'WALLET REQUEST PENDING: CHECK SHOP' : 'NONE LEFT: VISIT THE SHOP', '#fff1d6', 50, 70, 24);
       return;
     }
     gd[id]--;
     writeSave(this.save);
     this.ui.gadgets(this.save);
+    this.applyGadgetEffect(id);
+  }
+
+  applyGadgetEffect(id) {
     if (id === 'net') {
       let n = 0;
       for (const seg of this.path.segments) {
@@ -1966,19 +1988,7 @@ class Game {
 }
 
 try {
-  const game = new Game();
-  // Embedded edition: the universe sound panel owns the master switch.
-  if (window.parent !== window) {
-    document.getElementById('sound-chip')?.remove();
-    window.addEventListener('message', event => {
-      if (event.source !== window.parent || event.origin !== location.origin || event.data?.type !== 'pe-master-sound' || typeof event.data.enabled !== 'boolean') return;
-      if (event.data.enabled) game.audio.unlock();
-      for (const [key, bus, base] of [['music','musicBus',0.5],['effects','sfxBus',0.9],['effects','ambBus',0.24]]) {
-        const value = event.data[key];
-        if (typeof value === 'number' && Number.isFinite(value) && game.audio[bus]) game.audio[bus].gain.value = Math.max(0,Math.min(1,value))*base;
-      }
-    });
-  }
+  new Game();
 } catch (e) {
   console.error(e);
   const boot = document.getElementById('boot');

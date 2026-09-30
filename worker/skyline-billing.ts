@@ -1,11 +1,27 @@
 /** Google-verified paid inventory; earned game coins never enter this ledger. */
-export interface SkylineEnv { DB: D1Database; GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY?: string; SKYLINE_PAYMENTS_ENABLED?: string; OWNER_KEY_HASH?: string }
+export interface SkylineEnv { DB: D1Database; GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY?: string; SKYLINE_PAYMENTS_ENABLED?: string; OWNER_KEY_HASH?: string; SKYLINE_DELETION_PROCESSING_ENABLED?: string }
 export const PACKAGE = 'dev.arnav.skylineswing';
 export const PRODUCTS: Record<string,{coins:number;net:number;smoke:number;entitlement?:string}> = {
  skyline_neon_suit:{coins:0,net:0,smoke:0,entitlement:'neon'},
  skyline_founder_bundle:{coins:1500,net:3,smoke:3,entitlement:'founder'},
  skyline_coins_1500:{coins:1500,net:0,smoke:0}, skyline_gadget_pack:{coins:0,net:3,smoke:3},
 };
+const DELETION_DEADLINE_MS=7*86400000;
+const DELETION_RECEIPT_RETENTION_MS=30*86400000;
+/** Bounded database maintenance; actual periodic invocation must be verified by the host. */
+export async function skylineDeletionMaintenance(env:SkylineEnv,now=Date.now(),invoker:"manual"|"scheduled"="manual"){
+ if(env.SKYLINE_DELETION_PROCESSING_ENABLED!=='true')throw new Failure(503,'deletion_processing_not_open');
+ if(!Number.isSafeInteger(now)||now<0)throw new Failure(400,'invalid_maintenance_time');
+ if(!['manual','scheduled'].includes(invoker))throw new Failure(400,'invalid_maintenance_invoker');
+ // The purge and heartbeat commit together. A failed purge must never look healthy.
+ const results=await env.DB.batch([
+  env.DB.prepare('DELETE FROM skyline_deletion_completions WHERE completed<=?').bind(now-DELETION_RECEIPT_RETENTION_MS),
+  env.DB.prepare('INSERT INTO skyline_deletion_health(id,last_success,last_scheduled) VALUES(1,?,?) ON CONFLICT(id) DO UPDATE SET last_success=MAX(last_success,excluded.last_success),last_scheduled=CASE WHEN excluded.last_scheduled IS NULL THEN last_scheduled ELSE MAX(COALESCE(last_scheduled,0),excluded.last_scheduled) END').bind(now,invoker==='scheduled'?now:null),
+ ]);
+ const removed=results[0];
+ const pending=await env.DB.prepare("SELECT COUNT(*) AS pending,COALESCE(SUM(CASE WHEN requested+?<=? THEN 1 ELSE 0 END),0) AS overdue,MIN(requested+?) AS nextDeadline FROM skyline_deletion_requests WHERE status='pending'").bind(DELETION_DEADLINE_MS,now,DELETION_DEADLINE_MS).first<{pending:number;overdue:number;nextDeadline:number|null}>();
+ return {purgedReceipts:removed.meta.changes,pending:pending?.pending??0,overdue:pending?.overdue??0,nextDeadline:pending?.nextDeadline??null};
+}
 type Purchase = {purchaseStateContext?:{purchaseState?:string};testPurchaseContext?:{fopType?:string};obfuscatedExternalAccountId?:string;acknowledgementState?:string;productLineItem?:{productId?:string;productOfferDetails?:{quantity?:number;refundableQuantity?:number;consumptionState?:string;rentOfferDetails?:unknown;preorderOfferDetails?:unknown}}[]};
 class Failure extends Error { constructor(public status:number,public code:string){super(code);} }
 export async function hash(secret:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(secret))),x=>x.toString(16).padStart(2,'0')).join('');}
@@ -95,6 +111,7 @@ async function snapshot(db:D1Database,memberId:string){
   db.prepare('SELECT entitlement FROM skyline_entitlements WHERE member=? ORDER BY entitlement').bind(memberId),
   db.prepare('SELECT reason FROM skyline_payment_holds WHERE member=?').bind(memberId),
  ]);
+ if(!wallet.results.length)throw new Failure(401,'account_unavailable');
  return {memberId,paymentHold:hold.results.length>0,entitlements:(entitlements.results as {entitlement:string}[]).map(r=>r.entitlement),wallet:wallet.results[0]??{coins:0,net:0,smoke:0}};
 }
 export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof fetch=fetch):Promise<Response>{
@@ -112,13 +129,78 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
   try{body=JSON.parse(new TextDecoder().decode(bytes));if(!body||typeof body!=='object'||Array.isArray(body))throw 0;}catch{throw new Failure(400,'invalid_json');}
  }
  if(path==='/api/skyline/reconcile'&&request.method==='POST')return json(await reconcile(request,body,env,send));
- if((path==='/api/skyline/account'||path==='/api/skyline/recover')&&request.method==='POST'){
+ if(path==='/api/skyline/deletion-health'&&request.method==='GET'){
+  const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
+  if(!env.OWNER_KEY_HASH||!/^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
+  if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
+  if(new URL(request.url).search)throw new Failure(400,'invalid_health_request');
+  const now=Date.now();
+  const health=await env.DB.prepare('SELECT last_success,last_scheduled FROM skyline_deletion_health WHERE id=1').first<{last_success:number;last_scheduled:number|null}>();
+  const queue=await env.DB.prepare("SELECT COUNT(*) AS pending,COALESCE(SUM(CASE WHEN requested+?<=? THEN 1 ELSE 0 END),0) AS overdue,MIN(requested+?) AS nextDeadline FROM skyline_deletion_requests WHERE status='pending'").bind(DELETION_DEADLINE_MS,now,DELETION_DEADLINE_MS).first<{pending:number;overdue:number;nextDeadline:number|null}>();
+  return json({processingEnabled:env.SKYLINE_DELETION_PROCESSING_ENABLED==='true',checkedAt:now,lastMaintenanceAt:health?.last_success??null,lastScheduledAt:health?.last_scheduled??null,scheduledRecently:Boolean(health?.last_scheduled&&now-health.last_scheduled<2*3600000),pending:queue?.pending??0,overdue:queue?.overdue??0,nextDeadline:queue?.nextDeadline??null});
+ }
+ if(path==='/api/skyline/deletion-maintenance'&&request.method==='POST'){
+  const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
+  if(!env.OWNER_KEY_HASH||!/^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
+  if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
+  if(Object.keys(body).length)throw new Failure(400,'invalid_maintenance_request');
+  return json(await skylineDeletionMaintenance(env));
+ }
+ if(path==='/api/skyline/deletion-requests/complete'&&request.method==='POST'){
+  const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
+  if(!env.OWNER_KEY_HASH||!/^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
+  if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
+  if(env.SKYLINE_DELETION_PROCESSING_ENABLED!=='true')throw new Failure(503,'deletion_processing_not_open');
+  if(Object.keys(body).some(key=>!['requestId','confirmation'].includes(key))||typeof body.requestId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(body.requestId)||body.confirmation!=='delete-account')throw new Failure(400,'invalid_deletion_confirmation');
+  const requestHash=await hash(body.requestId);
+  const pending=await env.DB.prepare("SELECT member FROM skyline_deletion_requests WHERE request_id=? AND status='pending'").bind(body.requestId).first<{member:string}>();
+  if(!pending){
+   const completed=await env.DB.prepare('SELECT completed FROM skyline_deletion_completions WHERE request_hash=? AND completed>?').bind(requestHash,Date.now()-DELETION_RECEIPT_RETENTION_MS).first<{completed:number}>();
+   if(!completed)throw new Failure(404,'request_not_found');
+   return json({status:'completed',requestId:body.requestId,completedAt:completed.completed});
+  }
+  // Guard every removal against the exact durable request. D1 batch commits all or none.
+  const guard="EXISTS(SELECT 1 FROM skyline_deletion_requests WHERE member=? AND request_id=? AND status='pending')";
+  const member=pending.member;
+  await env.DB.batch([
+   env.DB.prepare("INSERT OR IGNORE INTO skyline_deletion_completions(request_hash,completed) SELECT ?,? WHERE "+guard).bind(requestHash,Date.now(),member,body.requestId),
+   env.DB.prepare('DELETE FROM skyline_refund_events WHERE token_hash IN (SELECT token_hash FROM skyline_purchases_v2 WHERE member=?) AND '+guard).bind(member,member,body.requestId),
+   env.DB.prepare('DELETE FROM skyline_refunds WHERE token_hash IN (SELECT token_hash FROM skyline_purchases_v2 WHERE member=?) AND '+guard).bind(member,member,body.requestId),
+   ...['skyline_purchases_v2','skyline_entitlements','skyline_spends_v2','skyline_coin_buys_v2','skyline_payment_holds','skyline_wallets'].map(table=>env.DB.prepare('DELETE FROM '+table+' WHERE member=? AND '+guard).bind(member,member,body.requestId)),
+   env.DB.prepare("DELETE FROM skyline_deletion_requests WHERE member=? AND request_id=? AND status='pending' AND EXISTS(SELECT 1 FROM skyline_deletion_completions WHERE request_hash=?)").bind(member,body.requestId,requestHash),
+   env.DB.prepare('DELETE FROM skyline_members WHERE id=? AND NOT EXISTS(SELECT 1 FROM skyline_deletion_requests WHERE member=?) AND EXISTS(SELECT 1 FROM skyline_deletion_completions WHERE request_hash=?)').bind(member,member,requestHash),
+  ]);
+  const completed=await env.DB.prepare('SELECT completed FROM skyline_deletion_completions WHERE request_hash=? AND completed>?').bind(requestHash,Date.now()-DELETION_RECEIPT_RETENTION_MS).first<{completed:number}>();
+  const remains=await env.DB.prepare('SELECT id FROM skyline_members WHERE id=?').bind(member).first();
+  if(!completed||remains)throw new Failure(503,'deletion_not_confirmed');
+  return json({status:'completed',requestId:body.requestId,completedAt:completed.completed});
+ }
+ if(path==='/api/skyline/deletion-requests'&&request.method==='GET'){
+  const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
+  if(!env.OWNER_KEY_HASH||!/^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
+  if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
+  const params=new URL(request.url).searchParams,after=params.get('after')??'';
+  if(Array.from(params.keys()).some(key=>key!=='after')||params.getAll('after').length>1||after&&!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(after))throw new Failure(400,'invalid_cursor');
+  const rows=await env.DB.prepare("SELECT member,request_id,requested,status FROM skyline_deletion_requests WHERE status='pending' AND request_id>? ORDER BY request_id LIMIT 101").bind(after).all<{member:string;request_id:string;requested:number;status:string}>();
+  const requests=rows.results.slice(0,100);
+  return json({requests:requests.map(row=>({...row,deadlineAt:row.requested+DELETION_DEADLINE_MS})),next:rows.results.length>100?requests[99].request_id:null});
+ }
+ if((path==='/api/skyline/account'||path==='/api/skyline/recover'||path==='/api/skyline/deletion-request/recovery')&&request.method==='POST'){
   // Cloudflare supplies CF-Connecting-IP; retain only rotating hashes, not addresses.
   const window=Math.floor(Date.now()/3600000),bucket=await hash(window+':'+path+':'+(request.headers.get('CF-Connecting-IP')??'unknown'));
   await env.DB.prepare('INSERT INTO skyline_rate_limits(bucket,count,expires) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET count=count+1').bind(bucket,(window+2)*3600000).run();
   const rate=await env.DB.prepare('SELECT count FROM skyline_rate_limits WHERE bucket=?').bind(bucket).first<{count:number}>();
   if((rate?.count??0)>(path.endsWith('/account')?60:20))throw new Failure(429,'too_many_requests');
   await env.DB.prepare('DELETE FROM skyline_rate_limits WHERE expires<?').bind(Date.now()).run();
+ }
+ if(path==='/api/skyline/deletion-request/recovery'&&request.method==='POST'){
+  if(Object.keys(body).some(key=>!['memberId','recoveryToken'].includes(key))||typeof body.memberId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(body.memberId)||typeof body.recoveryToken!=='string'||!/^[a-f0-9]{64}$/.test(body.recoveryToken))throw new Failure(401,'invalid_recovery');
+  const member=await env.DB.prepare('SELECT id FROM skyline_members WHERE id=? AND recovery_hash=?').bind(body.memberId,await hash(body.recoveryToken)).first<{id:string}>();
+  if(!member)throw new Failure(401,'invalid_recovery');
+  await env.DB.prepare('INSERT OR IGNORE INTO skyline_deletion_requests(member,request_id,requested) VALUES(?,?,?)').bind(member.id,crypto.randomUUID(),Date.now()).run();
+  const row=await env.DB.prepare('SELECT request_id,requested,status FROM skyline_deletion_requests WHERE member=?').bind(member.id).first<{request_id:string;requested:number;status:string}>();
+  if(!row)throw new Failure(503,'request_not_recorded');
+  return json({status:row.status,requestId:row.request_id,requestedAt:row.requested},202);
  }
  if(path==='/api/skyline/account'&&request.method==='POST'){
   const memberId=crypto.randomUUID(),sessionToken=secret(),recoveryToken=secret();
@@ -132,6 +214,12 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
  }
  const auth=request.headers.get('Authorization')?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];if(!auth)throw new Failure(401,'authentication_required');
  const member=await env.DB.prepare('SELECT id FROM skyline_members WHERE session_hash=?').bind(await hash(auth)).first<{id:string}>();if(!member)throw new Failure(401,'invalid_session');
+ if(path==='/api/skyline/deletion-request'){
+  if(Object.keys(body).length)throw new Failure(400,'invalid_deletion_request');
+  if(request.method==='POST')await env.DB.prepare('INSERT OR IGNORE INTO skyline_deletion_requests(member,request_id,requested) VALUES(?,?,?)').bind(member.id,crypto.randomUUID(),Date.now()).run();
+  const row=await env.DB.prepare('SELECT request_id,requested,status FROM skyline_deletion_requests WHERE member=?').bind(member.id).first<{request_id:string;requested:number;status:string}>();
+  return json(row?{status:row.status,requestId:row.request_id,requestedAt:row.requested}:{status:'not_requested'},request.method==='POST'?202:200);
+ }
  if(path==='/api/skyline/entitlements'&&request.method==='GET')return json(await snapshot(env.DB,member.id));
  if(['/api/skyline/buy','/api/skyline/spend','/api/skyline/verify'].includes(path)&&await env.DB.prepare('SELECT member FROM skyline_payment_holds WHERE member=?').bind(member.id).first())throw new Failure(409,'payment_review_required');
  if(path==='/api/skyline/buy'&&request.method==='POST'){
@@ -176,7 +264,7 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
  const grant=PRODUCTS[product];
  // D1 batch is one transaction: ledger admission, inventory and applied marker commit together.
  await env.DB.batch([
-  env.DB.prepare('INSERT OR IGNORE INTO skyline_purchases_v2(token_hash,member,product,quantity,coins,net,smoke,entitlement,created) SELECT ?,?,?,?,?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM skyline_refunds WHERE token_hash=?) AND NOT EXISTS(SELECT 1 FROM skyline_payment_holds WHERE member=?)').bind(tokenHash,member.id,product,valid.quantity,grant.coins*valid.quantity,grant.net*valid.quantity,grant.smoke*valid.quantity,grant.entitlement??null,Date.now(),tokenHash,member.id),
+  env.DB.prepare('INSERT OR IGNORE INTO skyline_purchases_v2(token_hash,member,product,quantity,coins,net,smoke,entitlement,created) SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM skyline_members WHERE id=?) AND NOT EXISTS(SELECT 1 FROM skyline_refunds WHERE token_hash=?) AND NOT EXISTS(SELECT 1 FROM skyline_payment_holds WHERE member=?)').bind(tokenHash,member.id,product,valid.quantity,grant.coins*valid.quantity,grant.net*valid.quantity,grant.smoke*valid.quantity,grant.entitlement??null,Date.now(),member.id,tokenHash,member.id),
   env.DB.prepare('UPDATE skyline_wallets SET coins=coins+?,net=net+?,smoke=smoke+? WHERE member=? AND EXISTS(SELECT 1 FROM skyline_purchases_v2 WHERE token_hash=? AND member=? AND product=? AND applied=0)').bind(grant.coins*valid.quantity,grant.net*valid.quantity,grant.smoke*valid.quantity,member.id,tokenHash,member.id,product),
   env.DB.prepare('INSERT OR IGNORE INTO skyline_entitlements(member,entitlement) SELECT member,entitlement FROM skyline_purchases_v2 WHERE token_hash=? AND member=? AND product=? AND applied=0 AND entitlement IS NOT NULL').bind(tokenHash,member.id,product),
   env.DB.prepare('UPDATE skyline_purchases_v2 SET applied=1 WHERE token_hash=? AND member=? AND product=? AND applied=0').bind(tokenHash,member.id,product),

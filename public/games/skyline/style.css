@@ -590,6 +590,28 @@ canvas { cursor: crosshair; }
 .jr-item.locked { opacity: .45; }
 .jr-item b { font-family: 'Bangers', sans-serif; font-size: 16px; display: block; }
 
+/* Guided practice sits over the rooftop, leaving the world and pointer zones playable. */
+.training { position:fixed; inset:0; z-index:45; pointer-events:none; }
+.training-card { position:absolute; top:max(14px,env(safe-area-inset-top)); left:14px; width:min(370px,calc(100vw - 28px)); padding:14px 18px; background:var(--ink); border:2px solid var(--cyan); border-radius:16px; pointer-events:auto; box-shadow:0 8px 24px #0006; }
+.training-card small { font-size:10px; color:var(--cyan); }
+.training-card h2 { font-family:var(--comic); font-size:28px; margin:8px 0; letter-spacing:1px; }
+.training-card p { font-size:13px; line-height:1.5; margin:8px 0; }
+.training-nav { display:flex; gap:8px; flex-wrap:wrap; }
+.training-nav button { min-height:44px; background:transparent; border:1px solid #fff5; border-radius:8px; padding:8px; color:var(--cream); font-size:16px; }
+.training-controls { position:absolute; bottom:max(20px,env(safe-area-inset-bottom)); left:14px; right:14px; display:flex; gap:10px; justify-content:center; pointer-events:auto; }
+.training-controls button { background:var(--ink); color:var(--cream); border:2px solid var(--cyan); border-radius:12px; min-height:54px; padding:10px 18px; font-size:22px; touch-action:none; }
+.training button:focus-visible { outline:3px solid var(--yellow); outline-offset:3px; }
+.training button:active { background:#3b275e; }
+@media (max-width:480px) { .training-controls { gap:6px; } .training-controls button { padding:10px; font-size:18px; } .training-card { padding:12px; } }
+@media (max-height:500px) { .training-card { max-width:340px; } .training-card h2 { font-size:23px; } .training-card p { font-size:11px; } .training-controls { justify-content:flex-end; } }
+
+/* Original suit silhouettes replace the old color-chip placeholders. */
+.suit-preview { display: block; width: 80px; height: 112px; flex: none; }
+.preset .suit-preview { margin: 0 auto 4px; }
+.preset { color: var(--ink); }
+.suit-card:focus-visible, .preset:focus-visible { outline: 3px solid #7b4dff; outline-offset: 3px; }
+.suit-card { min-height: 154px; }
+
 /* Rooftop menu: a clear launch point, with the living city still in view. */
 #title { align-items:flex-start; justify-content:center; padding:28px 5vw; background:linear-gradient(90deg,rgba(17,9,32,.82),rgba(17,9,32,.12) 65%,transparent); }
 .rooftop-menu { width:min(380px,100%); padding:24px; border-left:3px solid var(--cyan); background:linear-gradient(135deg,rgba(27,16,48,.94),rgba(27,16,48,.7)); box-shadow:0 18px 60px #10081b66; }
@@ -619,3 +641,11 @@ canvas { cursor: crosshair; }
 @media(max-aspect-ratio:4/5) { #title { justify-content:flex-end; align-items:center; padding:20px 18px max(20px,env(safe-area-inset-bottom)); background:linear-gradient(0deg,#110920e8,transparent 85%); } .rooftop-menu { width:min(380px,100%); padding:20px; } }
 @media(max-height:520px) { .rooftop-menu { padding:14px 20px; width:340px; } .rooftop-kicker { margin-bottom:10px; } #title .logo .l1 { font-size:35px; } #title .logo .l2 { font-size:54px; } #title .logo.big { margin-bottom:10px; } #title .logo .l3 { display:none; } .rooftop-promise { margin-bottom:12px; } #title .menu .btn.primary { font-size:24px; padding:8px 12px; } #title .stats-row { margin-top:12px; } }
 @media(prefers-reduced-motion:reduce) { #title button { transition:none; } }
+
+/* One lesson at a time: progress stays visual and the next control stands out. */
+.training-progress { display:flex; gap:5px; margin-bottom:10px; }
+.training-progress i { width:26px; height:4px; border-radius:3px; background:#ffffff30; }
+.training-progress i.complete { background:var(--cyan); }
+.training-progress i.current { background:var(--yellow); }
+.training-controls button.suggested { border-color:var(--yellow); box-shadow:0 0 0 2px #ffe15b30; }
+@media(max-width:480px) { #training-swing { font-size:15px; } }

@@ -57,6 +57,27 @@
       "when": 1790742000000,
       "tag": "0007_explorer_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1790762193944,
+      "tag": "0008_skyline_deletion_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790762193945,
+      "tag": "0009_skyline_deletion_completion",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1790762193946,
+      "tag": "0010_skyline_deletion_health",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Skyline Play Billing backend — sandbox preparation
 
-No real payment has been verified and no billing environment was enabled by this change. The Skyline route and flat migrations 0003/0004 are mounted/registered in the **local source**; this does not establish deployment. Root previously verified the remote public D1 database had no Skyline tables. Refund migrations `drizzle/0005_skyline_refunds.sql` and `drizzle/0006_skyline_partial_refunds.sql` are registered in the local migration journal; hosted application remains unverified. All SQL statements are complete and trigger-free. Transactional D1 batches commit ledger admission, inventory updates and applied markers together or roll back together. Versioned ledger tables preserve the prior failed-deployment boundary.
+No real payment has been verified and no billing environment was enabled by this change. The Skyline route and flat migrations 0003/0004 are mounted/registered in the **local source**; this does not establish deployment. Earlier inspection found no Skyline tables. A fresh Sites database overview on 2026-09-30 now confirms the live DB has the Skyline member, wallet, entitlement, purchase, spend, coin-buy, refund and hold tables. Refund migrations `drizzle/0005_skyline_refunds.sql` and `drizzle/0006_skyline_partial_refunds.sql` are registered in the local migration journal; Hosted schema presence is now verified; actual Google purchase fulfillment remains unverified. All SQL statements are complete and trigger-free. Transactional D1 batches commit ledger admission, inventory updates and applied markers together or roll back together. Versioned ledger tables preserve the prior failed-deployment boundary.
 
 Server environment (secrets must be installed via native secret tooling, never client source):
 - `GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL`
@@ -70,3 +70,73 @@ Each entry is committed atomically; valid earlier entries can remain committed i
 Verification: `SKYLINE_TEST_D1=1 node --test tests/skyline-billing.test.mjs` tests actual local D1 concurrent refunds and existing credit/buy/use paths, plus SQLite fixture tests for permanent revocation, spent shortfalls, token replay, tombstones, delayed verification races, unauthorized requests, disabled gates and injected rollback. These tests use synthetic credentials and mocked Google transport; no real purchase/refund was claimed.
 
 Primary reference: https://developers.google.com/android-publisher/api-ref/rest/v3/purchases.voidedpurchases (VoidedPurchase fields, including optional voidedQuantity).
+
+## Live configuration checkpoint — 2026-09-30
+
+Google OAuth and the current one-time-product catalog endpoint both returned HTTP 200, with all four expected product IDs. The earlier catalog HTTP 403 is superseded for this endpoint; purchase-verification/settlement permission is not yet proven. All four Play purchase options remain Draft.
+
+The two Google service-account variables were configured as Sites server secrets and applied by redeploying the existing archive-backed version 15, environment revision 2. No source changes or access-policy changes were published. `SKYLINE_PAYMENTS_ENABLED` remains unset and native `PAYMENTS_ENABLED=false`. No real purchase occurred. Receipt: `../../skyline-android/proof/billing-server-config-checkpoint.json`.
+
+The direct unauthenticated endpoint probe received Cloudflare HTTP 403 / edge code 1010 before application execution. Browser navigation to that endpoint was blocked by the client. Those results did not establish whether Android native networking works. The subsequent native checkpoint below resolves reachability through the emulator, without proving authenticated operations or checkout.
+
+## Account deletion requests: local implementation, not live
+
+Migration0008 creates skyline_deletion_requests. Authenticated POST /api/skyline/deletion-request accepts an empty body, uses the session account rather than caller-supplied IDs, and returns202 only after a durable INSERT OR IGNORE and readback. GET returns pending/not_requested with the same reference; recovery rotates credentials without losing the request. No credentials, purchase receipts, wallet balances or earned progress are removed by this action.
+
+Owner-only GET /api/skyline/deletion-requests uses the existing OWNER_KEY_HASH convention and returns up to100 pending rows, with a UUID after cursor for subsequent pages. Member sessions cannot enumerate requests. It does not complete or delete requests. Do not add a schedule or claim requests are processed automatically.
+
+Before deploying/advertising: define retention and deletion processing, verify the public web request route, verify host networking from Android, apply migration0008 and deploy backend, then exercise live request and retry without real purchases. Current v15 live backend lacks these routes. Android localv11 therefore must not be uploaded as a functional live deletion flow yet. Source tests passed; live D1/account deletion remains unverified.
+
+
+## Public deletion-request page — local checkpoint
+
+`public/skyline-account.html` is a standalone page at `/skyline-account.html`, with self-hosted CSS/JavaScript and no world HUD, analytics or sign-in bundle. The private recovery code is masked, sent in a same-origin POST body, cleared from the form immediately, and never saved to browser storage or the URL. The page distinguishes a pending request from actual account deletion. It is not published or advertised as a working live deletion service.
+
+POST `/api/skyline/deletion-request/recovery` verifies the existing member UUID and hashed recovery code. It never creates an account or rotates credentials. Valid retries keep the same reference. Invalid codes use a generic 401, foreign browser origins are rejected, and the route shares the existing bounded recovery-attempt limiter. Only durable readback can return 202. Existing native session requests and owner queue remain available locally.
+
+Verification: 44 backend/migration tests passed, two optional D1 tests skipped; TypeScript and hosted build passed. The built static HTML/CSS/JS are present in `dist/client`. Local browser inspection covered desktop and 390px layouts, masked input, required confirmation, immediate field clearing and a failed-service response without false confirmation. The local dev database was not migrated during this page check, so the browser did not establish successful live persistence; positive persistence and replay were verified with synthetic SQLite fixtures. Human comprehension and real Android interaction remain NOT_TESTED. Actual deletion processing, retention policy, public support contact, live migration/deployment and live request verification remain release work.
+
+
+## Android native reachability checkpoint
+
+One executed Android instrumentation test, using the production PurchaseBackend HTTPS transport on emulator-5554, received the expected HTTP401 JSON `authentication_required` from the deployed `/api/skyline/entitlements` endpoint. This is application-level service reachability, not merely a TCP/TLS connection. The request sent no credentials or body and created no account/purchase. The local test preference store remained unchanged. Reproduce with `../skyline-android/tools/test-purchase-connectivity.py emulator-5554`; receipts are under that project's `proof/purchase-connectivity-*`. Earlier direct/client-blocked probes are not evidence of Android blockage after this successful native result. Authenticated live operations, deployment of the deletion changes, actual processing and Google settlement remain unverified.
+
+
+## Deletion processing — local, disabled by default
+
+Migration0009 adds `skyline_deletion_completions(request_hash,completed)`. POST `/api/skyline/deletion-requests/complete` requires the existing owner Bearer authentication, `SKYLINE_DELETION_PROCESSING_ENABLED=true`, and the exact body `{ "requestId": "<queued UUID>", "confirmation": "delete-account" }`. No caller-supplied member ID is accepted. An unknown/unrequested account cannot be deleted through this route. No processing flag has been configured live; no real deletion occurred.
+
+The action resolves the durable pending request, then atomically writes a hashed reference/completion receipt and removes that member's associated refund events/refund rows, purchase ledger, entitlements, spends, coin buys, holds, wallet, pending request and credential row. Each removal is guarded by the exact pending request. Owner retries return the same completion time without removing another account. Deleted session/recovery credentials fail authentication. Account creation does not accept a supplied member ID; a new identity cannot claim the deleted identity's Google purchase proof. Purchase admission now also requires the member still to exist, and a missing wallet cannot produce a successful entitlement snapshot. A delayed Google verification cannot recreate the deleted ledger.
+
+**Retained data requiring policy approval:** the completion table retains only SHA-256(request UUID) and a completion timestamp, with no member ID, session/recovery credential, product, purchase token or balance. No expiry/purge schedule exists yet, so do not promise a retention duration. Owner processing target, receipt retention/purge, public support contact, provider logging/backups and corresponding public policy remain required before enabling this route. Existing Google Play transactions are not refunded/cancelled/deleted by this action. Later refund reconciliation can still record unknown hashed purchase-token tombstones for fraud prevention; do not claim all provider or anti-fraud records are erased. Earned local gameplay data is separate and is not remotely removed.
+
+Verification: `SKYLINE_TEST_D1=1 node --test tests/skyline-billing.test.mjs tests/migrations.test.mjs` — 51 passed, none skipped. Includes actual local D1 concurrent completion retries and SQLite tests for owner/gate/confirmation enforcement, complete member-linked removal, other-account preservation, failure injection at each transaction stage and deletion during delayed Google purchase verification. Typecheck passed. These are local synthetic data; live request/processing, provider retention and human/device acceptance remain unverified.
+
+Policy reference: https://support.google.com/googleplay/android-developer/answer/13327111?hl=en — account-associated data must be deleted; justified retention must be disclosed; users must be told what to expect. This local implementation is not a claim of policy approval.
+
+
+### Owner policy selection and compact-page revision
+
+Owner selected a 7-day deletion-processing deadline and 30-day hashed completion-receipt retention in a direct reply. Expiry/purge implementation and operational enforcement remain pending; no policy was published or live processing enabled. The request page was simplified to one visible instruction, one field and one action, with recovery instructions and data/refund details inside native disclosures. Desktop and390px rendering, disclosure expansion, required acknowledgement and failed-service response were checked through the local browser. Human comprehension remains NOT_TESTED. Screenshot: ../proof/skyline-deletion-compact-local.png.
+
+
+## Selected policy: expiry and maintenance implemented locally
+
+The direct owner selection was completion within7 days and hashed completion-receipt retention of30 days. Receipt lookup now rejects records at the30-day boundary. `skylineDeletionMaintenance` physically purges receipts whose completion time is at least30 days old and reports pending/overdue counts plus the nearest7-day deadline without member IDs. The owner queue includes each request's `deadlineAt`. Cleanup does not itself delete pending accounts; completion remains the deliberate owner operation.
+
+POST `/api/skyline/deletion-maintenance` requires owner authentication, an empty body and the processing-enable flag. Clients cannot choose a cleanup timestamp. `worker/index.ts` includes a scheduled handler using server wall-clock time, disabled when processing is not open. No Cron Trigger was configured and no timer invocation was observed live. Sites get_site returned current live version15, with no automation capability field exposed; that is not proof that schedules are impossible or that none exist. Available connector tools exposed no schedule configuration operation. A verified periodic trigger (recommended hourly), operational owner queue review and monitoring are required before claiming the chosen timing policy is enforced. Request-driven/manual cleanup alone cannot guarantee physical expiry during idle periods.
+
+54 backend/migration tests passed with actual local D1 cases enabled, zero skipped; typecheck and hosted build passed. D1 case verifies concurrent completion retries,30-day physical purge and failure to retrieve a purged receipt. SQLite fixtures verify exact expiry/deadline boundaries, owner authentication, disabled gate, client time rejection and preservation of pending accounts. No live account/receipt deletion, timer, enabled processing flag or policy publication occurred. Public page stays compact and does not advertise the timing promise until operations are live.
+
+Cloudflare source: https://developers.cloudflare.com/workers/configuration/cron-triggers/ — scheduled handlers and Cron Trigger configuration are distinct requirements. Hosting-operation integration remains unverified.
+
+
+### Owner operation health · local only
+
+Migration0010 adds a singleton operational heartbeat without account IDs, request references or tokens. Maintenance batches the receipt purge and success timestamp atomically. A failure in either statement rolls back both. Scheduled invocations update a separate `last_scheduled` timestamp; manual invocations leave that value alone, and older invocations cannot move either timestamp backwards.
+
+GET `/api/skyline/deletion-health` requires owner Bearer authentication and accepts no query parameters. It is read-only even when processing is disabled, returning the enable flag, server check time, last successful cleanup, last scheduled cleanup, pending/overdue counts and next deadline. `scheduledRecently` means the last scheduled invocation is less than two hours old; it is a recent-invocation indicator, not proof of a durable Cron Trigger or a seven-day response guarantee. Visitor credentials are rejected and no member identifiers are returned.
+
+Deployment operating check: apply migrations0008–0010, configure the host trigger, keep processing disabled until its scope is verified, then enable processing and inspect this endpoint after a real scheduled invocation. Check the owner queue daily and resolve requests within seven days. Alert on overdue requests or missing/stale scheduled cleanup. The connector currently exposes no schedule-creation operation, and get_site still returns live version15 without schedule metadata. Do not use a manual invocation as schedule evidence. No live operation or account deletion occurred in this pass.
+
+Validation:56 backend/migration tests passed with local D1 tests enabled, none skipped; typecheck passed. New fixtures cover unauthenticated/member access rejection, read-only disabled-state health, missing/stale scheduled heartbeat, manual versus scheduled invocation, and rollback on each maintenance batch failure. Human operations review remains NOT_TESTED.

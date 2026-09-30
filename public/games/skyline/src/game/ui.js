@@ -1,4 +1,6 @@
 import { SKINS, PRESETS, STUDIO, DEFAULT_LOOK } from '../config.js';
+import { paidInventory } from './paid-inventory.js';
+import { suitPreview } from './suit-preview.js';
 import { CLUES } from './encounters.js';
 
 const $ = (id) => document.getElementById(id);
@@ -91,17 +93,16 @@ export class UI {
     const tab = this.studioTab;
     if (tab === 'presets') {
       html = `<div class="preset-grid">${PRESETS.map((p) => {
-        const L = { ...DEFAULT_LOOK, ...p.look };
         const owned = save.unlockedPresets.includes(p.id);
-        return `<div class="preset${save.preset === p.id ? ' on' : ''}" data-k="preset" data-v="${p.id}"><div class="swatch">${[L.suit, L.pants, L.accent, L.hairColor].map((c) => `<i style="background:${c}"></i>`).join('')}</div>${p.name}<small>${owned ? (save.preset === p.id ? 'EQUIPPED' : 'TAP TO WEAR') : `🔒 ${p.cost} coins`}</small></div>`;
+        return `<button type="button" class="preset${save.preset === p.id ? ' on' : ''}" data-k="preset" data-v="${p.id}">${suitPreview(p)}${p.name}<small>${owned ? (save.preset === p.id ? 'EQUIPPED' : 'TAP TO WEAR') : `🔒 ${p.cost} coins`}</small></button>`;
       }).join('')}</div>`;
     } else if (tab === 'body') {
       html = row('BODY', chips('body', ['A', 'B'], { A: 'Build A', B: 'Build B' })) + row('SKIN TONE', swatches('skin', STUDIO.skin));
     } else if (tab === 'head') {
       html = row('HOOD', chips('hood', ['up', 'down'])) + row('HAIR', chips('hair', STUDIO.hair)) + row('HAIR COLOUR', swatches('hairColor', STUDIO.hairColor)) +
-        row('MASK', chips('mask', ['full', 'eye'], { eye: 'Eye mask' })) + row('EYES', chips('eyes', ['visor', 'goggles', 'none']));
+        row('MASK', chips('mask', ['full', 'eye'], { eye: 'Eye mask' })) + row('EYES', chips('eyes', ['visor', 'lenses', 'goggles', 'none']));
     } else if (tab === 'suit') {
-      html = row('SUIT', swatches('suit', STUDIO.colors)) + row('PATTERN', chips('pattern', STUDIO.pattern)) + row('PANTS', swatches('pants', STUDIO.colors)) +
+      html = row('OUTFIT', chips('outfit', ['street', 'suit'], { street: 'Streetwear', suit: 'Fitted suit' })) + row('SUIT', swatches('suit', STUDIO.colors)) + row('PATTERN', chips('pattern', STUDIO.pattern)) + row('PANTS', swatches('pants', STUDIO.colors)) +
         row('SHOES', swatches('shoes', STUDIO.colors)) + row('GLOW', swatches('accent', STUDIO.colors)) + row('TRIM', swatches('trim', STUDIO.colors)) + row('EMBLEM', chips('emblem', STUDIO.emblem));
     } else {
       html = row('BACKPACK', chips('backpack', ['true', 'false'], { true: 'On', false: 'Off' })) + row('HEADPHONES', chips('headphones', ['true', 'false'], { true: 'On', false: 'Off' })) +
@@ -413,7 +414,7 @@ export class UI {
   // ── Meta screens ──
   gadgets(save) {
     for (const id of ['net', 'smoke']) {
-      const n = save.gadgets?.[id] || 0;
+      const n = (save.gadgets?.[id] || 0) + paidInventory.count(id);
       const b = $(`btn-${id}`);
       b.classList.toggle('hidden', n <= 0);
       b.querySelector('i').textContent = n;
@@ -434,11 +435,7 @@ export class UI {
     $('shop-suits').innerHTML = presets.map((p) => {
       const owned = save.unlockedPresets.includes(p.id);
       const on = save.preset === p.id;
-      const L = p.look;
-      const c1 = L.suit || '#ff3fa4';
-      const c2 = L.pants || '#232a5c';
-      const c3 = L.accent || '#3fe0ff';
-      return `<button class="suit-card ${on ? 'on' : ''} ${owned ? 'owned' : ''}" data-act="suit-${p.id}"><span class="swatch" style="background:linear-gradient(180deg, ${c1} 0 55%, ${c2} 55% 100%);box-shadow: inset 0 0 0 3px ${c3}"></span><b>${p.name}</b><i>${on ? 'WEARING' : owned ? 'OWNED' : `<i class="coin-icon"></i>${p.cost}`}</i></button>`;
+      return `<button class="suit-card ${on ? 'on' : ''} ${owned ? 'owned' : ''}" data-act="suit-${p.id}">${suitPreview(p)}<b>${p.name}</b><i>${on ? 'WEARING' : owned ? 'OWNED' : `<i class="coin-icon"></i>${p.cost}`}</i></button>`;
     }).join('');
     $('shop-gd').innerHTML = gds.map((g) => {
       const n = save.gadgets?.[g.id] || 0;
@@ -455,7 +452,7 @@ export class UI {
 
   titleStats(save) {
     const ca = save.checkpointAct || 0;
-    $('t-play').textContent = ca > 0 ? `CONTINUE ACT ${['I', 'II', 'III', 'IV'][ca] || ca + 1}` : 'START A RUN ↗';
+    $('t-play').textContent = ca > 0 ? `CONTINUE ACT ${['I', 'II', 'III', 'IV'][ca] || ca + 1} ↗` : 'START A RUN ↗';
     $('t-best').textContent = save.best.toLocaleString();
     $('t-bank').textContent = save.bank.toLocaleString();
   }
