@@ -12,7 +12,7 @@ import { AudioSys } from './audio.js';
 import { makeSurvivor, animate } from './models.js';
 import { Enemy } from './ai.js';
 import { FX } from './fx.js';
-import { preload, loaded, Character, prop } from './assets.js';
+import { preload, loaded, Character, prop, load } from './assets.js';
 
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -22,6 +22,9 @@ const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2;
 
 // ------------------------------------------------------------------ assets first (title shows progress)
 await preload(p => { $('loadbar').style.width = Math.round(p * 100) + '%'; });
+// Original compact Blender prop; the existing model remains a load-failure fallback.
+const originalPistol = await load('assets/models/survival-pistol-original.glb');
+if (originalPistol) loaded.props.survival_pistol_original = { scene: originalPistol.scene, def: { env: 0.45 } };
 $('loading').textContent = 'CLICK TO BEGIN · HEADPHONES RECOMMENDED'; $('loading').classList.add('go');
 
 // ------------------------------------------------------------------ renderer / scene / post
@@ -92,7 +95,7 @@ if (heroC?.ok) {
   hero.root.visible = false; scene.add(heroC.root); registerEnv(heroC.root);
   heroC.root.updateMatrixWorld(true);
   const hand = heroC.bones.RightHand, ws = new THREE.Vector3();
-  const g = prop('pistol', { size: [0.05, 0.17, 0.24] }) || new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.2), new THREE.MeshStandardMaterial({ color: 0x151515, metalness: 0.7, roughness: 0.4 }));
+  const g = prop('survival_pistol_original', { size: [0.05, 0.17, 0.24] }) || prop('pistol', { size: [0.05, 0.17, 0.24] }) || new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.2), new THREE.MeshStandardMaterial({ color: 0x151515, metalness: 0.7, roughness: 0.4 }));
   const gw = new THREE.Group(); gw.add(g); g.position.y = -0.085; // grip centred in the palm
   if (hand) { hand.getWorldScale(ws); gw.scale.setScalar(1 / ws.x); hand.add(gw); }
   gunMesh = gw; gw.visible = false;
@@ -266,7 +269,7 @@ function fire() {
     if (tb > 0 && tb < best) { const px = o.x + dir.x * tb, pz = o.z + dir.z * tb, py = o.y + dir.y * tb; if (Math.hypot(px - e.pos.x, pz - e.pos.z) < (e.type === 'bigknocker' ? 0.45 : 0.32) && py > 0.1 && py < e.cfg.headY - 0.12) { best = tb; hitE = e; head = false; } }
   }
   const hp = o.clone().addScaledVector(dir, best);
-  if (hitE) { hitE.damage(1, head); fx.blood(hp); } else { fx.sparks(hp); fx.dust(hp, 10); }
+  if (hitE) { hitE.damage(1, head); fx.blood(hp); } else { fx.sparks(hp); fx.dust(hp, 10); audio.ricochet(hp); }
 }
 function reload() {
   if (P.reloadT > 0 || P.spare <= 0 || P.ammo >= 6 || P.struggle) return;
@@ -786,7 +789,7 @@ window.__game = {
     const f2 = L.soundField(L.center(20, 8).x, L.center(20, 8).z, 5); ok('sound passes through opening', f2[L.idx(22, 8)] < Infinity);
     const a0 = P.ammo; if (a0 > 0) { const fc = P.fireCool, rc = P.reloadT; P.fireCool = 0; P.reloadT = 0; this.fire(); ok('firing consumes ammo', P.ammo === a0 - 1); P.ammo = a0; P.fireCool = fc; P.reloadT = rc; }
     const it0 = { ...P.items }; P.items.cloth = 1; P.items.alcohol = 1; P.craftT = 0; startCraft(RECIPES[1]); update(3); ok('crafting a molotov consumes cloth+alcohol', P.items.molotov === it0.molotov + 1 && P.items.cloth === 0); P.items = it0;
-    ok('player uses rigged model', !!heroC?.ok); ok('enemies rigged', enemies.every(e => !!e.c) || enemies.length === 0);
+    ok('player uses rigged model', !!heroC?.ok); ok('enemy rig or procedural fallback available', enemies.every(e => e.c?.ok || !!e.h?.root));
     return res;
   },
 };

@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS explorer_profiles (subject TEXT PRIMARY KEY, public_id TEXT UNIQUE NOT NULL, alias TEXT NOT NULL, visible INTEGER NOT NULL DEFAULT 0, joined INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS explorer_worlds (subject TEXT NOT NULL, world TEXT NOT NULL, discovered INTEGER NOT NULL, PRIMARY KEY(subject,world));

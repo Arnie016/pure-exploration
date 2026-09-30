@@ -1965,7 +1965,19 @@ class Game {
 }
 
 try {
-  new Game();
+  const game = new Game();
+  // Embedded edition: the universe sound panel owns the master switch.
+  if (window.parent !== window) {
+    document.getElementById('sound-chip')?.remove();
+    window.addEventListener('message', event => {
+      if (event.source !== window.parent || event.origin !== location.origin || event.data?.type !== 'pe-master-sound' || typeof event.data.enabled !== 'boolean') return;
+      if (event.data.enabled) game.audio.unlock();
+      for (const [key, bus, base] of [['music','musicBus',0.5],['effects','sfxBus',0.9],['effects','ambBus',0.24]]) {
+        const value = event.data[key];
+        if (typeof value === 'number' && Number.isFinite(value) && game.audio[bus]) game.audio[bus].gain.value = Math.max(0,Math.min(1,value))*base;
+      }
+    });
+  }
 } catch (e) {
   console.error(e);
   const boot = document.getElementById('boot');

@@ -4702,13 +4702,11 @@ function saveStoryProgress(store) {
   STORY_PROGRESS_CACHE = store;
   try { localStorage.setItem(STORY_PROGRESS_KEY, JSON.stringify(store)); } catch (e) {}
 }
-let activeLevel = LEVELS.circuit;
+let activeLevel = LEVELS.storm;
 const SELECTED_LEVEL_KEY = "ff_selected_level_v1";
 function selectedLevelId() {
-  try {
-    const id = localStorage.getItem(SELECTED_LEVEL_KEY);
-    return id && LEVELS[id] ? id : "circuit";
-  } catch (e) { return "circuit"; }
+  // Enter the world through its storm; scene selection remains available before flight.
+  return "storm";
 }
 function persistSelectedLevel(id) {
   try { localStorage.setItem(SELECTED_LEVEL_KEY, id); } catch (e) {}

@@ -1,10 +1,12 @@
+import {explorers,type ExplorerEnv} from './explorers';
+import {skylineBilling,type SkylineEnv} from './skyline-billing';
 import {owner} from './private';
 import { activity } from "./activity";
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
-interface Env {
+interface Env extends SkylineEnv, ExplorerEnv {
   ASSETS: Fetcher;
   DB: D1Database;
   OWNER_KEY_HASH?: string;
@@ -31,6 +33,8 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/api/explorers") return explorers(request,env);
+    if (url.pathname.startsWith("/api/skyline/")) return skylineBilling(request,env);
     if (url.pathname.startsWith("/api/admin/")) return owner(request, env.DB, env.OWNER_KEY_HASH);
     if (["/api/pulse", "/api/event", "/api/stats", "/api/favorite", "/api/garden", "/api/profile", "/api/signal", "/api/forget", "/api/reaction", "/api/feedback"].includes(url.pathname)) return activity(request, env.DB);
 

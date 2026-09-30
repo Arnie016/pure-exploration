@@ -1,11 +1,12 @@
 {
-  "title": "Hollow Bloom",
+  "title": "After the Bloom",
   "edition": "Survival horror vertical slice",
   "source": "User-authored Hollow Bloom build, September 30 2026",
   "adaptations": [
     "Bundled local Three.js r160 with MIT license",
     "Repaired missing loading, backpack, weapon and opening-film controls",
-    "Connected Pure Exploration master sound toggle"
+    "Connected Pure Exploration master sound toggle",
+    "Connected existing knocker/lurker skinned rigs and clips, preserving procedural fallback and gameplay hitboxes"
   ],
   "input": "Desktop keyboard and mouse"
 }

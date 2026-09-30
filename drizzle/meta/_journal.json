@@ -22,6 +22,41 @@
       "when": 1790699148050,
       "tag": "0002_sleepy_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790725200000,
+      "tag": "0003_skyline_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790726100000,
+      "tag": "0004_skyline_coin_shop",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790728973853,
+      "tag": "0005_skyline_refunds",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790731930771,
+      "tag": "0006_skyline_partial_refunds",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1790742000000,
+      "tag": "0007_explorer_profiles",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import * as L from './level.js';
 import { makeInfected, animate } from './models.js';
+import { Character, loaded } from './assets.js';
 
 export const TYPES = {
   frenzied:   { hp: 2, walk: 1.0, run: 4.3, sight: 15, fov: 1.9, hear: 1.0, reach: 1.25, headY: 1.62, grab: 'struggle' },
@@ -22,7 +23,17 @@ export class Enemy {
     this.lastKnown = null; this.lastHeard = null; this.tSinceDetect = 99; this.see = 0; this.lostT = 0;
     this.searchPts = []; this.waitT = 0; this.atkCool = 1; this.stagger = 0; this.speed = 0; this.vel = new THREE.Vector3();
     this.stillT = 0; this.clickT = rand(0.5, 2); this.vocalT = rand(3, 8); this.stepT = 0; this.headYaw = 0; this.headRoll = 0; this.deadT = 0;
-    this.h = makeInfected(this.type); this.h.root.position.copy(this.pos); this.h.root.rotation.y = this.yaw; W.scene.add(this.h.root);
+    this.h = makeInfected(this.type);
+    const rigId=this.type==='bigknocker'?'knocker':this.type;
+    this.c=loaded.chars[rigId]?.clips?.walk?new Character(rigId,{height:this.type==='bigknocker'?2.15:this.cfg.headY+0.15}):null;
+    if(this.c?.ok){
+      // Keep the original root, perception, hitboxes and listen material. Only
+      // replace visible geometry; missing/unanimated assets retain the fallback.
+      for(const child of this.h.root.children)child.visible=false;
+      this.h.root.add(this.c.root);this.c.addSilhouette(this.h.silMat);
+    }
+    this.rigAttackT=0;
+    this.h.root.position.copy(this.pos); this.h.root.rotation.y = this.yaw; W.scene.add(this.h.root);
     if (this.state === 'DORMANT') { this.h.root.position.y = 0.2; this.h.body.rotation.x = -0.25; }
     this.crossDone = false;
   }
@@ -105,7 +116,8 @@ export class Enemy {
   // ---------------------------------------------------------- update
   update(dt) {
     const W = this.W, P = W.player, cfg = this.cfg;
-    if (!this.alive) { this.deadT += dt; const k = Math.min(1, this.deadT * 3); this.h.body.rotation.x = -k * 1.45 * this.fallDir; this.h.root.position.y = 0; this.h.body.position.y = -k * 0.1 * 0; return; }
+    if (!this.alive) { this.deadT += dt; const k = Math.min(1, this.deadT * 3); this.h.body.rotation.x = -k * 1.45 * this.fallDir; this.h.root.position.y = 0; this.h.body.position.y = -k * 0.1 * 0; this.updateRig(dt,0); return; }
+    this.rigAttackT=Math.max(0,this.rigAttackT-dt);
     this.stateT += dt; this.atkCool -= dt; this.tSinceDetect += dt;
     const before = this.pos.clone();
     let pose = null, run = 0, hunch = this.type === 'lurker' ? 0.7 : this.type === 'knocker' || this.type === 'bigknocker' ? 0.25 : 0.1;
@@ -150,7 +162,19 @@ export class Enemy {
     if (this.state === 'WAKING') { const k = Math.min(1, this.stateT / 2.2); r.position.y = 0.2 * (1 - k); this.h.body.rotation.x = -0.25 * (1 - k) + Math.sin(this.stateT * 18) * 0.05 * (1 - k); pose = 'reach'; }
     else if (this.state !== 'DORMANT') { r.position.y = 0; this.h.body.rotation.x *= 0.9; }
     animate(this.h, { dt, speed: this.speed, crouch: this.type === 'lurker' && this.state !== 'COMBAT' ? 0.35 : 0, run, hunch, pose, headYaw, headRoll, headPitch, lean: this.stagger > 0 ? -0.4 : 0 });
+    this.updateRig(dt,moved/Math.max(dt,0.001));
     if (this.h.extras.plates) this.h.extras.plates.rotation.z = Math.sin(W.time * 3 + this.pos.x) * 0.08;
+  }
+
+  updateRig(dt,actualSpeed){
+    if(!this.c?.ok)return;
+    let clip='idle',once=false,speed=1;
+    if(!this.alive){clip='death';once=true;}
+    else if(this.rigAttackT>0){clip='attack';once=true;}
+    else if(this.state==='WAKING'&&this.c.has('scream')){clip='scream';once=true;}
+    else if(actualSpeed>0.08){clip=actualSpeed>this.cfg.walk*1.5&&this.c.has('run')?'run':'walk';speed=Math.max(0.4,Math.min(1.8,actualSpeed/(clip==='run'?this.cfg.run:this.cfg.walk)));}
+    this.c.play(clip,{once,fade:clip==='death'?0.12:0.2,speed});
+    this.c.update(dt);
   }
 
   think(dt, distP) {
@@ -188,7 +212,7 @@ export class Enemy {
         const lk = this.lastKnown || { x: P.pos.x, z: P.pos.z };
         const knows = cfg.sight ? this.lostT < 0.1 : this.lostT < 2.5;
         if (cfg.sight && this.canSeePlayer() <= 0) this.lostT += dt;
-        if (knows && distP < cfg.reach + 0.2 && Math.abs(P.pos.y) < 1) { this.speed = 0; this.turnTo(Math.atan2(P.pos.x - this.pos.x, P.pos.z - this.pos.z), dt, 10); if (this.atkCool <= 0) { this.atkCool = 2.2; W.onAttack(this); } break; }
+        if (knows && distP < cfg.reach + 0.2 && Math.abs(P.pos.y) < 1) { this.speed = 0; this.turnTo(Math.atan2(P.pos.x - this.pos.x, P.pos.z - this.pos.z), dt, 10); if (this.atkCool <= 0) { this.atkCool = 2.2; this.rigAttackT=0.8; this.c?.play('attack',{once:true,fade:0.08,restart:true}); W.onAttack(this); } break; }
         const tgt = knows && cfg.sight ? P.pos : lk;
         const arrived = this.goTo(tgt.x, tgt.z, cfg.run, dt, 0.5);
         if ((cfg.sight && this.lostT > 2.5) || (!cfg.sight && this.lostT > 4) || (arrived && !knows)) { this.searchCenter = { ...lk }; this.setState('SEARCH'); }

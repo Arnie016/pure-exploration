@@ -68,7 +68,7 @@ type Obstacle={x:number;z:number;r:number}|{x:number;z:number;halfX:number;halfZ
 export const gardenObstacles:Obstacle[]=[
  ...gardenArchitectureObstacles,
  ...shrinePortals.flatMap(p=>{const a=Math.atan2(-p.x,-p.z);return[-1,1].map(sign=>({x:p.x+Math.cos(a)*sign*2.85,z:p.z-Math.sin(a)*sign*2.85,r:.61}));}),
- {x:0,z:0,r:3.62}, {x:-4,z:-1,r:1.65},{x:4.3,z:1,r:1.5},{x:-.7,z:4.4,r:1.2},{x:4.9,z:-8.5,r:1.35},{x:-5,z:-8.2,r:1.35},
+ {x:0,z:0,r:3.62}, {x:-4,z:-1,r:1.65},{x:4.3,z:1,r:1.5},{x:-8.2,z:1.8,r:1.2},{x:4.9,z:-8.5,r:1.35},{x:-5,z:-8.2,r:1.35},
  {x:-8,z:-6.85,halfX:1.35,halfZ:1.1},{x:8,z:-6.85,halfX:1.35,halfZ:1.1},
  {x:-5,z:4,halfX:1.25,halfZ:.85},{x:5,z:4,halfX:1.25,halfZ:.85},{x:0,z:-47,r:5.95},
  ...[-1,1].flatMap(sign=>Array.from({length:4},(_,tier)=>({x:sign*(38+tier*7),z:-48-tier*5,r:10-tier})))

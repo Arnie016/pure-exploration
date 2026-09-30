@@ -1,5 +1,5 @@
 /** Google-verified paid inventory; earned game coins never enter this ledger. */
-export interface SkylineEnv { DB: D1Database; GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY?: string; SKYLINE_PAYMENTS_ENABLED?: string }
+export interface SkylineEnv { DB: D1Database; GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY?: string; SKYLINE_PAYMENTS_ENABLED?: string; OWNER_KEY_HASH?: string }
 export const PACKAGE = 'dev.arnav.skylineswing';
 export const PRODUCTS: Record<string,{coins:number;net:number;smoke:number;entitlement?:string}> = {
  skyline_neon_suit:{coins:0,net:0,smoke:0,entitlement:'neon'},
@@ -34,7 +34,69 @@ export function validatePurchase(p:Purchase,member:string,product:string){
  if(PRODUCTS[product].entitlement&&quantity!==1)throw new Failure(409,'invalid_purchase_quantity');
  return {quantity:quantity!,consumed:offer.consumptionState==='CONSUMPTION_STATE_CONSUMED'};
 }
-async function snapshot(db:D1Database,memberId:string){const wallet=await db.prepare('SELECT coins,net,smoke FROM skyline_wallets WHERE member=?').bind(memberId).first();const rows=await db.prepare('SELECT entitlement FROM skyline_entitlements WHERE member=? ORDER BY entitlement').bind(memberId).all<{entitlement:string}>();return {memberId,entitlements:rows.results.map(r=>r.entitlement),wallet:wallet??{coins:0,net:0,smoke:0}};}
+type VoidedPurchase={purchaseToken?:string;voidedTimeMillis?:string;voidedQuantity?:number};
+async function reconcile(request:Request,body:Record<string,unknown>,env:SkylineEnv,send:typeof fetch){
+ const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
+ if(!env.OWNER_KEY_HASH||! /^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
+ if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
+ if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
+ const now=Date.now(),end=body.endTimeMillis??now,start=body.startTimeMillis??Number(end)-29*86400000;
+ if(Object.keys(body).some(key=>!['startTimeMillis','endTimeMillis'].includes(key))||!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||Number(start)<now-30*86400000||Number(end)>now||Number(start)>=Number(end))throw new Failure(400,'invalid_reconciliation_window');
+ const oauth=await accessToken(env,send);let page:string|undefined,reviewed=0,revoked=0,unknown=0,partialHeld=0;
+ for(let n=0;n<3;n++){
+  const url=new URL('https://androidpublisher.googleapis.com/androidpublisher/v3/applications/'+PACKAGE+'/purchases/voidedpurchases');
+  url.searchParams.set('startTime',String(start));url.searchParams.set('endTime',String(end));url.searchParams.set('type','0');url.searchParams.set('maxResults','100');url.searchParams.set('includeQuantityBasedPartialRefund','true');if(page)url.searchParams.set('token',page);
+  const response=await send(url.toString(),{headers:{Authorization:'Bearer '+oauth},signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Failure(503,'refund_source_unavailable');
+  const data=await response.json() as {voidedPurchases?:VoidedPurchase[];tokenPagination?:{nextPageToken?:string}};
+  if(!Array.isArray(data.voidedPurchases)&&data.voidedPurchases!==undefined||Number(data.voidedPurchases?.length)>100)throw new Failure(503,'invalid_refund_source');
+  for(const entry of data.voidedPurchases??[]){
+   if(typeof entry.purchaseToken!=='string'||entry.purchaseToken.length<8||entry.purchaseToken.length>4096||/\s/.test(entry.purchaseToken)||! /^\d{1,16}$/.test(entry.voidedTimeMillis??'')||entry.voidedQuantity!==undefined&&(!Number.isInteger(entry.voidedQuantity)||entry.voidedQuantity<1||entry.voidedQuantity>100))throw new Failure(503,'invalid_refund_source');
+   const tokenHash=await hash(entry.purchaseToken),at=Number(entry.voidedTimeMillis);if(!Number.isSafeInteger(at)||at>now)throw new Failure(503,'invalid_refund_source');
+   const known=await env.DB.prepare('SELECT member,product,quantity FROM skyline_purchases_v2 WHERE token_hash=?').bind(tokenHash).first<{member:string;product:string;quantity:number}>();
+   // If admission races this lookup, cap the conservative tombstone against
+   // the newly admitted quantity in SQL; unknown partial races require review.
+   let target=known?.quantity??100;
+   if(entry.voidedQuantity!==undefined&&known){
+    // Event quantities are not cumulative and have no unique event ID. Reconcile
+    // against Google's remaining quantity rather than adding possibly replayed events.
+    const check=await send('https://androidpublisher.googleapis.com/androidpublisher/v3/applications/'+PACKAGE+'/purchases/productsv2/tokens/'+encodeURIComponent(entry.purchaseToken),{headers:{Authorization:'Bearer '+oauth},signal:AbortSignal.timeout(10000)});
+    if(!check.ok)throw new Failure(503,'refund_quantity_unavailable');
+    const proof=await check.json() as Purchase,offer=proof.productLineItem?.[0]?.productOfferDetails,remaining=offer?.refundableQuantity;
+    if(proof.obfuscatedExternalAccountId!==known.member||proof.testPurchaseContext?.fopType!=='TEST'||proof.productLineItem?.length!==1||proof.productLineItem[0].productId!==known.product||offer?.quantity!==known.quantity||!Number.isInteger(remaining)||remaining!<0||remaining!>known.quantity||known.quantity-remaining!<entry.voidedQuantity||offer.rentOfferDetails||offer.preorderOfferDetails)throw new Failure(503,'invalid_refund_quantity');
+    target=known.quantity-remaining!;
+   }
+   // Fingerprints deduplicate audit rows only; identical events can collide.
+   const eventHash=await hash(tokenHash+':'+at+':'+(entry.voidedQuantity??'full'));
+   // All delta calculations use the durable cumulative watermark within one D1
+   // transaction. Stale proof cannot lower it; a full record drains the remainder.
+   const delta='(r.desired_quantity-r.refunded_quantity)',purchase='skyline_purchases_v2 p JOIN skyline_refunds r ON p.token_hash=r.token_hash';
+   const debit=(currency:string)=>`(SELECT p.${currency}/p.quantity*${delta} FROM ${purchase} WHERE p.token_hash=?)`;
+   const results=await env.DB.batch([
+    env.DB.prepare('INSERT OR IGNORE INTO skyline_refund_events(event_hash,token_hash,voided_at,partial_quantity) VALUES(?,?,?,?)').bind(eventHash,tokenHash,at,entry.voidedQuantity??null),
+    env.DB.prepare('INSERT OR IGNORE INTO skyline_refunds(token_hash,voided_at,partial_quantity) VALUES(?,?,?)').bind(tokenHash,at,entry.voidedQuantity??null),
+    env.DB.prepare('UPDATE skyline_refunds SET desired_quantity=MAX(desired_quantity,MIN(?,COALESCE((SELECT quantity FROM skyline_purchases_v2 WHERE token_hash=?),0))) WHERE token_hash=?').bind(target,tokenHash,tokenHash),
+    env.DB.prepare(`UPDATE skyline_refunds SET coins_debt=coins_debt+MAX(0,${debit('coins')}-(SELECT coins FROM skyline_wallets WHERE member=(SELECT member FROM skyline_purchases_v2 WHERE token_hash=?))),net_debt=net_debt+MAX(0,${debit('net')}-(SELECT net FROM skyline_wallets WHERE member=(SELECT member FROM skyline_purchases_v2 WHERE token_hash=?))),smoke_debt=smoke_debt+MAX(0,${debit('smoke')}-(SELECT smoke FROM skyline_wallets WHERE member=(SELECT member FROM skyline_purchases_v2 WHERE token_hash=?))) WHERE token_hash=? AND desired_quantity>refunded_quantity AND EXISTS(SELECT 1 FROM skyline_purchases_v2 WHERE token_hash=? AND applied=1)`).bind(tokenHash,tokenHash,tokenHash,tokenHash,tokenHash,tokenHash,tokenHash,tokenHash),
+    env.DB.prepare("INSERT OR IGNORE INTO skyline_payment_holds(member,reason,created) SELECT p.member,CASE WHEN ?=1 THEN 'partial_refund_review' ELSE 'spent_refund_review' END,? FROM skyline_purchases_v2 p JOIN skyline_refunds r ON p.token_hash=r.token_hash WHERE p.token_hash=? AND p.applied=1 AND (r.coins_debt+r.net_debt+r.smoke_debt>0 OR ?=1)").bind(entry.voidedQuantity!==undefined&&!known?1:0,now,tokenHash,entry.voidedQuantity!==undefined&&!known?1:0),
+    env.DB.prepare(`UPDATE skyline_wallets SET coins=MAX(0,coins-${debit('coins')}),net=MAX(0,net-${debit('net')}),smoke=MAX(0,smoke-${debit('smoke')}) WHERE member=(SELECT member FROM skyline_purchases_v2 WHERE token_hash=? AND applied=1) AND EXISTS(SELECT 1 FROM skyline_refunds WHERE token_hash=? AND desired_quantity>refunded_quantity)`).bind(tokenHash,tokenHash,tokenHash,tokenHash,tokenHash),
+    env.DB.prepare('DELETE FROM skyline_entitlements WHERE (member,entitlement) IN (SELECT member,entitlement FROM skyline_purchases_v2 WHERE token_hash=? AND applied=1) AND EXISTS(SELECT 1 FROM skyline_refunds r JOIN skyline_purchases_v2 p ON r.token_hash=p.token_hash WHERE r.token_hash=? AND r.desired_quantity>=p.quantity AND r.desired_quantity>r.refunded_quantity)').bind(tokenHash,tokenHash),
+    env.DB.prepare("UPDATE skyline_purchases_v2 SET settlement=CASE WHEN (SELECT desired_quantity FROM skyline_refunds WHERE token_hash=?)>=quantity THEN 'revoked' ELSE 'partially_refunded' END WHERE token_hash=? AND EXISTS(SELECT 1 FROM skyline_refunds WHERE token_hash=? AND desired_quantity>refunded_quantity)").bind(tokenHash,tokenHash,tokenHash),
+    env.DB.prepare('UPDATE skyline_refunds SET refunded_quantity=desired_quantity,applied=1 WHERE token_hash=? AND (desired_quantity>refunded_quantity OR applied=0)').bind(tokenHash),
+    env.DB.prepare('SELECT p.member,r.coins_debt+r.net_debt+r.smoke_debt AS debt FROM skyline_purchases_v2 p JOIN skyline_refunds r ON p.token_hash=r.token_hash WHERE p.token_hash=?').bind(tokenHash),
+   ]);
+   reviewed++;if(results[9].results.length===0)unknown++;else if(results[7].meta.changes)revoked++;if(entry.voidedQuantity!==undefined&&Number((results[9].results[0] as {debt?:number}|undefined)?.debt)>0)partialHeld++;
+  }
+  page=data.tokenPagination?.nextPageToken;if(page!==undefined&&(typeof page!=='string'||page.length>4096))throw new Failure(503,'invalid_refund_source');if(!page)break;
+ }
+ return {reviewed,revoked,unknown,partialHeld,complete:!page};
+}
+async function snapshot(db:D1Database,memberId:string){
+ const [wallet,entitlements,hold]=await db.batch([
+  db.prepare('SELECT coins,net,smoke FROM skyline_wallets WHERE member=?').bind(memberId),
+  db.prepare('SELECT entitlement FROM skyline_entitlements WHERE member=? ORDER BY entitlement').bind(memberId),
+  db.prepare('SELECT reason FROM skyline_payment_holds WHERE member=?').bind(memberId),
+ ]);
+ return {memberId,paymentHold:hold.results.length>0,entitlements:(entitlements.results as {entitlement:string}[]).map(r=>r.entitlement),wallet:wallet.results[0]??{coins:0,net:0,smoke:0}};
+}
 export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof fetch=fetch):Promise<Response>{
  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
  try{
@@ -49,6 +111,7 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
   const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
   try{body=JSON.parse(new TextDecoder().decode(bytes));if(!body||typeof body!=='object'||Array.isArray(body))throw 0;}catch{throw new Failure(400,'invalid_json');}
  }
+ if(path==='/api/skyline/reconcile'&&request.method==='POST')return json(await reconcile(request,body,env,send));
  if((path==='/api/skyline/account'||path==='/api/skyline/recover')&&request.method==='POST'){
   // Cloudflare supplies CF-Connecting-IP; retain only rotating hashes, not addresses.
   const window=Math.floor(Date.now()/3600000),bucket=await hash(window+':'+path+':'+(request.headers.get('CF-Connecting-IP')??'unknown'));
@@ -70,46 +133,64 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
  const auth=request.headers.get('Authorization')?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];if(!auth)throw new Failure(401,'authentication_required');
  const member=await env.DB.prepare('SELECT id FROM skyline_members WHERE session_hash=?').bind(await hash(auth)).first<{id:string}>();if(!member)throw new Failure(401,'invalid_session');
  if(path==='/api/skyline/entitlements'&&request.method==='GET')return json(await snapshot(env.DB,member.id));
+ if(['/api/skyline/buy','/api/skyline/spend','/api/skyline/verify'].includes(path)&&await env.DB.prepare('SELECT member FROM skyline_payment_holds WHERE member=?').bind(member.id).first())throw new Failure(409,'payment_review_required');
  if(path==='/api/skyline/buy'&&request.method==='POST'){
   if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
   const catalogue:Record<string,number>={net:200,smoke:150},item=String(body.item);
   if(!Object.hasOwn(catalogue,item)||typeof body.requestId!=='string'||! /^[a-zA-Z0-9_-]{16,64}$/.test(body.requestId)||Object.keys(body).some(key=>!['item','requestId'].includes(key)))throw new Failure(400,'invalid_buy');
   const price=catalogue[item];
-  const old=await env.DB.prepare('SELECT item,price FROM skyline_coin_buys WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{item:string;price:number}>();
+  const old=await env.DB.prepare('SELECT item,price FROM skyline_coin_buys_v2 WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{item:string;price:number}>();
   if(old&&(old.item!==item||old.price!==price))throw new Failure(409,'request_id_conflict');
-  try{await env.DB.prepare('INSERT OR IGNORE INTO skyline_coin_buys(member,request_id,item,price,created) VALUES(?,?,?,?,?)').bind(member.id,body.requestId,item,price,Date.now()).run();}catch{throw new Failure(409,'insufficient_balance');}
-  const saved=await env.DB.prepare('SELECT item,price FROM skyline_coin_buys WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{item:string;price:number}>();
-  if(saved?.item!==item||saved?.price!==price)throw new Failure(409,'request_id_conflict');
+  await env.DB.batch([
+   env.DB.prepare('INSERT OR IGNORE INTO skyline_coin_buys_v2(member,request_id,item,price,created) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM skyline_wallets WHERE member=? AND coins>=? AND NOT EXISTS(SELECT 1 FROM skyline_payment_holds WHERE member=skyline_wallets.member))').bind(member.id,body.requestId,item,price,Date.now(),member.id,price),
+   env.DB.prepare("UPDATE skyline_wallets SET coins=coins-?,net=net+?,smoke=smoke+? WHERE member=? AND EXISTS(SELECT 1 FROM skyline_coin_buys_v2 WHERE member=? AND request_id=? AND item=? AND price=? AND applied=0)").bind(price,item==='net'?1:0,item==='smoke'?1:0,member.id,member.id,body.requestId,item,price),
+   env.DB.prepare('UPDATE skyline_coin_buys_v2 SET applied=1 WHERE member=? AND request_id=? AND item=? AND price=? AND applied=0').bind(member.id,body.requestId,item,price),
+  ]);
+  const saved=await env.DB.prepare('SELECT item,price FROM skyline_coin_buys_v2 WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{item:string;price:number}>();
+  if(!saved)throw new Failure(409,'insufficient_balance');if(saved.item!==item||saved.price!==price)throw new Failure(409,'request_id_conflict');
   return json(await snapshot(env.DB,member.id));
  }
  if(path==='/api/skyline/spend'&&request.method==='POST'){
   if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
   const costs:Record<string,{currency:string;amount:number}>={net:{currency:'net',amount:1},smoke:{currency:'smoke',amount:1}};
   const cost=costs[String(body.item)];if(!cost||typeof body.requestId!=='string'||! /^[a-zA-Z0-9_-]{16,64}$/.test(body.requestId))throw new Failure(400,'invalid_spend');
-  const old=await env.DB.prepare('SELECT currency,amount FROM skyline_spends WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{currency:string;amount:number}>();if(old&&(old.currency!==cost.currency||old.amount!==cost.amount))throw new Failure(409,'request_id_conflict');
-  try{await env.DB.prepare('INSERT OR IGNORE INTO skyline_spends(member,request_id,currency,amount,created) VALUES(?,?,?,?,?)').bind(member.id,body.requestId,cost.currency,cost.amount,Date.now()).run();}catch{throw new Failure(409,'insufficient_balance');}
-  const spent=await env.DB.prepare('SELECT currency,amount FROM skyline_spends WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{currency:string;amount:number}>();if(spent?.currency!==cost.currency||spent?.amount!==cost.amount)throw new Failure(409,'request_id_conflict');
+  const old=await env.DB.prepare('SELECT currency,amount FROM skyline_spends_v2 WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{currency:string;amount:number}>();if(old&&(old.currency!==cost.currency||old.amount!==cost.amount))throw new Failure(409,'request_id_conflict');
+  await env.DB.batch([
+   env.DB.prepare("INSERT OR IGNORE INTO skyline_spends_v2(member,request_id,currency,amount,created) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM skyline_wallets WHERE member=? AND CASE ? WHEN 'net' THEN net ELSE smoke END>=? AND NOT EXISTS(SELECT 1 FROM skyline_payment_holds WHERE member=skyline_wallets.member))").bind(member.id,body.requestId,cost.currency,cost.amount,Date.now(),member.id,cost.currency,cost.amount),
+   env.DB.prepare('UPDATE skyline_wallets SET net=net-?,smoke=smoke-? WHERE member=? AND EXISTS(SELECT 1 FROM skyline_spends_v2 WHERE member=? AND request_id=? AND currency=? AND amount=? AND applied=0)').bind(cost.currency==='net'?1:0,cost.currency==='smoke'?1:0,member.id,member.id,body.requestId,cost.currency,cost.amount),
+   env.DB.prepare('UPDATE skyline_spends_v2 SET applied=1 WHERE member=? AND request_id=? AND currency=? AND amount=? AND applied=0').bind(member.id,body.requestId,cost.currency,cost.amount),
+  ]);
+  const spent=await env.DB.prepare('SELECT currency,amount FROM skyline_spends_v2 WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{currency:string;amount:number}>();if(!spent)throw new Failure(409,'insufficient_balance');if(spent.currency!==cost.currency||spent.amount!==cost.amount)throw new Failure(409,'request_id_conflict');
   return json(await snapshot(env.DB,member.id));
  }
  if(path!=='/api/skyline/verify'||request.method!=='POST')throw new Failure(404,'not_found');
  if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
  const product=String(body.productId),token=body.purchaseToken;if(!Object.hasOwn(PRODUCTS,product)||typeof token!=='string'||token.length<8||token.length>4096||/\s/.test(token))throw new Failure(400,'invalid_purchase');
- const tokenHash=await hash(token),existing=await env.DB.prepare('SELECT member,product,settlement FROM skyline_purchases WHERE token_hash=?').bind(tokenHash).first<{member:string;product:string;settlement:string}>();
+ const tokenHash=await hash(token);if(await env.DB.prepare('SELECT token_hash FROM skyline_refunds WHERE token_hash=?').bind(tokenHash).first())throw new Failure(409,'purchase_refunded');
+ const existing=await env.DB.prepare('SELECT member,product,settlement FROM skyline_purchases_v2 WHERE token_hash=?').bind(tokenHash).first<{member:string;product:string;settlement:string}>();
  if(existing&&(existing.member!==member.id||existing.product!==product))throw new Failure(409,'purchase_already_bound');
  const oauth=await accessToken(env,send),headers={Authorization:'Bearer '+oauth,'Content-Type':'application/json'},base='https://androidpublisher.googleapis.com/androidpublisher/v3/applications/'+PACKAGE+'/purchases/';
  const response=await send(base+'productsv2/tokens/'+encodeURIComponent(token),{headers,signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Failure(response.status===404?404:503,'purchase_verification_unavailable');
  const purchase=await response.json() as Purchase,valid=validatePurchase(purchase,member.id,product);if(!valid)return json({status:'pending',...await snapshot(env.DB,member.id)});
  if(valid.consumed&&!existing)throw new Failure(409,'purchase_already_consumed');
  const grant=PRODUCTS[product];
- await env.DB.prepare('INSERT OR IGNORE INTO skyline_purchases(token_hash,member,product,quantity,coins,net,smoke,entitlement,created) VALUES(?,?,?,?,?,?,?,?,?)').bind(tokenHash,member.id,product,valid.quantity,grant.coins*valid.quantity,grant.net*valid.quantity,grant.smoke*valid.quantity,grant.entitlement??null,Date.now()).run();
- const saved=await env.DB.prepare('SELECT member,product,settlement FROM skyline_purchases WHERE token_hash=?').bind(tokenHash).first<{member:string;product:string;settlement:string}>();if(saved?.member!==member.id||saved?.product!==product)throw new Failure(409,'purchase_already_bound');
+ // D1 batch is one transaction: ledger admission, inventory and applied marker commit together.
+ await env.DB.batch([
+  env.DB.prepare('INSERT OR IGNORE INTO skyline_purchases_v2(token_hash,member,product,quantity,coins,net,smoke,entitlement,created) SELECT ?,?,?,?,?,?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM skyline_refunds WHERE token_hash=?) AND NOT EXISTS(SELECT 1 FROM skyline_payment_holds WHERE member=?)').bind(tokenHash,member.id,product,valid.quantity,grant.coins*valid.quantity,grant.net*valid.quantity,grant.smoke*valid.quantity,grant.entitlement??null,Date.now(),tokenHash,member.id),
+  env.DB.prepare('UPDATE skyline_wallets SET coins=coins+?,net=net+?,smoke=smoke+? WHERE member=? AND EXISTS(SELECT 1 FROM skyline_purchases_v2 WHERE token_hash=? AND member=? AND product=? AND applied=0)').bind(grant.coins*valid.quantity,grant.net*valid.quantity,grant.smoke*valid.quantity,member.id,tokenHash,member.id,product),
+  env.DB.prepare('INSERT OR IGNORE INTO skyline_entitlements(member,entitlement) SELECT member,entitlement FROM skyline_purchases_v2 WHERE token_hash=? AND member=? AND product=? AND applied=0 AND entitlement IS NOT NULL').bind(tokenHash,member.id,product),
+  env.DB.prepare('UPDATE skyline_purchases_v2 SET applied=1 WHERE token_hash=? AND member=? AND product=? AND applied=0').bind(tokenHash,member.id,product),
+ ]);
+ const saved=await env.DB.prepare('SELECT member,product,settlement FROM skyline_purchases_v2 WHERE token_hash=?').bind(tokenHash).first<{member:string;product:string;settlement:string}>();if(saved?.member!==member.id||saved?.product!==product)throw new Failure(409,'purchase_already_bound');
+ if(saved.settlement==='revoked'||await env.DB.prepare('SELECT token_hash FROM skyline_refunds WHERE token_hash=?').bind(tokenHash).first())throw new Failure(409,'purchase_refunded');
  let settlement=saved.settlement;
  if(settlement!=='complete'){
   const done=grant.entitlement?purchase.acknowledgementState==='ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED':valid.consumed;
   try{if(!done){const result=await send(base+'products/'+encodeURIComponent(product)+'/tokens/'+encodeURIComponent(token)+(grant.entitlement?':acknowledge':':consume'),{method:'POST',headers,body:'{}',signal:AbortSignal.timeout(10000)});if(!result.ok)throw 0;}
-   await env.DB.prepare("UPDATE skyline_purchases SET settlement='complete' WHERE token_hash=?").bind(tokenHash).run();settlement='complete';
+   await env.DB.prepare("UPDATE skyline_purchases_v2 SET settlement='complete' WHERE token_hash=? AND settlement IN ('retry','complete')").bind(tokenHash).run();settlement='complete';
   }catch{settlement='retry';}
  }
+ if(await env.DB.prepare('SELECT token_hash FROM skyline_refunds WHERE token_hash=?').bind(tokenHash).first())throw new Failure(409,'purchase_refunded');
  return json({status:'verified',settlement,...await snapshot(env.DB,member.id)});
  }catch(error){return json({error:error instanceof Failure?error.code:'billing_unavailable'},error instanceof Failure?error.status:503);}
 }

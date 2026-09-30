@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {transformSync} from 'esbuild';import{readFileSync}from'node:fs';
+const code=transformSync(readFileSync('app/reflection-timing.ts','utf8'),{loader:'ts',format:'esm'}).code;
+const{reflectionTick}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+test('active invitation requires four active minutes and eight actions',()=>{let state={activeSeconds:0,actions:8,lastInput:1000};for(let i=0;i<15;i++){const r=reflectionTick(state,2000,true);assert.equal(r.invite,false);state=r.state;}assert.equal(reflectionTick(state,2000,true).invite,true);assert.equal(reflectionTick({...state,actions:7},2000,true).invite,false);});
+test('hidden, modal, suppressed or idle time never accumulates',()=>{const state={activeSeconds:225,actions:8,lastInput:1000};for(const [now,eligible]of[[2000,false],[47000,true]])assert.deepEqual(reflectionTick(state,now,eligible),{state,invite:false});assert.equal(reflectionTick({...state,lastInput:0},2000,true).invite,false);});

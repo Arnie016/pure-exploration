@@ -92,12 +92,19 @@ export class AudioSys {
     this.burst(o, { dur: 0.5, type: 'lowpass', f: 400, gain: 1.4, attack: 0.001, buf: this.brown });
     this.tone(o, { f: 140, f2: 38, dur: 0.35, gain: 1.1 });
   }
+  ricochet(pos) {
+    if (!this.ok) return; const o = this.out(pos, 0.35, 0.2);
+    this.burst(o, { dur: 0.035, type: 'highpass', f: 3600, gain: 0.3 });
+    this.tone(o, { f: 2600, f2: 740, dur: 0.17, gain: 0.12 });
+    this.tone(o, { t: 0.018, f: 4100, f2: 1200, dur: 0.11, gain: 0.04 });
+  }
   dryfire() { if (!this.ok) return; const o = this.out(null, 0.6); this.burst(o, { dur: 0.03, type: 'highpass', f: 3000, gain: 0.8 }); this.tone(o, { f: 2200, dur: 0.04, gain: 0.1 }); }
   casing(pos) { if (!this.ok) return; const o = this.out(pos, 0.5); [0.35, 0.52, 0.62, 0.68].forEach((t, i) => { this.tone(o, { t, f: 4200 - i * 300, dur: 0.12, gain: 0.12 / (i + 1) }); this.tone(o, { t, f: 6100, dur: 0.06, gain: 0.05 }); }); }
   reload(pos) { if (!this.ok) return; const o = this.out(pos, 0.8); [0, 0.35, 0.6, 0.95].forEach((t, i) => { this.burst(o, { t, dur: 0.04, type: 'highpass', f: 2500, gain: 0.8 }); this.tone(o, { t, f: 900 + i * 300, dur: 0.07, gain: 0.15 }); }); }
   click(pos, n = 3, vol = 1) { // knocker clicking
     if (!this.ok) return; const o = this.out(pos, vol);
     for (let i = 0; i < n; i++) { const t = i * (0.05 + Math.random() * 0.04); this.burst(o, { t, dur: 0.02, f: 2200 + Math.random() * 900, q: 6, gain: 1.4, attack: 0.0005 }); this.tone(o, { t, f: 180, dur: 0.03, gain: 0.25 }); }
+    this.tone(o, { t: n * 0.045, f: 520, f2: 170, dur: 0.13, gain: 0.08 });
     this.burst(o, { t: n * 0.07, dur: 0.25, type: 'lowpass', f: 300, gain: 0.25, buf: this.brown }); // throaty gurgle
   }
   scream(pos, kind = 'frenzied', vol = 1) {

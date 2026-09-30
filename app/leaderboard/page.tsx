@@ -1,33 +1,33 @@
 'use client';
-import {useEffect,useMemo,useState} from 'react';
-import {ArrowUpRight,Bookmark,Eye,RefreshCw,Search,Share2,ThumbsUp,Trophy} from 'lucide-react';
-import {projects,worldHref} from '../projects';
-import {usePulse,track} from '../activity';
-import {WorldDock} from '../components/world-dock';
-import {CinemaPreview,WorldCinemaRail,compactCount,worldCategories,worldCounts} from '../components/world-cinema';
+import {useEffect,useState} from 'react';
+import {ArrowUpRight,Compass,Footprints,Medal,RefreshCw,Trophy,Users} from 'lucide-react';
+import {projects} from '../projects';
+import {usePulse} from '../activity';
+import {achievements,readProgress,PROGRESS_KEY} from '../achievement-model';
+import {PortalDirectory} from '../components/portal-directory';
 import './leaderboard.css';
-const metrics=[{id:'views',label:'Views',icon:Eye},{id:'likes',label:'Likes',icon:ThumbsUp},{id:'favorites',label:'Favorites',icon:Bookmark},{id:'shares',label:'Shares',icon:Share2}] as const;
-type Metric=typeof metrics[number]['id'];
-const connected=projects.filter(p=>p.featured!==false&&p.category!=='Tools');
+import {Participation,type ExplorerRow} from './participation';
+const eligible=projects.filter(p=>p.featured!==false&&p.url&&p.category!=='Tools').map(p=>p.id);
 export default function Leaderboard(){
  const {pulse,error,favorite}=usePulse('leaderboard');
- const [metric,setMetric]=useState<Metric>('views'),[query,setQuery]=useState(''),[message,setMessage]=useState(''),[preview,setPreview]=useState(false);
- useEffect(()=>{if(!message)return;const timer=setTimeout(()=>setMessage(''),4000);return()=>clearTimeout(timer);},[message]);
- const worlds=useMemo(()=>connected.filter(p=>(p.title+' '+p.subtitle+' '+p.tag).toLowerCase().includes(query.toLowerCase())).sort((a,b)=>(worldCounts(pulse,b.id)[metric]??0)-(worldCounts(pulse,a.id)[metric]??0)||a.title.localeCompare(b.title)),[pulse,query,metric]);
- const leading=worlds[0],leaderCount=leading?worldCounts(pulse,leading.id)[metric]:null;
- const ranks=Object.fromEntries(worlds.filter(p=>(worldCounts(pulse,p.id)[metric]??0)>0).map(p=>[p.id,worlds.findIndex(r=>worldCounts(pulse,r.id)[metric]===worldCounts(pulse,p.id)[metric])+1]));
- const totals=Object.fromEntries(metrics.map(m=>[m.id,pulse&&(m.id!=='likes'||pulse.likes)?connected.reduce((sum,p)=>sum+(worldCounts(pulse,p.id)[m.id]??0),0):null]));
- const buildTokens=connected.filter(p=>p.tokens!=null&&p.tokenUsage).reduce((sum,p)=>sum+(p.tokens??0),0),recordedBuilds=connected.filter(p=>p.tokens!=null&&p.tokenUsage).length;
- const saveWorld=async(id:string)=>{try{const active=await favorite(id);setMessage(active?'Added to your favorites.':'Removed from your favorites.');}catch(e){setMessage((e as Error).message);}};
- return <main className="cinema-leaderboard"><div className="cinema-board-scroll">
-  <section className="cinema-board-hero" onPointerEnter={()=>setPreview(true)} onPointerLeave={()=>setPreview(false)} onFocusCapture={()=>setPreview(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget))setPreview(false);}}>
-   {leading&&<CinemaPreview project={leading} active={preview} className="cinema-board-backdrop"/>}<div className="cinema-board-vignette"/>
-   <div className="cinema-board-intro"><span className="cinema-kicker"><Trophy size={14}/>WORLD LEADERBOARD</span><h1>{leading?.title||'Every world starts somewhere.'}</h1><p>{leading?.subtitle||'Try another name to find your next world.'}</p>{leading&&<><span className="cinema-leading">{leaderCount!=null&&leaderCount>0?`#1 in ${metric} · ${compactCount(leaderCount)} ${metric}`:'Explore a world. Start a story.'}</span><a className="cinema-board-enter" href={worldHref(leading)} onClick={()=>track('project_open',leading.id)}>Enter this world<ArrowUpRight size={17}/></a></>}</div>
-   <div className="cinema-board-overview" aria-label="Community activity"><span>ACROSS THE UNIVERSE</span><div>{metrics.map(m=><section key={m.id} title={m.id==='likes'&&totals[m.id]==null?'Likes are waiting for a live count':m.id==='favorites'?'Active favorites':m.id==='likes'?'Active likes':'Last 30 days'}><m.icon size={15}/><strong>{compactCount(totals[m.id])}</strong><small>{m.label}</small></section>)}</div><p className={error?'counts-paused':''} role="status"><i/>{error?<>{pulse?'Counts paused. Showing the last update.':'Counts could not connect.'}<button onClick={()=>window.dispatchEvent(new Event('pe-refresh'))}><RefreshCw size={12}/>Retry</button></>:pulse?`Live · ${pulse.active.toLocaleString()} ${pulse.active===1?'explorer':'explorers'}`:'Connecting to live counts…'}</p>{recordedBuilds>0&&<small className="cinema-build-total">{compactCount(buildTokens)} processed AI tokens · {recordedBuilds} recorded worlds<span>Includes cache reuse · partial history. See each world’s usage.</span></small>}</div>
-  </section>
-  <div className="cinema-board-content"><div className="cinema-board-controls"><div role="group" aria-label="Rank worlds by">{metrics.map(m=><button key={m.id} aria-pressed={metric===m.id} onClick={()=>setMetric(m.id)}><m.icon size={14}/>{m.label}</button>)}</div><label><Search size={16}/><input aria-label="Search ranked worlds" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find a world…"/></label></div>
-   {worlds.length>0?<><WorldCinemaRail title="Leading worlds" description={`The community’s ${metric}. Tied worlds share a rank.`} worlds={worlds.slice(0,8)} pulse={pulse} ranks={ranks} onFavorite={saveWorld}/>{worldCategories.map(c=>{const group=worlds.filter(p=>p.category===c.id);return group.length?<WorldCinemaRail key={c.id} title={c.label} description={c.description} worlds={group} pulse={pulse} ranks={ranks} onFavorite={saveWorld}/>:null;})}</>:<div className="cinema-board-empty"><h2>No worlds match that search.</h2><button onClick={()=>setQuery('')}>Show every world</button></div>}
-   <details className="cinema-count-notes"><summary>How the counts work</summary><p>Views and shares count once per browser activity session, per world, per day, over the last 30 days. Likes and favorites stay counted until removed. Live explorers are active browsers across Pure Exploration in the last 90 seconds. Counts refresh every 30 seconds.</p><a href="/privacy">Privacy & your data<ArrowUpRight size={12}/></a></details>
+ const [ranked,setRanked]=useState<ExplorerRow[]>([]);
+ const [shelves,setShelves]=useState(false),[localBadges,setLocalBadges]=useState<number|null>(null),[message,setMessage]=useState('');
+ useEffect(()=>{try{const progress=readProgress(JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null'),eligible);setLocalBadges(achievements(progress,eligible).filter(b=>b.award).length);}catch{setLocalBadges(null);}},[]);
+ const visited=pulse?new Set(pulse.journey.filter(p=>eligible.includes(p.project)&&(p.visits>0||p.opens>0)).map(p=>p.project)).size:null;
+ const saveWorld=async(id:string)=>{try{await favorite(id);}catch(e){setMessage(e instanceof Error?e.message:'Your favorite could not be saved. Try again.');}};
+ return <main className="explorer-board">
+  <nav className="explorer-board-nav" aria-label="Exploration navigation"><a href="/?walk=1"><Footprints size={16}/>To lobby</a><button onClick={()=>setShelves(true)}><Compass size={16}/>Browse worlds</button></nav>
+  <div className="explorer-board-body">
+   <header className="explorer-board-heading"><span><Trophy size={17} aria-hidden="true"/> EXPLORER LEADERBOARD</span><h1>People who follow their curiosity.</h1><p>Play first. A place on the public board will always be optional.</p></header>
+   <section className="explorer-ranks" aria-labelledby="explorer-ranks-title"><div className="explorer-ranks-heading"><h2 id="explorer-ranks-title">The explorers</h2><span>{ranked.length?`${ranked.length} explorers · discoveries shared by choice`:"No public explorers yet"}</span></div>
+    <div className="explorer-table-wrap"><table><caption className="explorer-sr-only">Public explorer discovery rankings. Matching world counts share a rank.</caption><thead><tr><th scope="col">Rank</th><th scope="col">Explorer</th><th scope="col">Worlds</th><th scope="col">Trail</th></tr></thead><tbody>{ranked.map(r=><tr key={r.id}><td>{r.rank}</td><th scope="row">{r.alias}</th><td>{r.worlds}</td><td><Medal size={18} aria-label={r.worlds>=eligible.length?"Every world":r.worlds>=3?"Branch explorer":r.worlds>=1?"First discovery":"Setting out"}/></td></tr>)}{!ranked.length&&<tr><td colSpan={4}><div className="explorer-ranks-empty"><Users size={27} aria-hidden="true"/><strong>Your discoveries stay yours.</strong><p>Explore freely. Only people who choose to join will appear here.</p><a href="/?walk=1">Keep exploring <ArrowUpRight size={15}/></a></div></td></tr>}</tbody></table></div>
+   </section>
+   <Participation onRows={setRanked}/>
+   <section className="explorer-personal" aria-labelledby="explorer-personal-title"><div className="explorer-fox-mark" aria-hidden="true"><Compass size={24}/></div><div><span>YOUR BROWSER FOX · PRIVATE</span><h2 id="explorer-personal-title">{pulse?.me.alias||'Your trail of discoveries'}</h2>{error?<p role="status">{pulse?'Your browser profile could not refresh. Showing its last update.':'Your browser profile could not connect.'} <button className="explorer-inline-action" onClick={()=>window.dispatchEvent(new Event('pe-refresh'))}><RefreshCw size={12}/>Retry</button></p>:pulse?<p>{visited} {visited===1?'world':'worlds'} discovered in your browser journey{localBadges!==null?` · ${localBadges} ${localBadges===1?'badge':'badges'} on this device`:''}. This is not a public score.</p>:<p role="status">Connecting to your browser fox…</p>}<button className="explorer-inline-action" onClick={()=>window.dispatchEvent(new Event('pe-open-achievements'))}><Medal size={15}/>Your badges</button></div></section>
+   <details className="explorer-participation"><summary>About optional participation</summary><p>Explore every current world without signing in. Sign-in is only for people who choose to share discoveries on the board.</p><p>Your fox belongs to this browser. A public X or GitHub link on a fox is self-declared, not account verification. Personal discovery badges are saved on this device and do not count as verified game scores.</p><a href="/privacy">Privacy & your data <ArrowUpRight size={13}/></a></details>
+   <footer className="explorer-board-footer"><span>Looking for the games?</span><button onClick={()=>setShelves(true)}>Open the world shelves <ArrowUpRight size={15}/></button></footer>
+   {message&&<p role="status" className="explorer-message">{message}</p>}
   </div>
- </div><WorldDock current="leaderboard" pulse={pulse} onFavorite={saveWorld}/>{message&&<div className="toast" role="status">{message}</div>}</main>;
+  {shelves&&<PortalDirectory current="leaderboard" onClose={()=>setShelves(false)} pulse={pulse} onFavorite={saveWorld} initialView="shelves"/>}
+ </main>;
 }
