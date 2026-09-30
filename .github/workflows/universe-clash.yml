@@ -1,0 +1,53 @@
+name: Universe Clash acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'public/games/universe-clash/**'
+      - 'tests/universe-clash/**'
+      - '.github/workflows/universe-clash.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: universe-clash-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Engine regression checks
+        run: npm run test:universe-clash
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/uc-browser" --no-audit --no-fund playwright@1.56.1
+          "$RUNNER_TEMP/uc-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Browser acceptance and screenshots
+        env:
+          UC_EVIDENCE: work/universe-clash-qa
+        run: |
+          export NODE_PATH="$RUNNER_TEMP/uc-browser/node_modules"
+          python3 -m http.server 4199 --bind 127.0.0.1 --directory public > "$RUNNER_TEMP/uc-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..20}; do
+            if curl --silent --fail http://127.0.0.1:4199/games/universe-clash/ > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:universe-clash:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: universe-clash-browser-evidence
+          path: work/universe-clash-qa/
+          retention-days: 7
+          if-no-files-found: warn

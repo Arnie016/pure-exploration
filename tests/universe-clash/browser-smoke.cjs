@@ -13,16 +13,20 @@ const {resolve} = require('node:path');
     ...(process.env.UC_BROWSER ? {executablePath:process.env.UC_BROWSER} : {}),
     args:['--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
   });
+  const page = await browser.newPage({viewport:{width:1440,height:960},deviceScaleFactor:1});
+  page.setDefaultTimeout(60000);
   try {
-    const page = await browser.newPage({viewport:{width:1440,height:960},deviceScaleFactor:1});
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => {
       if (message.type() === 'error' && /THREE|shader|WebGL|TypeError|ReferenceError/.test(message.text())) errors.push(message.text());
     });
     await page.goto(process.env.UC_URL || 'http://127.0.0.1:4199/games/universe-clash/');
-    await page.waitForFunction(() => window.__UC__?.ready, {timeout:60000});
-    const screenshot = name => page.screenshot({path:resolve(output, `${name}.png`)});
+    await page.waitForFunction(() => window.__UC__?.ready, null, {timeout:60000});
+    const screenshot = async name => {
+      await page.screenshot({path:resolve(output, `${name}.png`)});
+      console.log(`Captured ${name}`);
+    };
     await screenshot('01-menu');
 
     await page.locator('.main-nav [data-nav="studio"]').click();
@@ -69,6 +73,9 @@ const {resolve} = require('node:path');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1), 'No horizontal page overflow');
     assert.deepEqual(errors, []);
     console.log(`Browser checks passed. Inspect screenshots in ${output}`);
+  } catch (error) {
+    await page.screenshot({path:resolve(output, 'failure.png')}).catch(() => {});
+    throw error;
   } finally {
     await browser.close();
   }
