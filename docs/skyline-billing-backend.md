@@ -40,3 +40,7 @@ Primary references checked September 30, 2026:
 
 ### Native integration checkpoint
 Android version 1.0.1 (2) compiles a Keystore AES-GCM identity/receipt retry store and native HTTPS verification. It retries saved receipts on page readiness and explicit restore, removing a receipt only after server settlement is complete. These are implementation/build facts; interrupted-device retry is not yet tested. User recovery export/import UI, full paid inventory use and refund reconciliation remain required before payments open.
+
+## Hosting migration hold
+
+The deployed migration runner rejected trigger bodies with `incomplete input: SQLITE_ERROR`. SQL is retained under docs/pending-migrations for local tests. Skyline API routing and migration registration are excluded from the map release. This backend is local preparation, not a deployed payment service.
