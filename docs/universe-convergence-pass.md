@@ -65,15 +65,19 @@ available in this workspace. This change extends the accessible repository.
   No local elevation is used. A read-only GitHub Actions job now runs the game in
   software WebGL, exercises real UI/input, and retains screenshots and renderer
   diagnostics as a seven-day artifact. It uses no deployment credentials.
-- Remote runs captured the menu, camera settings, enlarged Fighter Studio,
-  story scene and active fight. Inspection exposed the avatar blocking the
-  reticle; camera framing was adjusted. A teleport assertion during active AI
-  combat timed out and is now tested in training. The extended acceptance run
-  passed on commit `c6e6f8c`. Screenshot review then exposed the mobile HUD covering
-  the player. The revised phone layout passed its visibility check on `322fa4b`;
-  touch input exposed a duplicate flight activation, now fixed and being rechecked.
-- Before production, complete the revised mobile acceptance pass and play the
-  camera/combat transitions on a hardware-accelerated
+- [Remote browser acceptance passed](https://github.com/Arnie016/pure-exploration/actions/runs/36777715569)
+  on game commit `8b23a16fb728c6f6f96135e3afb72f0adccf36f7`. It checks saved
+  settings, paused rendering, Studio forms, all 16 story episodes and a playable
+  launch, mouse look, Pit framing, tutorial teleport and keyboard shooting.
+- The same run checks a 390x844 touch-enabled mobile browser: no horizontal
+  overflow, visible movement/look controls, abilities below the player's body,
+  one flight toggle per tap, landing on the next tap, and Enter-key activation.
+  No page or shader errors were reported. The desktop viewport is 1280x800.
+- Desktop and mobile screenshots were inspected. This review drove the camera
+  framing and mobile HUD revisions. The successful run retains nine screenshots
+  and matching renderer diagnostics in its `universe-clash-browser-evidence`
+  artifact for seven days.
+- Before production, play the camera/combat transitions on a hardware-accelerated
   browser. Software WebGL acceptance does not establish a real-device frame-rate
   target.
 
