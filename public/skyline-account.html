@@ -15,18 +15,18 @@
   <a class="back" href="/">← Pure Exploration</a>
   <div class="heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 9V6a4 4 0 0 1 8 0v3M6 9h12v11H6z"/><path d="M12 13v3"/></svg></div>
   <p class="eyebrow">Skyline Swing</p>
-  <h1>Delete your account</h1>
-  <p class="intro">Send a request with your recovery code.</p>
+  <h1>Request account deletion</h1>
+  <p class="intro">For your Skyline Swing purchase account.</p>
   <form id="deletion-form" autocomplete="off">
    <label for="recovery-code">Recovery code</label>
    <input id="recovery-code" name="recovery-code" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="101" required aria-describedby="code-help" pattern="[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}:[a-f0-9]{64}" placeholder="Paste your private code">
-   <details class="code-help" id="code-help"><summary>Where’s my code?</summary><p>Android shop → Purchase account → Show recovery code. Copy the full code, including the colon. Keep it private.</p><p>Uninstalled the game? Use the code you saved. If you never created a purchase account, there is no server account to delete. Without a code, this page cannot verify your account.</p></details>
+   <details class="code-help" id="code-help"><summary>Where’s my code?</summary><ol class="code-steps"><li>Open the Android shop.</li><li>Choose <strong>Purchase account</strong>.</li><li>Choose <strong>Show recovery code</strong> and copy the full code.</li></ol><p>Uninstalled? Use your saved code. No purchase account means no server account to delete. A code is required to verify ownership.</p></details>
    <label class="confirmation"><input id="confirm-request" type="checkbox" required> <span>I understand deletion isn’t immediate.</span></label>
    <button type="submit">Request deletion <span aria-hidden="true">→</span></button>
   </form>
   <p id="request-status" role="status" aria-live="polite"></p>
   <p class="reassurance"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z"/><path d="m8 12 3 3 5-6"/></svg>Your code stays private.</p>
-  <details class="data-details"><summary>What gets deleted?</summary><p>Your purchase account stays active until the request is processed. Keep your code and request reference.</p><p>Deleting the purchase account removes its server-side credentials, paid wallet and related account records. Earned coins, scores and settings on your device stay there. Clear Android app data to remove local progress.</p><p>This does not issue a refund or delete Google Play’s transaction records. Processing details and receipt retention will be published when the service is enabled.</p><p>No sign-in, analytics or advertising scripts load here. Your code goes only to this site’s purchase service and clears from this form when submitted.</p></details>
+  <details class="data-details"><summary>What happens next?</summary><p>Your account stays active until processed. Keep your code and request reference.</p><dl class="account-effects"><div><dt>Removed</dt><dd>Account credentials, paid wallet and linked server records.</dd></div><div><dt>Kept on device</dt><dd>Earned coins, scores and settings. Clear app data to remove them.</dd></div><div><dt>Purchases</dt><dd>No refund. Google Play keeps its transaction records.</dd></div></dl><details class="privacy-details"><summary>Privacy & processing details</summary><p>Your code is sent only to this site’s purchase service and cleared on submission. No sign-in, analytics or advertising scripts load here.</p><p>Processing and receipt-retention details will be published when the service is enabled.</p></details></details>
  </main>
 </body>
 </html>

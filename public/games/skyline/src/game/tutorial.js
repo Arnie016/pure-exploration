@@ -97,11 +97,20 @@ export function bindPracticeControls(root, input) {
     button.addEventListener('click', event => {
       if (event.detail === 0) input.push(button.dataset.input);
     });
+    button.addEventListener('keydown', event => {
+      if (!['Space', 'Enter'].includes(event.code)) return;
+      event.preventDefault(); event.stopPropagation();
+      if (!event.repeat) input.push(button.dataset.input);
+    });
+    button.addEventListener('keyup', event => {
+      if (!['Space', 'Enter'].includes(event.code)) return;
+      event.preventDefault(); event.stopPropagation();
+    });
   }
   const swing = root.querySelector('#training-swing');
   let pointer = null;
   swing.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || pointer !== null) return;
+    if (event.button !== 0 || pointer !== null || key !== null) return;
     event.preventDefault();
     pointer = event.pointerId;
     swing.setPointerCapture(pointer);
@@ -113,7 +122,23 @@ export function bindPracticeControls(root, input) {
     pointer = null;
     input.hold(false);
   };
+  let key = null;
+  swing.addEventListener('keydown', event => {
+    if (!['Space', 'Enter'].includes(event.code)) return;
+    event.preventDefault(); event.stopPropagation();
+    if (event.repeat || key !== null || pointer !== null) return;
+    key = event.code;
+    input.aim.active = false;
+    input.hold(true);
+  });
+  swing.addEventListener('keyup', event => {
+    if (!['Space', 'Enter'].includes(event.code)) return;
+    event.preventDefault(); event.stopPropagation();
+    if (event.code !== key) return;
+    key = null; release();
+  });
+  swing.addEventListener('blur', () => { key = null; release(); });
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) swing.addEventListener(type, release);
-  window.addEventListener('blur', () => release());
-  document.addEventListener('visibilitychange', () => { if (document.hidden) release(); });
+  window.addEventListener('blur', () => { key = null; release(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { key = null; release(); } });
 }

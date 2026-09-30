@@ -1,5 +1,5 @@
 /** Google-verified paid inventory; earned game coins never enter this ledger. */
-export interface SkylineEnv { DB: D1Database; GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY?: string; SKYLINE_PAYMENTS_ENABLED?: string; OWNER_KEY_HASH?: string; SKYLINE_DELETION_PROCESSING_ENABLED?: string }
+export interface SkylineEnv { DB: D1Database; SKYLINE_BILLING_ENVIRONMENT?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL?: string; GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY?: string; SKYLINE_PAYMENTS_ENABLED?: string; OWNER_KEY_HASH?: string; SKYLINE_DELETION_PROCESSING_ENABLED?: string }
 export const PACKAGE = 'dev.arnav.skylineswing';
 export const PRODUCTS: Record<string,{coins:number;net:number;smoke:number;entitlement?:string}> = {
  skyline_neon_suit:{coins:0,net:0,smoke:0,entitlement:'neon'},
@@ -10,6 +10,7 @@ const DELETION_DEADLINE_MS=7*86400000;
 const DELETION_RECEIPT_RETENTION_MS=30*86400000;
 /** Bounded database maintenance; actual periodic invocation must be verified by the host. */
 export async function skylineDeletionMaintenance(env:SkylineEnv,now=Date.now(),invoker:"manual"|"scheduled"="manual"){
+ env=billingEnvironment(env);
  if(env.SKYLINE_DELETION_PROCESSING_ENABLED!=='true')throw new Failure(503,'deletion_processing_not_open');
  if(!Number.isSafeInteger(now)||now<0)throw new Failure(400,'invalid_maintenance_time');
  if(!['manual','scheduled'].includes(invoker))throw new Failure(400,'invalid_maintenance_invoker');
@@ -24,6 +25,38 @@ export async function skylineDeletionMaintenance(env:SkylineEnv,now=Date.now(),i
 }
 type Purchase = {purchaseStateContext?:{purchaseState?:string};testPurchaseContext?:{fopType?:string};obfuscatedExternalAccountId?:string;acknowledgementState?:string;productLineItem?:{productId?:string;productOfferDetails?:{quantity?:number;refundableQuantity?:number;consumptionState?:string;rentOfferDetails?:unknown;preorderOfferDetails?:unknown}}[]};
 class Failure extends Error { constructor(public status:number,public code:string){super(code);} }
+type BillingMode='sandbox'|'production';
+const PRODUCTION_BILLING_TABLES=["skyline_coin_buys_v2", "skyline_deletion_completions", "skyline_deletion_health", "skyline_deletion_requests", "skyline_entitlements", "skyline_members", "skyline_payment_holds", "skyline_purchases_v2", "skyline_rate_limits", "skyline_refund_events", "skyline_refunds", "skyline_spends_v2", "skyline_wallets"];
+function billingMode(env:SkylineEnv):BillingMode{
+ const mode=env.SKYLINE_BILLING_ENVIRONMENT;
+ if(mode===undefined||mode==='sandbox')return 'sandbox';
+ if(mode==='production')return 'production';
+ throw new Failure(503,'billing_environment_invalid');
+}
+/** Route every account, inventory and deletion operation before touching a ledger. */
+function billingEnvironment(env:SkylineEnv):SkylineEnv{
+ const mode=billingMode(env);
+ if(env.SKYLINE_PAYMENTS_ENABLED!==undefined&&env.SKYLINE_PAYMENTS_ENABLED!==mode)throw new Failure(503,'purchases_not_open');
+ if(mode==='production'){
+  // Only compile-time SQL identifiers are routed; bound values are untouched.
+  const tables=new Set(PRODUCTION_BILLING_TABLES);
+  const database=env.DB;
+  const routed=new Proxy(database,{get(target,key){
+   if(key==='prepare')return (sql:string)=>database.prepare(sql.replace(/\bskyline_[a-z0-9_]+\b/g,name=>{
+    if(!tables.has(name))throw new Failure(503,'billing_table_not_routed');
+    return name.replace('skyline_','skyline_production_');
+   }));
+   const value=Reflect.get(target,key,target);return typeof value==='function'?value.bind(target):value;
+  }});
+  return {...env,DB:routed};
+ }
+ return env;
+}
+function requirePayments(env:SkylineEnv){if(env.SKYLINE_PAYMENTS_ENABLED!==billingMode(env))throw new Failure(503,'purchases_not_open');}
+function validPurchaseEnvironment(p:Purchase,mode:BillingMode){
+ return mode==='sandbox'?p.testPurchaseContext?.fopType==='TEST':!Object.hasOwn(p,'testPurchaseContext');
+}
+
 export async function hash(secret:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(secret))),x=>x.toString(16).padStart(2,'0')).join('');}
 function secret(){return Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');}
 function b64(bytes:Uint8Array){return btoa(String.fromCharCode(...bytes)).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');}
@@ -38,9 +71,9 @@ async function accessToken(env:SkylineEnv,send:typeof fetch){
  if(!response.ok)throw new Failure(503,'billing_authorization_unavailable');
  const result=await response.json() as {access_token?:string};if(!result.access_token)throw new Failure(503,'billing_authorization_unavailable');return result.access_token;
 }
-export function validatePurchase(p:Purchase,member:string,product:string){
+export function validatePurchase(p:Purchase,member:string,product:string,mode:BillingMode='sandbox'){
  if(p.obfuscatedExternalAccountId!==member)throw new Failure(403,'purchase_account_mismatch');
- if(p.testPurchaseContext?.fopType!=='TEST')throw new Failure(403,'test_purchases_only');
+ if(!validPurchaseEnvironment(p,mode))throw new Failure(403,mode==='sandbox'?'test_purchases_only':'production_purchases_only');
  if(p.purchaseStateContext?.purchaseState==='PENDING')return null;
  if(p.purchaseStateContext?.purchaseState!=='PURCHASED')throw new Failure(409,'purchase_not_completed');
  const line=p.productLineItem;if(line?.length!==1||line[0].productId!==product)throw new Failure(409,'purchase_product_mismatch');
@@ -55,7 +88,7 @@ async function reconcile(request:Request,body:Record<string,unknown>,env:Skyline
  const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
  if(!env.OWNER_KEY_HASH||! /^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
  if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
- if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
+ requirePayments(env);
  const now=Date.now(),end=body.endTimeMillis??now,start=body.startTimeMillis??Number(end)-29*86400000;
  if(Object.keys(body).some(key=>!['startTimeMillis','endTimeMillis'].includes(key))||!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||Number(start)<now-30*86400000||Number(end)>now||Number(start)>=Number(end))throw new Failure(400,'invalid_reconciliation_window');
  const oauth=await accessToken(env,send);let page:string|undefined,reviewed=0,revoked=0,unknown=0,partialHeld=0;
@@ -78,7 +111,7 @@ async function reconcile(request:Request,body:Record<string,unknown>,env:Skyline
     const check=await send('https://androidpublisher.googleapis.com/androidpublisher/v3/applications/'+PACKAGE+'/purchases/productsv2/tokens/'+encodeURIComponent(entry.purchaseToken),{headers:{Authorization:'Bearer '+oauth},signal:AbortSignal.timeout(10000)});
     if(!check.ok)throw new Failure(503,'refund_quantity_unavailable');
     const proof=await check.json() as Purchase,offer=proof.productLineItem?.[0]?.productOfferDetails,remaining=offer?.refundableQuantity;
-    if(proof.obfuscatedExternalAccountId!==known.member||proof.testPurchaseContext?.fopType!=='TEST'||proof.productLineItem?.length!==1||proof.productLineItem[0].productId!==known.product||offer?.quantity!==known.quantity||!Number.isInteger(remaining)||remaining!<0||remaining!>known.quantity||known.quantity-remaining!<entry.voidedQuantity||offer.rentOfferDetails||offer.preorderOfferDetails)throw new Failure(503,'invalid_refund_quantity');
+    if(proof.obfuscatedExternalAccountId!==known.member||!validPurchaseEnvironment(proof,billingMode(env))||proof.productLineItem?.length!==1||proof.productLineItem[0].productId!==known.product||offer?.quantity!==known.quantity||!Number.isInteger(remaining)||remaining!<0||remaining!>known.quantity||known.quantity-remaining!<entry.voidedQuantity||offer.rentOfferDetails||offer.preorderOfferDetails)throw new Failure(503,'invalid_refund_quantity');
     target=known.quantity-remaining!;
    }
    // Fingerprints deduplicate audit rows only; identical events can collide.
@@ -116,11 +149,19 @@ async function snapshot(db:D1Database,memberId:string){
 }
 export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof fetch=fetch):Promise<Response>{
  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+ const originalEnvironment=env;
  try{
+ env=billingEnvironment(env);
  const path=new URL(request.url).pathname;
  if(!['GET','POST'].includes(request.method))throw new Failure(405,'method_not_allowed');
  // Native calls omit Origin. Browser calls must be same origin; no CORS granted.
  const origin=request.headers.get('Origin');if(origin&&origin!==new URL(request.url).origin)throw new Failure(403,'origin_not_allowed');
+ const expectedEnvironment=request.headers.get('X-Skyline-Billing-Environment');
+ if(expectedEnvironment!==null&&expectedEnvironment!==billingMode(env))throw new Failure(409,'billing_environment_mismatch');
+ if(path==='/api/skyline/environment'&&request.method==='GET'){
+  if(new URL(request.url).search)throw new Failure(400,'invalid_environment_request');
+  return json({billingEnvironment:billingMode(env),paymentsOpen:env.SKYLINE_PAYMENTS_ENABLED===billingMode(env)});
+ }
  let body:Record<string,unknown>={};if(request.method==='POST'){
   if(Number(request.headers.get('Content-Length'))>8192)throw new Failure(413,'request_too_large');
   const reader=request.body?.getReader(),chunks:Uint8Array[]=[];let length=0;
@@ -144,7 +185,7 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
   if(!env.OWNER_KEY_HASH||!/^[a-f0-9]{64}$/.test(env.OWNER_KEY_HASH))throw new Failure(503,'owner_not_configured');
   if(!auth||await hash(auth)!==env.OWNER_KEY_HASH)throw new Failure(401,'owner_authentication_required');
   if(Object.keys(body).length)throw new Failure(400,'invalid_maintenance_request');
-  return json(await skylineDeletionMaintenance(env));
+  return json(await skylineDeletionMaintenance(originalEnvironment));
  }
  if(path==='/api/skyline/deletion-requests/complete'&&request.method==='POST'){
   const auth=request.headers.get('Authorization')?.match(/^Bearer ([^\s]{16,256})$/)?.[1];
@@ -223,7 +264,7 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
  if(path==='/api/skyline/entitlements'&&request.method==='GET')return json(await snapshot(env.DB,member.id));
  if(['/api/skyline/buy','/api/skyline/spend','/api/skyline/verify'].includes(path)&&await env.DB.prepare('SELECT member FROM skyline_payment_holds WHERE member=?').bind(member.id).first())throw new Failure(409,'payment_review_required');
  if(path==='/api/skyline/buy'&&request.method==='POST'){
-  if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
+  requirePayments(env);
   const catalogue:Record<string,number>={net:200,smoke:150},item=String(body.item);
   if(!Object.hasOwn(catalogue,item)||typeof body.requestId!=='string'||! /^[a-zA-Z0-9_-]{16,64}$/.test(body.requestId)||Object.keys(body).some(key=>!['item','requestId'].includes(key)))throw new Failure(400,'invalid_buy');
   const price=catalogue[item];
@@ -239,7 +280,7 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
   return json(await snapshot(env.DB,member.id));
  }
  if(path==='/api/skyline/spend'&&request.method==='POST'){
-  if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
+  requirePayments(env);
   const costs:Record<string,{currency:string;amount:number}>={net:{currency:'net',amount:1},smoke:{currency:'smoke',amount:1}};
   const cost=costs[String(body.item)];if(!cost||typeof body.requestId!=='string'||! /^[a-zA-Z0-9_-]{16,64}$/.test(body.requestId))throw new Failure(400,'invalid_spend');
   const old=await env.DB.prepare('SELECT currency,amount FROM skyline_spends_v2 WHERE member=? AND request_id=?').bind(member.id,body.requestId).first<{currency:string;amount:number}>();if(old&&(old.currency!==cost.currency||old.amount!==cost.amount))throw new Failure(409,'request_id_conflict');
@@ -252,14 +293,14 @@ export async function skylineBilling(request:Request,env:SkylineEnv,send:typeof 
   return json(await snapshot(env.DB,member.id));
  }
  if(path!=='/api/skyline/verify'||request.method!=='POST')throw new Failure(404,'not_found');
- if(env.SKYLINE_PAYMENTS_ENABLED!=='sandbox')throw new Failure(503,'purchases_not_open');
+ requirePayments(env);
  const product=String(body.productId),token=body.purchaseToken;if(!Object.hasOwn(PRODUCTS,product)||typeof token!=='string'||token.length<8||token.length>4096||/\s/.test(token))throw new Failure(400,'invalid_purchase');
  const tokenHash=await hash(token);if(await env.DB.prepare('SELECT token_hash FROM skyline_refunds WHERE token_hash=?').bind(tokenHash).first())throw new Failure(409,'purchase_refunded');
  const existing=await env.DB.prepare('SELECT member,product,settlement FROM skyline_purchases_v2 WHERE token_hash=?').bind(tokenHash).first<{member:string;product:string;settlement:string}>();
  if(existing&&(existing.member!==member.id||existing.product!==product))throw new Failure(409,'purchase_already_bound');
  const oauth=await accessToken(env,send),headers={Authorization:'Bearer '+oauth,'Content-Type':'application/json'},base='https://androidpublisher.googleapis.com/androidpublisher/v3/applications/'+PACKAGE+'/purchases/';
  const response=await send(base+'productsv2/tokens/'+encodeURIComponent(token),{headers,signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Failure(response.status===404?404:503,'purchase_verification_unavailable');
- const purchase=await response.json() as Purchase,valid=validatePurchase(purchase,member.id,product);if(!valid)return json({status:'pending',...await snapshot(env.DB,member.id)});
+ const purchase=await response.json() as Purchase,valid=validatePurchase(purchase,member.id,product,billingMode(env));if(!valid)return json({status:'pending',...await snapshot(env.DB,member.id)});
  if(valid.consumed&&!existing)throw new Failure(409,'purchase_already_consumed');
  const grant=PRODUCTS[product];
  // D1 batch is one transaction: ledger admission, inventory and applied marker commit together.

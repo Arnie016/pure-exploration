@@ -7,3 +7,23 @@ test('hosting migration journal registers every SQL migration in application ord
  assert.deepEqual(journal.map(entry=>entry.tag+'.sql'),files);
  for(let i=0;i<journal.length;i++){assert.equal(journal[i].idx,i);if(i)assert.ok(journal[i].when>journal[i-1].when,'migration timestamps must increase');}
 });
+
+test('production billing tables preserve sandbox schema without copying its records',()=>{
+ const db=new DatabaseSync(':memory:');
+ try{
+  for(const name of readdirSync('drizzle').filter(n=>n.endsWith('.sql')).sort()){
+   if(name.startsWith('0011_'))db.prepare('INSERT INTO skyline_members VALUES(?,?,?,?)').run('sandbox-fixture','fixture-session-hash','fixture-recovery-hash',1);
+   db.exec(readFileSync('drizzle/'+name,'utf8'));
+  }
+  const names=db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'skyline_production_%'").all().map(row=>row.name);
+  assert.equal(names.length,13);
+  for(const production of names){
+   const sandbox=production.replace('skyline_production_','skyline_');
+   assert.deepEqual(db.prepare(`PRAGMA table_info(${production})`).all(),db.prepare(`PRAGMA table_info(${sandbox})`).all(),production+' columns');
+   const foreignKeys=db.prepare(`PRAGMA foreign_key_list(${production})`).all().map(row=>({...row,table:row.table.replace('skyline_production_','skyline_')}));
+   assert.deepEqual(foreignKeys,db.prepare(`PRAGMA foreign_key_list(${sandbox})`).all().map(row=>({...row})),production+' foreign keys');
+   assert.equal(db.prepare(`SELECT count(*) AS n FROM ${production}`).get().n,0,production+' must start empty');
+  }
+  assert.equal(db.prepare('SELECT count(*) AS n FROM skyline_members').get().n,1);
+ }finally{db.close();}
+});
