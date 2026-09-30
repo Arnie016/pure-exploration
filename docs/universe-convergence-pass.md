@@ -43,6 +43,11 @@ available in this workspace. This change extends the accessible repository.
 - The camera's forward lead and higher look point clear the reticle above the
   player's silhouette while fitting the full body. Paused menus stop redundant
   arena rendering; Fighter Studio remains live, and resize/settings redraw once.
+- On phones, abilities use two short rows at the bottom, with movement and look
+  controls above them. Ki and form requirements sit below the health bars so the
+  player's body remains visible. Main ability targets are at least 44px high.
+- Touch-generated clicks no longer enter the keyboard/assistive activation
+  fallback, which could toggle flight twice for one tap.
 
 ## Validation
 
@@ -51,6 +56,8 @@ available in this workspace. This change extends the accessible repository.
 - Additional regressions cover shoulder-camera parallax, target selection in a
   crowded arena, disabling aim assistance, and corrupted/out-of-range preferences.
 - Changed JavaScript modules pass Node syntax checks; `git diff --check` passes.
+- The host application's `npm run typecheck` and `npm run build` both pass.
+  The build still reports a large-chunk warning; no new host dependency is added.
 - HTML has no duplicate IDs or missing local asset references. New module imports
   resolve to real files.
 - The workspace browser remains unavailable: the cloud browser failed WebGL
@@ -62,11 +69,13 @@ available in this workspace. This change extends the accessible repository.
   story scene and active fight. Inspection exposed the avatar blocking the
   reticle; camera framing was adjusted. A teleport assertion during active AI
   combat timed out and is now tested in training. The extended acceptance run
-  is still pending at this checkpoint.
-- Before production, complete remote browser acceptance, inspect desktop/mobile
-  screenshots, and play the camera/combat transitions on a hardware-accelerated
-  browser. Also run the host application's normal typecheck/build. Software
-  WebGL acceptance does not establish a real-device frame-rate target.
+  passed on commit `c6e6f8c`. Screenshot review then exposed the mobile HUD covering
+  the player. The revised phone layout passed its visibility check on `322fa4b`;
+  touch input exposed a duplicate flight activation, now fixed and being rechecked.
+- Before production, complete the revised mobile acceptance pass and play the
+  camera/combat transitions on a hardware-accelerated
+  browser. Software WebGL acceptance does not establish a real-device frame-rate
+  target.
 
 No replacement models, extra arenas, generated opening movie, MP4 recording or
 multiplayer backend are included in this pass. Existing replay storage and

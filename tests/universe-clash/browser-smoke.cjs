@@ -106,8 +106,19 @@ const {resolve} = require('node:path');
     assert.ok(await page.locator('#thumbpad').isVisible(),'touch movement controls are visible');
     assert.ok(await page.locator('#look-pad').isVisible(),'touch camera control is visible');
     assert.ok(await page.evaluate(() => document.querySelector('.control-deck').getBoundingClientRect().top > window.__UC__.stats().camera.framing.local.bounds[3]*innerHeight),'mobile attack buttons clear the player silhouette');
+    const checkFlight = async (expected, activations) => {
+      const tick=await page.evaluate(() => window.__UC__.snapshot().tick);
+      await page.waitForFunction(before => window.__UC__.snapshot().tick >= before+6,tick,{timeout:60000});
+      const result=await page.evaluate(() => ({flying:window.__UC__.snapshot().fighters[0].flight,events:window.__UC__.snapshot().events.filter(e=>e.type==='flight'&&e.owner===0).length}));
+      assert.deepEqual(result,{flying:expected,events:activations},'each activation toggles flight exactly once');
+    };
     await page.locator('#flight-button').tap();
-    await page.waitForFunction(() => window.__UC__.snapshot().fighters[0].flight);
+    await checkFlight(true,1);
+    await page.locator('#flight-button').tap();
+    await checkFlight(false,2);
+    await page.locator('#flight-button').focus();
+    await page.keyboard.press('Enter');
+    await checkFlight(true,3);
     assert.deepEqual(errors, []);
     console.log(`Browser checks passed. Inspect screenshots in ${output}`);
   } catch (error) {

@@ -17,7 +17,8 @@ with character light bands, ink shading and larger previews.
 | Click arena, then mouse | Free look and aim; Esc releases the pointer and pauses |
 | J / K or mouse buttons | Light / heavy strike; J, J, K queues a launcher |
 | X | Pick up a nearby highlighted object; tap again to throw where you look. Blast when no object is nearby |
-| L / U / V | Blast / beam / ultimate (8 / 35 / 100 Ki) |
+| L | Tap for blast; hold 0.35s for beam or 1.2s for ultimate, then release (8 / 35 / 100 Ki) |
+| U / V | Direct beam / ultimate shortcuts |
 | Hold T | Charge Ki while stationary on the ground or hovering |
 | R | Transform when both Resolve and Ki requirements are met |
 | Z | Teleport up to six meters where you look (16 Ki, two-second cooldown) |

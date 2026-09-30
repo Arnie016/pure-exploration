@@ -3052,7 +3052,9 @@ $$('#battle [data-action]').forEach((button) => {
     release(`pointer:${event.pointerId}`, true),
   );
   button.addEventListener('click', (event) => {
-    if (event.detail !== 0) return;
+    // A touch-generated click can have detail=0. Its pointer gesture already
+    // fired the action; reserve this fallback for keyboard / assistive clicks.
+    if (event.detail !== 0 || event.pointerType || event.sourceCapabilities?.firesTouchEvents) return;
     const action = button.dataset.action;
     if (['guard', 'power', 'grab', 'charge'].includes(action)) {
       const source = `accessible:${action}`;
