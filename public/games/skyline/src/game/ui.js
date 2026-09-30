@@ -111,6 +111,12 @@ export class UI {
   }
 
   screen(name) {
+    if (name !== null) {
+      // A previous run's unlock must not appear to come from pausing or quitting.
+      clearTimeout(this.achT);
+      $('ach-toast').classList.add('hidden');
+      $('ach-toast').classList.remove('show');
+    }
     for (const id of SCREENS) $(id).classList.toggle('hidden', id !== name);
     this.current = name;
   }

@@ -2,7 +2,7 @@
 // unlocks persist in the save and pay out coins.
 
 export const ACHIEVEMENTS = [
-  { id: 'first_swing', name: 'First Swing', desc: 'Finish a run.', coins: 50, test: (r) => r.dist > 0 },
+  { id: 'first_swing', name: 'First Swing', desc: 'Finish a run.', coins: 50, finishOnly: true, test: (r) => r.dist > 0 },
   { id: 'km1', name: 'Rush Hour', desc: 'Swing 1 km in one run.', coins: 100, test: (r) => r.dist >= 1000 },
   { id: 'km5', name: 'Marathon Swinger', desc: 'Swing 5 km in one run.', coins: 400, test: (r) => r.dist >= 5000 },
   { id: 'score50k', name: 'Headliner', desc: 'Score 50,000 in one run.', coins: 150, test: (r) => r.score >= 50000 },
@@ -67,7 +67,7 @@ export function settleRun(save, r, live = []) {
 export function liveCheck(save, r, already) {
   const out = [];
   for (const a of ACHIEVEMENTS) {
-    if (already.includes(a.id) || (save.achievements || []).includes(a.id)) continue;
+    if (a.finishOnly || already.includes(a.id) || (save.achievements || []).includes(a.id)) continue;
     if (a.test(r)) out.push(a);
   }
   return out;

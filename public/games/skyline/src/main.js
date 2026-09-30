@@ -1590,6 +1590,7 @@ class Game {
 
   /** Once a second: toast achievements the moment they're earned. */
   checkAchievements(dt) {
+    if (this.state !== 'playing') return;
     if ((this.achCheckT -= dt) > 0) return;
     this.achCheckT = 1;
     this.zonesSeen.add(this.curSeg.zone);
