@@ -589,3 +589,33 @@ canvas { cursor: crosshair; }
 .jr-item { background: #fff; border: 2.5px solid #1b1030; padding: 6px 10px; font-family: 'Rubik', sans-serif; font-size: 12px; box-shadow: 2px 2px 0 #1b1030; }
 .jr-item.locked { opacity: .45; }
 .jr-item b { font-family: 'Bangers', sans-serif; font-size: 16px; display: block; }
+
+/* Rooftop menu: a clear launch point, with the living city still in view. */
+#title { align-items:flex-start; justify-content:center; padding:28px 5vw; background:linear-gradient(90deg,rgba(17,9,32,.82),rgba(17,9,32,.12) 65%,transparent); }
+.rooftop-menu { width:min(380px,100%); padding:24px; border-left:3px solid var(--cyan); background:linear-gradient(135deg,rgba(27,16,48,.94),rgba(27,16,48,.7)); box-shadow:0 18px 60px #10081b66; }
+.rooftop-kicker { font-size:10px; font-weight:700; letter-spacing:2.5px; color:var(--cyan); margin-bottom:18px; }
+#title .logo.big { align-items:flex-start; animation:none; transform:rotate(-3deg); margin:0 0 18px; }
+#title .logo .l1 { font-size:53px; letter-spacing:3px; color:var(--cream); text-shadow:3px 3px 0 var(--ink); }
+#title .logo .l2 { font-size:82px; letter-spacing:4px; text-shadow:4px 4px 0 #7844b2,7px 7px 0 var(--ink); }
+#title .logo .l3 { font-family:var(--body); font-size:10px; font-weight:900; letter-spacing:3px; color:var(--cyan); background:none; border:0; padding:12px 0 0; transform:none; }
+.rooftop-promise { margin:0 0 22px; color:var(--cream); font-size:12px; line-height:1.6; }
+#title .menu { width:100%; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+#title .menu .btn { min-height:44px; padding:8px 4px; border:1px solid #fff1d638; border-radius:5px; box-shadow:none; background:#fff1d60c; color:var(--cream); font-size:16px; letter-spacing:1px; transform:none; }
+#title .menu .btn.primary { justify-self:stretch; text-align:left; background:var(--yellow); color:var(--ink); font-size:30px; padding:13px 16px; border-color:var(--yellow); }
+#title .menu .btn.primary span { float:right; }
+#title .menu .practice-entry { grid-column:1/-1; text-align:left; padding:10px 16px; border-color:#3fe0ff66; color:var(--cyan); font-size:20px; }
+#title .practice-entry span { float:right; font-family:var(--body); font-size:11px; letter-spacing:0; color:var(--cream); padding-top:4px; }
+#title .menu .btn:hover { background:#fff1d624; }
+#title .menu .shop-btn { animation:none; background:#fff1d60c !important; color:var(--cream); }
+#title .menu .btn.primary:hover { background:#ffe887; }
+#title .menu .btn:active { transform:translateY(2px); }
+#title button:focus-visible { outline:3px solid var(--cyan); outline-offset:4px; }
+#title .stats-row { margin-top:20px; justify-content:space-between; font-family:var(--body); font-size:10px; letter-spacing:1px; text-shadow:none; color:#bdb3ca; }
+#title .stats-row b { color:var(--cream); font-size:14px; }
+#title .stats-row .coin-icon { width:12px; height:12px; vertical-align:-2px; }
+#title .controls { display:none; }
+#title .sound-chip { left:auto; right:max(20px,env(safe-area-inset-right)); top:max(18px,env(safe-area-inset-top)); font-family:var(--body); font-size:11px; font-weight:700; letter-spacing:.5px; padding:10px 12px; min-height:44px; border:1px solid #fff1d640; border-radius:6px; background:var(--ink); color:var(--cream); box-shadow:none; animation:none; }
+#title .sound-chip.on { color:var(--cyan); }
+@media(max-aspect-ratio:4/5) { #title { justify-content:flex-end; align-items:center; padding:20px 18px max(20px,env(safe-area-inset-bottom)); background:linear-gradient(0deg,#110920e8,transparent 85%); } .rooftop-menu { width:min(380px,100%); padding:20px; } }
+@media(max-height:520px) { .rooftop-menu { padding:14px 20px; width:340px; } .rooftop-kicker { margin-bottom:10px; } #title .logo .l1 { font-size:35px; } #title .logo .l2 { font-size:54px; } #title .logo.big { margin-bottom:10px; } #title .logo .l3 { display:none; } .rooftop-promise { margin-bottom:12px; } #title .menu .btn.primary { font-size:24px; padding:8px 12px; } #title .stats-row { margin-top:12px; } }
+@media(prefers-reduced-motion:reduce) { #title button { transition:none; } }

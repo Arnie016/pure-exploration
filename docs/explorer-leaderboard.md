@@ -24,3 +24,7 @@ Apply migration 0007_explorer_profiles through the authorized deployment route. 
 - Production account moderation, game-specific score verification, abuse resistance and pagination beyond the top 100 remain further work; no competitive game-score claims are made.
 
 Primary sources (BOUNDED_EXPERIMENT): https://clerk.com/docs/js-frontend/getting-started/quickstart and https://clerk.com/docs/reference/backend/verify-token .
+
+## Follow-up verification · 30 September 2026
+
+Version 12 deployment receipt confirms the people board and shelves implementation was publicly deployed; Google sign-in remains unconfigured. The anonymous local board and Most explored shelves were re-exercised through the browser. Six focused identity/ranking/migration checks and typecheck passed. A local follow-up fixes immediate row removal after profile deletion and renames the trophy tooltip to Explorer leaderboard. These two follow-up changes are not yet published. Live Google authentication and human comprehension remain NOT_TESTED.

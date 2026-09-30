@@ -449,7 +449,7 @@ export class UI {
 
   titleStats(save) {
     const ca = save.checkpointAct || 0;
-    $('t-play').textContent = ca > 0 ? `CONTINUE ACT ${['I', 'II', 'III', 'IV'][ca] || ca + 1}` : 'SWING!';
+    $('t-play').textContent = ca > 0 ? `CONTINUE ACT ${['I', 'II', 'III', 'IV'][ca] || ca + 1}` : 'START A RUN ↗';
     $('t-best').textContent = save.best.toLocaleString();
     $('t-bank').textContent = save.bank.toLocaleString();
   }

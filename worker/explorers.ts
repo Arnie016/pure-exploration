@@ -31,7 +31,7 @@ export async function explorers(request:Request,env:ExplorerEnv):Promise<Respons
   const raw=await request.text();if(raw.length>1024)return json({error:'Request too large'},413);
   let data:{action?:string;alias?:string};try{data=JSON.parse(raw);}catch{return json({error:'Invalid request'},400);}
   if(!data||!['status','join','sync','leave','delete'].includes(data.action||''))return json({error:'Choose a profile action.'},400);
-  if(data.action==='delete'){await env.DB.batch([env.DB.prepare('DELETE FROM explorer_worlds WHERE subject=?').bind(subject),env.DB.prepare('DELETE FROM explorer_profiles WHERE subject=?').bind(subject)]);return json({profile:null});}
+  if(data.action==='delete'){await env.DB.batch([env.DB.prepare('DELETE FROM explorer_worlds WHERE subject=?').bind(subject),env.DB.prepare('DELETE FROM explorer_profiles WHERE subject=?').bind(subject)]);return json({profile:null,rows:await explorerBoard(env.DB)});}
   if(data.action==='leave')await env.DB.prepare('UPDATE explorer_profiles SET visible=0 WHERE subject=?').bind(subject).run();
   if(data.action==='join'){
    const alias=typeof data.alias==='string'?data.alias.trim():'';

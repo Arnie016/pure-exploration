@@ -5,6 +5,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Skyline Swing: NYC Rush</title>
+<link rel="icon" type="image/png" href="./assets/branding/volt-icon.png" />
+<meta property="og:title" content="Skyline Swing" />
+<meta property="og:description" content="Own the rooftops. Outrun the Ink Hound." />
+<meta property="og:image" content="https://pure-exploration.arnz.chatgpt.site/games/skyline/assets/branding/skyline-feature.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet" />
@@ -77,18 +81,21 @@
 
 <!-- Title -->
 <div id="title" class="screen hidden">
+  <div class="rooftop-menu">
+  <div class="rooftop-kicker">VOLT · ROOFTOP RUNNER</div>
   <div class="logo big"><span class="l1">SKYLINE</span><span class="l2">SWING</span><span class="l3">NYC RUSH</span></div>
+  <p class="rooftop-promise">Own the rooftops. Outrun the Ink Hound.</p>
   <div class="menu">
-    <button class="btn primary" data-act="play" id="t-play">SWING!</button>
+    <button class="btn primary" data-act="play" id="t-play">START A RUN <span aria-hidden="true">↗</span></button>
+    <button class="btn practice-entry" data-act="howto">CONTROLS <span>Learn to swing</span></button>
     <button class="btn" data-act="skins">HERO</button>
     <button class="btn shop-btn" data-act="shop">SHOP</button>
     <button class="btn" data-act="story">STORY</button>
     <button class="btn" data-act="settings">SETTINGS</button>
-    <button class="btn" data-act="howto">HOW TO</button>
   </div>
-  <div class="lobby-hint">🖱 CLICK = WEB · HOLD = SWING · SPACE = JUMP</div>
+  <div class="stats-row"><span>BEST RUN <b id="t-best">0</b></span><span><i class="coin-icon" aria-hidden="true"></i> <b id="t-bank">0</b> COINS</span></div>
+  </div>
   <button id="sound-chip" class="sound-chip" data-act="sound">🔊 <span>TAP FOR SOUND</span></button>
-  <div class="stats-row"><span>BEST <b id="t-best">0</b></span><span><i class="coin-icon"></i> <b id="t-bank">0</b></span></div>
   <div class="controls">
     <div><kbd>←</kbd><kbd>→</kbd> / swipe: switch lanes &amp; take corners</div>
     <div><kbd>↑</kbd><kbd>Space</kbd> / tap: hop &nbsp; <kbd>↓</kbd> / swipe down: dive</div>
