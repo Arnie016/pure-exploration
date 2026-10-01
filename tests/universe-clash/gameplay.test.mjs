@@ -6,6 +6,7 @@ import {pickupCandidate,aimCandidate,powerReadiness,normalizedAim,BLINK_DISTANCE
 import {normalizePresentation,resolveViewAim} from '../../public/games/universe-clash/presentation.mjs';
 import {CHAPTERS,DRAW,normalizeStory,chapterUnlocked,completeChapter} from '../../public/games/universe-clash/story.mjs';
 import {createTraining,stepTraining} from '../../public/games/universe-clash/training.mjs';
+import {ARCS,arcFor,sceneLines,chapterRecap,normalizeBookmark,battleCue} from '../../public/games/universe-clash/story-scenes.mjs';
 const tick=(state,input={},frames=1)=>{for(let n=0;n<frames;n++)stepMatch(state,[input,{}],1/60);};
 function fight(){const s=createMatch('goku','vegeta',{seed:422});s.phase='fight';s.phaseTime=0;return s;}
 
@@ -116,6 +117,40 @@ test('story unlocks only sequential completed episodes and safely normalizes sto
  assert.equal(normalizeStory({completed:[CHAPTERS[4].id]}).completed.length,0);
  for(let i=1;i<CHAPTERS.length;i++)progress=completeChapter(progress,i);
  assert.equal(progress.completed.length,CHAPTERS.length);assert.equal(chapterUnlocked(progress,CHAPTERS.length),false);
+});
+test('directed story scenes cover the campaign and use valid speakers',()=>{
+ assert.equal(ARCS.flatMap(a=>Array.from({length:a.range[1]-a.range[0]+1},(_,n)=>n+a.range[0])).length,16);
+ for(let i=0;i<CHAPTERS.length;i++){
+  assert.ok(arcFor(i).range[0]<=i&&arcFor(i).range[1]>=i);
+  assert.ok(chapterRecap(i).length>40);
+  for(const after of [false,true]){
+   const lines=sceneLines(i,after);assert.equal(lines[0].speaker,'narrator');
+   assert.ok(lines.length>=(after?2:5));
+   for(const line of lines){assert.ok(line.speaker==='narrator'||ROSTER.some(f=>f.id===line.speaker));assert.ok(line.text.length>10);}
+  }
+ }
+ assert.deepEqual(sceneLines(99),[]);
+});
+test('scene bookmarks resume valid lines but cannot unlock episodes or unearned endings',()=>{
+ const empty=normalizeStory(null),one=completeChapter(empty,0);
+ assert.equal(normalizeBookmark({chapter:1,line:0},empty),null);
+ assert.equal(normalizeBookmark({chapter:0,after:true,line:0},empty),null);
+ assert.deepEqual(normalizeBookmark({chapter:0,after:true,line:999},one),{chapter:0,after:true,line:sceneLines(0,true).length-1});
+ assert.deepEqual(normalizeBookmark({chapter:1,line:2},one),{chapter:1,after:false,line:2});
+ assert.equal(normalizeBookmark({chapter:'0'},one),null);
+ assert.equal(normalizeBookmark(null,one),null);
+ let all=one;for(let i=1;i<16;i++)all=completeChapter(all,i);
+ assert.equal(normalizeBookmark({chapter:15,after:true,line:2},all).line,2,'the final epilogue survives a completed save');
+});
+test('battle conversations are contextual, ordered and never repeat during a fight',()=>{
+ for(let i=0;i<16;i++){
+  const played=new Set();assert.equal(battleCue(i,5,.9,played),null);
+  const first=battleCue(i,6,.9,played);assert.equal(first.id,0);played.add(first.id);
+  assert.equal(battleCue(i,10,.9,played),null);
+  const second=battleCue(i,12,.5,played);assert.equal(second.id,1);played.add(second.id);
+  assert.equal(battleCue(i,99,.1,played),null);
+  assert.equal(battleCue(i,38,.9,new Set([0])).id,1);
+ }
 });
 test('the new recharge, blink, prop and flight lessons complete through real input',()=>{
  const charge=createTraining('goku','charge');for(let i=0;i<220;i++)stepTraining(charge,{charge:true});assert.equal(charge.lesson.complete,true);

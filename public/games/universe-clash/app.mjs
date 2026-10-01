@@ -2415,6 +2415,7 @@ function frame(now) {
   const dt = clamp((now - lastFrame) / 1000, 0, 0.08);
   lastFrame = now;
   const paused = simulationPaused();
+  experience.tickStory(state,dt,mode==='story'&&!paused);
   if (mode === 'menu' && modePreview && !$('dialog[open]')) {
     stepMatch(modePreview.state, modePreview.state.fighters.map((_, slot) => getAIInput(modePreview.state, slot, dt)), dt);
   }
