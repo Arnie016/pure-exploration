@@ -9,14 +9,15 @@
     />
     <meta name="theme-color" content="#090b0e" />
     <meta name="uc-multiplayer" content="disabled" />
-    <meta name="uc-version" content="0.8.0" />
+    <meta name="uc-version" content="0.11.0-story-scenes" />
     <meta
       name="description"
-      content="An original 3D fan fighting prototype. Twelve-fighter battles, guided training, a sixteen-fighter championship, and offline AI duels. Single-player preview; online friend rooms are unavailable."
+      content="Play The Convergence: a sixteen-episode fan saga with cinematic dialogue, ten fractured worlds, guided combat, Fighter Studio and twelve-fighter battles. Single-player preview."
     />
-    <title>Universe Clash | Enter the Pit</title>
+    <title>Universe Clash | The Convergence</title>
     <link rel="icon" href="/games/universe-clash/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/games/universe-clash/style.css" />
+    <link rel="stylesheet" href="/games/universe-clash/convergence.css" />
     <script src="/games/capture-context.js"></script>
 <script type="importmap">{"imports":{"three":"/games/universe-clash/vendor/three.module.js"}}</script>
   </head>
@@ -26,7 +27,7 @@
     <div id="loading" role="status">
       <span class="loading-ring"></span><strong>ASSEMBLING THE ARENA</strong
       ><span id="loading-status"
-        >Preparing sixteen fighters and ten worlds.</span
+        >Preparing sixteen fighters, ten worlds and The Convergence.</span
       >
     </div>
 
@@ -40,9 +41,10 @@
           <button data-nav="play" aria-current="page">Play</button
           ><button data-nav="tournament">Tournament</button
           ><button data-nav="training">Training</button
-          ><button data-nav="locker">Locker</button
-          ><button data-nav="intel">Fighter Intel</button>
+          ><button data-nav="studio">Fighter Studio</button
+          ><button data-nav="achievements">Milestones</button>
         </nav>
+        <button id="menu-settings" class="quiet">Settings</button>
         <button id="sound-toggle" class="quiet" aria-label="Mute sound">
           Sound On
         </button>
@@ -57,18 +59,13 @@
             Twelve fighters. One arena. Last fighter standing.
           </p>
           <div class="mode-tabs" role="group" aria-label="Match type">
-            <button data-mode="pit" aria-pressed="true"><img alt="" /><span class="mode-caption"><b>Local Pit</b><small>12 fighters / 11 AI</small></span></button>
+            <button data-mode="story" aria-pressed="true"><img alt="" /><span class="mode-caption"><b>Story Saga</b><small>The Convergence / 16 episodes</small></span></button>
             <button data-mode="duel" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Duel</b><small>Chosen rival / best of 3</small></span></button>
-            <button data-mode="series" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Aura Series</b><small>12 rivals / best of 3</small></span></button>
+            <button data-mode="pit" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>12-Fighter Pit</b><small>Last fighter standing</small></span></button>
+          </div>
+          <div class="secondary-modes">            <button data-mode="series" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Aura Series</b><small>12 rivals / best of 3</small></span></button>
             <button data-mode="spectate" aria-pressed="false"><img alt="" /><span class="mode-caption"><b>Watch AI</b><small>Live 3D / two AI</small></span></button>
-          </div>
-          <div class="launch-options">
-            <label>AI level<select id="difficulty">
-              <option value="easy">Easy</option>
-              <option value="normal" selected>Normal</option>
-              <option value="hard">Hard</option>
-            </select></label>
-          </div>
+<button id="guide-open">Learn the controls ↗</button></div>
           <button id="showcase-open"><span data-icon="play"></span><span><b>Watch Showcase</b><small>CINEMATIC / SCRIPTED / 42s</small></span></button>
         </section>
         <section class="preview-space" aria-label="Live fighter preview">
@@ -103,24 +100,31 @@
           <button id="random-fighter">Random You</button>
           <div id="duel-options"><button id="random-rival" aria-label="Random rival">Random Rival</button><label class="sr-only">Rival<select id="opponent-select"></select></label></div>
           <button id="form-lab-open">Forms &amp; Voice</button>
-          <button data-nav="locker">Locker <span id="loadout-count">0/5</span></button>
+          <button data-nav="studio">Fighter Studio <span id="loadout-count">0/5</span></button>          <div class="launch-options">
+            <label>AI level<select id="difficulty">
+              <option value="easy">Easy</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Hard</option>
+            </select></label>
+          </div>
+
         </div>
       </section>
       <section class="launch-rail" aria-label="Launch your match">
         <div class="launch-buttons">
            <button id="play" class="primary-button">ENTER 12-FIGHTER PIT <span>&#8599;</span></button>
           <button id="start-tournament" class="tournament-button">TOURNAMENTS <span>16</span></button>
-          <button id="start-training" class="secondary-button">TRAINING STUDIO</button>
+          <button id="online-open" class="secondary-button">PLAY ONLINE <span>↗</span></button>
         </div>
         <div class="friend-actions">
           <span>SOLO ABOVE · REAL OPPONENTS ONLINE</span>
-          <button id="online-open" class="primary-button">PLAY ONLINE <span>↗</span></button>
+          <button id="start-training" class="text-button">Training drills ↗</button>
         </div>
       </section>
       <footer class="menu-footer">
-        <span>UNOFFICIAL FAN PROTOTYPE / ORIGINAL 3D ASSETS</span
+        <span>UNOFFICIAL FAN GAME · DRAGON BALL CREATED BY AKIRA TORIYAMA</span
         ><button data-open="controls-dialog">Controls reference</button
-         ><button id="menu-settings">Settings</button><button data-replays>Replays</button>
+         ><button data-replays>Clips &amp; replays</button><button id="credits-open">Credits</button>
       </footer>
     </main>
 
@@ -209,6 +213,12 @@
       <div id="aura-gain" hidden role="status"></div>
       <div id="ki-cue" hidden role="status"></div>
       <div id="resource-gain" hidden role="status"></div>
+      <div id="aim-reticle" aria-hidden="true"><i></i></div>
+      <div id="aim-target" hidden></div>
+      <div id="target-guide" hidden><i aria-hidden="true">➤</i><span></span><small>Home to recenter</small></div>
+      <div id="context-prompt" role="status"></div>
+      <div id="camera-hint">Click the arena to look around · Esc releases the mouse</div>
+      <div id="achievement-toast" hidden role="status"></div>
       <section id="clash-hud" hidden aria-label="Beam clash">
         <header><strong>BEAM CLASH</strong><output id="clash-time" aria-label="Clash time remaining" aria-live="off"></output></header>
         <div class="clash-sides"><b id="clash-a"></b><b id="clash-b"></b><span id="clash-ki-a"></span><span id="clash-ki-b"></span></div>
@@ -270,22 +280,26 @@
       </div>
       <div class="combat-bottom">
           <div class="power-readout" hidden aria-label="Power readiness">
-            <kbd class="power-key">SPACE</kbd>
+            <kbd class="power-key">T</kbd>
             <output id="center-ki" aria-label="Ki" aria-live="off">60 KI</output>
             <span id="current-form">BASE</span
             ><strong id="power-rating"></strong
-            ><small id="transform-requirement"></small>
-            <div class="resolve-track"><i></i></div>
+            ><b id="next-form-name"></b><small id="transform-requirement"></small>
+            <div class="requirement-row"><span id="resolve-label">Resolve</span><div class="resolve-track"><i></i></div></div>
+            <div class="requirement-row"><span id="ki-label">Ki</span><div class="transform-ki-track"><i></i></div></div>
+            <small id="charge-status"></small>
             <small id="shot-readiness"></small>
             <button id="transform-ready" data-action="transform" hidden aria-keyshortcuts="R" aria-label="Transform ready, press R"><kbd>R</kbd> TRANSFORM READY</button>
+            <button id="form-path-open" class="text-button">View all transformations ↗</button>
              <small id="flight-hint"></small>
              <div id="power-meter" hidden role="status"><b id="power-phase"></b><div><i></i></div></div>
           </div>
-          <div id="energy-meter" hidden role="status"><kbd>X</kbd><b id="energy-tier"></b><div><i></i></div></div>
+          <div id="energy-meter" hidden role="status"><kbd>L</kbd><b id="energy-tier"></b><div><i></i></div></div>
         <div class="control-deck">
           <div id="utility-dock" role="group" aria-label="Prop and vanish utilities">
-            <button id="grab-button" data-action="grab"><kbd>G</kbd><b>Grab</b><small class="ability-status">10 KI / NEAR PROP</small></button>
-            <button id="vanish-button" data-action="vanish"><kbd>Z</kbd><b>Vanish</b><small class="ability-status">16 KI</small></button>
+            <button id="grab-button" data-action="context"><kbd>X</kbd><b>Pick up</b><small class="ability-status">10 KI</small></button>
+            <button id="vanish-button" data-action="vanish"><kbd>Z</kbd><b>Teleport</b><small class="ability-status">16 KI · LOOK TO AIM</small></button>
+            <button id="flight-button" data-action="flight"><kbd>Space</kbd><b>Flight</b><small class="ability-status">TOGGLE</small></button>
           </div>
           <div id="touch-controls">
             <div id="thumbpad" role="group" aria-label="Movement thumbpad">
@@ -310,7 +324,7 @@
         <div class="battle-footer">
           <span id="battle-stage-name"></span
           ><span id="action-hint"
-            >WASD move / Q evade / H target / T charge / X shot / R form</span
+            >WASD move / Q evade / H target / T charge / X pick up / L shot / R form</span
           >
         </div>
       </div>
@@ -615,7 +629,7 @@
         <div id="pause-root" class="pause-grid">
           <button id="resume" class="pause-tile primary-button"><span data-icon="play"></span><b>Resume</b></button>
           <button class="pause-tile" data-pause-panel="audio"><span data-icon="audio"></span><b>Audio</b></button>
-          <button class="pause-tile" data-pause-panel="visuals"><span data-icon="visuals"></span><b>Visuals</b></button>
+          <button class="pause-tile" data-pause-panel="visuals"><span data-icon="visuals"></span><b>Camera &amp; visuals</b></button>
           <button class="pause-tile" data-pause-panel="training"><span data-icon="training"></span><b>Training</b></button>
           <button class="pause-tile" data-pause-panel="replays"><span data-icon="replays"></span><b>Replays</b></button>
           <button id="exit-match" class="pause-tile"><span data-icon="exit"></span><b>Exit</b></button>
@@ -635,6 +649,25 @@
         <p id="voice-status" class="note"></p>
         </section>
         <section data-pause-view="visuals" hidden aria-label="Visual settings">
+        <p class="note">Tune your view. Changes apply immediately and save on this device.</p>
+        <div class="setting-row">
+          <label for="graphics-setting">Graphics<small>Resolution, shadows and particle detail</small></label>
+          <select id="graphics-setting" data-presentation="quality"><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select>
+        </div>
+        <div class="setting-row range-setting">
+          <label for="sensitivity-setting">Look sensitivity</label><output id="sensitivity-setting-value" for="sensitivity-setting"></output>
+          <input id="sensitivity-setting" data-presentation="sensitivity" type="range" min="0.4" max="2" step="0.1" />
+        </div>
+        <div class="setting-row range-setting">
+          <label for="distance-setting">Camera distance<small>Third-person view</small></label><output id="distance-setting-value" for="distance-setting"></output>
+          <input id="distance-setting" data-presentation="distance" type="range" min="6" max="12" step="0.2" />
+        </div>
+        <div class="setting-row range-setting">
+          <label for="fov-setting">Field of view</label><output id="fov-setting-value" for="fov-setting"></output>
+          <input id="fov-setting" data-presentation="fov" type="range" min="50" max="85" step="1" />
+        </div>
+        <div class="setting-row"><label for="invert-setting">Invert vertical look</label><input id="invert-setting" data-presentation="invertY" type="checkbox" role="switch" /></div>
+        <div class="setting-row"><label for="assist-setting">Aim assist<small>Helps shots connect near the reticle</small></label><input id="assist-setting" data-presentation="aimAssist" type="checkbox" role="switch" /></div>
         <div class="setting-row">
           <label for="effects-setting"
             >Reduced effects<small>Less flash, no camera shake</small></label
@@ -643,6 +676,7 @@
         <button id="show-controls" class="secondary-button full-width">
           Controls Reference
         </button>
+        <button id="reset-presentation" class="text-button full-width">Restore camera &amp; graphics defaults</button>
         </section>
         <section data-pause-view="training" hidden aria-label="Training choices">
           <div id="pause-drills" class="pause-grid"></div>
@@ -699,15 +733,15 @@
            <p><kbd>E + Q / C + Q</kbd> Air dodge up / down. Shift remains an alternate for Q.</p>
             <p><kbd>Q / Shift</kbd> Dodge in your movement direction</p>
             <p><kbd>Q + Arrows</kbd> Evade left / right / forward / back, without turning the camera. Either key order; Shift + Arrows also works.</p>
-            <p><kbd>Z</kbd> Committed 2.4m blink / 16 ki / 2s cooldown / 0.18s evasion. No homing or attack cancellation.</p>
-           <p><kbd>Hold G</kbd> Lift a nearby prop / 10 ki. Release to throw; pause or blur drops safely. Hold limit 2s.</p>
+            <p><kbd>Z</kbd> Teleport up to 6 meters where you look / 16 Ki / 2s cooldown. Stay inside the arena.</p>
+           <p><kbd>X</kbd> Pick up the highlighted nearby object / 10 Ki. Tap again to throw where you look. Pause drops it safely. With no object nearby, X fires a blast.</p>
           <p><kbd>C</kbd> Hold guard / descend while flying</p>
-          <p><kbd>Mouse L / R</kbd> Light / heavy strike</p>
-           <p><kbd>X</kbd> Tap blast: 8 ki, 80 base damage. Hold 0.35s beam: 35 ki, 220 damage. Hold 1.2s ultimate: 100 ki, 375 damage.</p>
-           <p><kbd>X / J in clash</kbd> Tap to boost. Time the cue; holding or key repeat earns no extra taps. Ordinary X shot charging is suspended.</p>
+          <p><kbd>Mouse</kbd> Click the arena to look freely. Left / right click strikes; J / K also attack. Esc releases the pointer and pauses.</p>
+           <p><kbd>L</kbd> Tap for a blast: 8 Ki. Hold 0.35 seconds for a beam: 35 Ki, or 1.2 seconds for an ultimate: 100 Ki, then release. The on-screen Ki blast button works the same way. U and V fire a beam or ultimate directly.</p>
+           <p><kbd>X / J in clash</kbd> Tap to boost. Time the cue; holding or key repeat earns no extra taps. Regular energy attacks are suspended during the clash.</p>
            <p><kbd>C / Primary pointer in clash</kbd> Hold to brace instead. Release, pause, blur or clash end clears the commitment.</p>
           <p><kbd>F</kbd> Signature technique</p>
-           <p><kbd>Space</kbd> Double-tap within 320ms: flight. Hold at least 0.6s: one transformation while held, with earned resolve and enough ki. Holding refills ki only. Release does not transform.</p>
+           <p><kbd>Space</kbd> Toggle flight. E rises; C descends. Press Space again to land.</p>
            <p><kbd>T</kbd> Hold to charge ki. Charge never earns resolve.</p>
           <p><kbd>R</kbd> Transform when requirements are met</p>
           <p><kbd>V</kbd> Ultimate / 100 ki</p>

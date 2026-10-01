@@ -13,6 +13,16 @@ export default function ExternalWorld({project}:{project:Project}){
  const frame=useRef<HTMLIFrameElement|null>(null);const embedded=project.embed==='frame';
  useEffect(()=>{if(!embedded)return;const poll=setInterval(()=>{try{const d=frame.current?.contentDocument;if(d&&d.URL!=='about:blank'&&d.readyState!=='loading'&&d.body?.childElementCount){setPhase('loaded');clearInterval(poll);}}catch{/* Cross-origin worlds use the frame load event. */}},300);const timer=setTimeout(()=>{clearInterval(poll);setPhase(p=>p==='loaded'?p:'slow');},18000);return()=>{clearTimeout(timer);clearInterval(poll);};},[attempt,embedded]);
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),4500);return()=>clearTimeout(timer);},[notice]);
+ // Universe Clash owns the pointer during a fight. Restore the host navigation
+ // whenever the player pauses, opens a dialog, finishes, or leaves this world.
+ useEffect(()=>{
+  if(project.id!=='universe-clash'||phase!=='loaded')return;
+  const doc=frame.current?.contentDocument;if(!doc?.body)return;
+  const sync=()=>document.body.classList.toggle('uc-playing',doc.body.classList.contains('in-match')&&!doc.querySelector('dialog[open]'));
+  const observer=new MutationObserver(sync);observer.observe(doc.body,{attributes:true,attributeFilter:['class']});
+  doc.querySelectorAll('dialog').forEach(dialog=>observer.observe(dialog,{attributes:true,attributeFilter:['open']}));sync();
+  return()=>{observer.disconnect();document.body.classList.remove('uc-playing');};
+ },[project.id,phase,attempt]);
  // Keep the pirate world's informational HUD quiet while retaining sailing controls.
  useEffect(()=>{
   if(project.id!=='tides'||phase!=='loaded')return;
