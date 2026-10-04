@@ -107,5 +107,5 @@ export default function GardenScene({state,onPosition,onPortal,onPerson,onLeader
   }frame=requestAnimationFrame(animate);
   return()=>{portalLabels.dispose();animateLandscape.dispose();shrines.dispose();cancelAnimationFrame(frame);ro.disconnect();io.disconnect();window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',blur);document.removeEventListener('visibilitychange',visibility);r.domElement.removeEventListener('pointermove',pointerMove);r.domElement.removeEventListener('pointerleave',pointerLeave);window.removeEventListener('pointerup',pointerRelease);window.removeEventListener('pointercancel',pointerRelease);r.domElement.removeEventListener('pointerdown',pointerDown);r.domElement.removeEventListener('pointerup',click);controls.dispose();disposeScene(scene);r.dispose();r.domElement.remove();};
  },[]);
- return <div className="garden-canvas" ref={host}>{failed&&<div className="scene-fallback"><h2>The garden needs WebGL.</h2><p>Use Find a world to explore without the 3D view.</p></div>}</div>;
+ return <div className="garden-canvas" ref={host}>{failed&&<div className="scene-fallback"><h2>The garden needs WebGL.</h2><p>Use the Portals button to explore every world without the 3D view.</p></div>}</div>;
 }
