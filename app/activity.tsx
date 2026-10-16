@@ -1,7 +1,7 @@
 'use client';
 import{entryChannel}from'./entry-source';
 import{trackOptionalAnalytics}from'./components/google-analytics';
-import{useEffect,useState}from'react';import{Activity,Eye,ArrowUpRight,Heart}from'lucide-react';
+import{useEffect,useState}from'react';import{Heart}from'lucide-react';
 export type Person={id:string;alias:string;color:string;link:string;x?:number;z?:number};
 export type Pulse={likes?:{project:string;likes:number}[];active:number;visits:number;shares:number;explorations:number;ranking:{project:string;visits:number;opens:number;shares:number}[];favorites:{project:string;favorites:number}[];saved:string[];journey:{project:string;visits:number;opens:number;updated:number}[];me:Person};
 let sessionReady:Promise<unknown>|null=null;
