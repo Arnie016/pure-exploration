@@ -90,8 +90,7 @@ export default function ObservatoryScene({snapshot}:{snapshot:InstrumentSnapshot
    const tube=add(new T.CylinderGeometry(.11,.11,4.25,16,1,true),
     new T.MeshBasicMaterial({color:0x38606a,transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false}),g);
    const bar=add(new T.CylinderGeometry(.022,.022,4.25,10),xAxis?gold:cyan,g);
-   const brace=add(new T.CylinderGeometry(.085,.085,4.24,12,1,true),rim,g);
-   brace.material.transparent=true;(brace.material as T.MeshStandardMaterial).opacity=.18;
+   const brace=add(new T.CylinderGeometry(.085,.085,4.24,12,1,true),new T.MeshBasicMaterial({color:0x77afb6,transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false}),g);
    for(const m of[tube,bar,brace]){m.position.y=.7;m.rotation.z=xAxis?Math.PI/2:0;
     if(!xAxis)m.rotation.x=Math.PI/2;}
    const mount=add(new T.BoxGeometry(.58,.26,.58),darkMetal,g);
@@ -163,7 +162,7 @@ export default function ObservatoryScene({snapshot}:{snapshot:InstrumentSnapshot
    ripples.forEach((ring,i)=>{
     const breath=1+.065*Math.sin(s.timeSeconds*8-i*.7);
     ring.scale.set(breath,breath,breath);
-    ring.material.opacity=.04+.12*Math.abs(s.displayQuadrature);
+    (ring.material as T.Material).opacity=.04+.12*Math.abs(s.displayQuadrature);
    });
    dirty=true;
   }
@@ -188,6 +187,8 @@ export default function ObservatoryScene({snapshot}:{snapshot:InstrumentSnapshot
    cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();
    controls.removeEventListener('change',invalidate);controls.dispose();
    renderer.domElement.removeEventListener('webglcontextlost',contextLost);
+   grid.geometry.dispose();
+   if(Array.isArray(grid.material))grid.material.forEach(m=>m.dispose());else grid.material.dispose();
    for(const geometry of new Set(geometries))geometry.dispose();
    for(const material of new Set(materials))material.dispose();
    for(const texture of textures)texture.dispose();
