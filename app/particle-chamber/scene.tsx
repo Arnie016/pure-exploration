@@ -41,7 +41,7 @@ export default function ChamberScene({data,progress,layers}:{data:ChamberEvent;p
   const ringGroup=new T.Group(),tracksGroup=new T.Group();
   scene.add(ringGroup,tracksGroup);
   const staticGeo:T.BufferGeometry[]=[],staticMat:T.Material[]=[];
-  const register=(geometry:T.BufferGeometry,material:T.Material)=>{staticGeo.push(geometry);staticMat.push(material);return new T.Mesh(geometry,material);};
+  const register=(geometry:T.BufferGeometry,material:T.Material)=>{staticGeo.push(geometry);if(!staticMat.includes(material))staticMat.push(material);return new T.Mesh(geometry,material);};
   const shellMaterial=new T.MeshBasicMaterial({color:0x2a7280,side:T.DoubleSide,transparent:true,opacity:.035,depthWrite:false});
   ringGroup.add(register(new T.CylinderGeometry(3.67,3.67,4.7,96,1,true),shellMaterial));
   detectorRadii.forEach((radius:number,index:number)=>{
