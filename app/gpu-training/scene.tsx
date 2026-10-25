@@ -166,6 +166,7 @@ export default function GpuTrainingScene({ model, probeIndex, phase, running, ba
     const io = new IntersectionObserver(entries => { visible = entries[0]?.isIntersecting ?? true; });
     io.observe(mount);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const tileColor = new T.Color();
     let raf = 0, last = 0, visualKey = '';
     const animation = (time: number) => {
       raf = requestAnimationFrame(animation);
@@ -196,7 +197,7 @@ export default function GpuTrainingScene({ model, probeIndex, phase, running, ba
           const row = Math.floor(i / 12);
           const active = row < Math.min(8, current.batchSize);
           const heat = (Math.sin(i * .89 + current.model.step * .29) + 1) * .5;
-          const color = new T.Color().setHSL(active ? .48 - heat * .08 : .58, .65, active ? .15 + .3 * heat : .10);
+          const color = tileColor.setHSL(active ? .48 - heat * .08 : .58, .65, active ? .15 + .3 * heat : .10);
           tiles.setColorAt(i, color);
         }
         if (tiles.instanceColor) tiles.instanceColor.needsUpdate = true;
