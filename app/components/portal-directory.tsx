@@ -10,7 +10,7 @@ import {ExplorationTree} from './exploration-tree';
 export function PortalDirectory({current,onClose,pulse=null,onFavorite,initialView='constellation'}:{current:string;onClose:()=>void;pulse?:Pulse|null;onFavorite?:(id:string)=>void;initialView?:'shelves'|'constellation'}){
  const [view,setView]=useState(initialView),[query,setQuery]=useState(''),[category,setCategory]=useState('All'),dialog=useRef<HTMLElement>(null),search=useRef<HTMLInputElement>(null),close=useRef(onClose);
  useEffect(()=>{close.current=onClose;},[onClose]);
- const available=projects.filter(p=>p.featured!==false&&p.category!=='Tools'),rows=available.filter(p=>(category==='All'||p.category===category)&&(p.title+' '+p.subtitle+' '+p.tag).toLowerCase().includes(query.toLowerCase()));
+ const available=projects.filter(p=>p.featured!==false&&p.category!=='Tools'),rows=available.filter(p=>(category==='All'||p.category===category)&&(p.title+' '+p.subtitle+' '+p.tag+' '+(p.topics||[]).join(' ')).toLowerCase().includes(query.toLowerCase()));
  const popularity=(id:string)=>pulse?.ranking.find(r=>r.project===id)?.visits||0;
  const popular=rows.filter(p=>popularity(p.id)>0).sort((a,b)=>popularity(b.id)-popularity(a.id)||a.title.localeCompare(b.title)).slice(0,10);
  const popularRanks=Object.fromEntries(popular.map((p)=>[p.id,1+popular.filter(other=>popularity(other.id)>popularity(p.id)).length]));
