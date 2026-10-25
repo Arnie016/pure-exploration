@@ -61,7 +61,10 @@ export function makeTrack(momentumGeV,fieldTesla,elevationDeg,azimuthRad,charge)
  return {charge,pTGeV:pT,pZGeV:pZ,radiusM,points,hits};
 }
 
-/**\n * @param {{species?:'electron'|'muon'|'pion'|'proton',sqrtS?:number,fieldTesla?:number,elevationDeg?:number,seed?:number}} [input]\n */\nexport function collision(input={}){
+/**
+ * @param {{species?:'electron'|'muon'|'pion'|'proton',sqrtS?:number,fieldTesla?:number,elevationDeg?:number,seed?:number}} [input]
+ */
+export function collision(input={}){
  const kind=Object.prototype.hasOwnProperty.call(species,input.species)?input.species:"muon";
  const particle=species[kind],sqrtS=clamp(Number(input.sqrtS),0,12,3);
  const fieldTesla=clamp(Number(input.fieldTesla),0.25,4,1.6);
