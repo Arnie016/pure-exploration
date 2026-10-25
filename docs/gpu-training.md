@@ -2,9 +2,9 @@
 
 ## What actually runs
 
-The \`/gpu-training\` route uses a deterministic 2-input, 6-tanh-hidden-unit,
+The `/gpu-training` route uses a deterministic 2-input, 6-tanh-hidden-unit,
 1-sigmoid-output multilayer perceptron with **25 learned parameters** to solve
-the four-input XOR task. Source: \`app/gpu-training/model.ts\`. Initial weights
+the four-input XOR task. Source: `app/gpu-training/model.ts`. Initial weights
 come from a local seeded pseudorandom generator. There is no remote model
 endpoint, user account or paid inference provider.
 
@@ -15,7 +15,7 @@ function. The gradient norm is the actual batch-average L2 norm and the
 weight-update norm comes from the parameter difference. Each update is done in
 ordinary **JavaScript floating-point arithmetic on the browser CPU**.
 
-\`app/gpu-training/scene.tsx\` presents the network above a stylized GPU
+`app/gpu-training/scene.tsx` presents the network above a stylized GPU
 compute floor using Three.js. Colored links encode the *current sign and
 magnitude* of genuine model weights. Node colors correspond to the selected
 sample's activations, while pulses depict the direction of the currently
@@ -51,15 +51,15 @@ AMD or Apple GPU execution traces.
 
 Requires the repository's Node 24 toolchain and dependencies.
 
-\`\`\`sh
+```sh
 npm ci
 node --test tests/gpu-training.test.mjs
 npm run typecheck
 npm run build
 npm run dev -- --port 4317
-\`\`\`
+```
 
-Open \`http://localhost:4317/gpu-training\`, then run the same seed under
+Open `http://localhost:4317/gpu-training`, then run the same seed under
 both optimizers and watch the actual loss trace. The separate CI workflow
 attempts automated verification. A passing build does not replace browser
 testing on touchscreens, reduced-motion devices or lower-end GPUs.
