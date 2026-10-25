@@ -57,7 +57,7 @@ export default function GravitationalWaveObservatory(){
  const settings=useMemo(()=>({...DEFAULT_SETTINGS,peakStrain:hasWave?peak*1e-21:0,armLengthM:arm,
   wavelengthNm:light,displayGain:gain,noiseLevel:noise}),[peak,arm,light,gain,noise,hasWave]);
  const current=useMemo(()=>instrumentAt(time,settings),[time,settings]);
- const trace=useMemo(()=>sampleTrace(settings,240),[settings]);
+ const trace=useMemo(()=>sampleTrace(settings,1440),[settings]);
  useEffect(()=>{
   if(!playing)return;
   const id=setInterval(()=>{
