@@ -61,7 +61,7 @@ export function makeTrack(momentumGeV,fieldTesla,elevationDeg,azimuthRad,charge)
  return {charge,pTGeV:pT,pZGeV:pZ,radiusM,points,hits};
 }
 
-export function collision(input={}){
+/**\n * @param {{species?:'electron'|'muon'|'pion'|'proton',sqrtS?:number,fieldTesla?:number,elevationDeg?:number,seed?:number}} [input]\n */\nexport function collision(input={}){
  const kind=Object.prototype.hasOwnProperty.call(species,input.species)?input.species:"muon";
  const particle=species[kind],sqrtS=clamp(Number(input.sqrtS),0,12,3);
  const fieldTesla=clamp(Number(input.fieldTesla),0.25,4,1.6);
@@ -73,7 +73,7 @@ export function collision(input={}){
  if(available){
   const a=makeTrack(momentumGeV,fieldTesla,elevationDeg,azimuth,1);
   const b=makeTrack(momentumGeV,fieldTesla,-elevationDeg,azimuth+Math.PI,-1);
-  tracks.push({...a,id:"positive",name:particle.short.split(" / ")[1]||"+ charge",color:"#efbb86"}, {...b,id:"negative",name:particle.short.split(" / ")[0]||"− charge",color:"#69dfd2"});
+  tracks.push({...a,id:"positive",name:kind==="proton"?"p":particle.short.split(" / ")[1]||"+ charge",color:"#efbb86"}, {...b,id:"negative",name:kind==="proton"?"p̄":particle.short.split(" / ")[0]||"− charge",color:"#69dfd2"});
  }
  return {kind,particle,sqrtS,fieldTesla,elevationDeg,seed,thresholdGeV,available,energyEachGeV,momentumGeV,transverseMomentumGeV:momentumGeV*Math.cos(elevationDeg*Math.PI/180),radiusM:tracks[0]?.radiusM||0,tracks,detectorRadii};
 }
