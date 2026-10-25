@@ -1,0 +1,39 @@
+name: Gravitational Wave World Checks
+
+on:
+  pull_request:
+    paths:
+      - 'app/gravity-waves/**'
+      - 'app/projects.ts'
+      - 'tests/gravity-waves.test.mjs'
+      - 'docs/gravitational-waves.md'
+      - '.github/workflows/gravity-waves-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  gravity-waves:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # reviewed v4 pin
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # reviewed v4 pin
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Gravitational wave physics regression tests
+        run: node --test tests/gravity-waves.test.mjs
+      - name: Existing regression tests
+        run: npm test
+      - name: Lint report
+        run: npm run lint
+        continue-on-error: true
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
