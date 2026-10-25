@@ -5,6 +5,7 @@ export const LIGHT_SPEED = 299792458;
 export const CHIRP_SECONDS = 2.5;
 export const RINGDOWN_SECONDS = 0.35;
 export const TOTAL_SECONDS = CHIRP_SECONDS + RINGDOWN_SECONDS;
+/** @type {Readonly<{peakStrain:number,armLengthM:number,wavelengthNm:number,displayGain:number,noiseLevel:number}>} */
 export const DEFAULT_SETTINGS = Object.freeze({
   peakStrain: 1.2e-21, armLengthM: 4000, wavelengthNm: 1064,
   displayGain: 1e10, noiseLevel: 0.22
