@@ -31,6 +31,9 @@ jobs:
         run: node --test tests/collision-chamber.test.mjs
       - name: Existing model regression tests
         run: npm test
+      - name: Lint (report existing repository issues)
+        run: npm run lint
+        continue-on-error: true
       - name: Typecheck
         run: npm run typecheck
       - name: Production build
