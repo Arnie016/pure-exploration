@@ -17,7 +17,7 @@ const presets:Preset[]=[
  {name:'High-energy tracks',kind:'electron',energy:8.5,field:.75,elevation:32,description:'High momentum makes near-straight trajectories.'}
 ];
 function NumberSlider({label,value,onChange,min,max,step,unit,help}:{label:string;value:number;onChange:(n:number)=>void;min:number;max:number;step:number;unit:string;help:string}){
- return <label className="pc-slider"><span><strong>{label}</strong><output>{value.toFixed(step<1?1:0)} {unit}</output></span>
+ return <label className="pc-slider"><span><strong>{label}</strong><output>{value.toFixed(step<.1?2:step<1?1:0)} {unit}</output></span>
  <input type="range" value={value} min={min} max={max} step={step} onChange={e=>onChange(Number(e.target.value))}/>
  <small>{help}</small></label>;
 }
@@ -47,7 +47,7 @@ export default function CollisionChamber(){
  return <main className="pc-page">
   <a className="skip-link" href="#pc-controls">Skip to particle experiment controls</a>
   <div className="pc-shell">
-   <header className="pc-header"><div><span className="pc-eyebrow"><Atom size={15}/> PURE EXPLORATION / A PHYSICS EXPERIMENT / WORLD 016</span>
+   <header className="pc-header"><div><span className="pc-eyebrow"><Atom size={15}/> PURE EXPLORATION / A PHYSICS EXPERIMENT / A NEW WORLD</span>
     <h1>The Collision <em>Chamber.</em></h1><p>What if you could watch the invisible? Fire two charged particles out of an imagined collision. Change their energy, bend their paths and read the tracks they leave.</p></div>
     <span className="pc-stamp">THE MAGNET DOES NOT<br/>ADD ENERGY. IT CHANGES<br/>DIRECTION.</span></header>
    <section className="pc-main" aria-label="Interactive detector experiment">
