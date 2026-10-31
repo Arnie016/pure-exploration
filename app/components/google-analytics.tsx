@@ -28,7 +28,7 @@ function disable(){if(typeof window==='undefined')return;windowState()[`ga-disab
 export function setAnalyticsChoice(choice:Exclude<AnalyticsChoice,null>){memoryChoice=choice;try{localStorage.setItem(CONSENT_KEY,choice);}catch{/* The choice still applies to this open page. */}if(choice==='declined'||blockedByBrowser())disable();window.dispatchEvent(new Event(preferenceEvent));}
 function initialize(page:string){
  const w=windowState();w[`ga-disable-${GA_MEASUREMENT_ID}`]=false;if(configured)return;
- configured=true;w.dataLayer=w.dataLayer||[];w.gtag=function(..._args:unknown[]){w.dataLayer!.push(arguments);};
+ configured=true;w.dataLayer=w.dataLayer||[];w.gtag=(...args:unknown[])=>{w.dataLayer!.push(args);};
  w.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
  w.gtag('js',new Date());
  w.gtag('config',GA_MEASUREMENT_ID,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false,page_location:page,page_referrer:'',page_title:'Pure Exploration',cookie_domain:location.hostname,cookie_path:'/',cookie_expires:7776000,cookie_flags:'SameSite=Lax;Secure'});
