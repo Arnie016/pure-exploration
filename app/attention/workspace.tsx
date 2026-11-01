@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
+import type {Vector3} from 'three';
 import {STARTER,HEADS,tokenize,attentionAt,approximateOperations} from './model';
 import './style.css';
 
@@ -75,7 +76,7 @@ function AttentionScene({reading,phase}:{reading:Reading;phase:number}){
      disposable.push(texture,material);
      const sprite=new T.Sprite(material);sprite.position.set(x,y,z);sprite.scale.set(1.75,.38,1);group.add(sprite);
     };
-    const beam=(start:T.Vector3,end:T.Vector3,color:string,alpha:number)=>{
+    const beam=(start:Vector3,end:Vector3,color:string,alpha:number)=>{
      if(alpha<=0)return;
      const direction=end.clone().sub(start);
      const length=direction.length();if(length<.001)return;
@@ -95,7 +96,7 @@ function AttentionScene({reading,phase}:{reading:Reading;phase:number}){
      const tone=data.head===HEADS[0].name?'#78e3ef':'#ffbf87';
      for(let i=0;i<count;i++){
       const xx=x(i);
-      sphere(xx,1.8,-1,i===data.focus?'#ffe0a4':'#587a9c',i===data.focus?.34:.22);
+      sphere(xx,1.8,-1,i===data.focus?'#ffe0a4':'#587a9c',i===data.focus ? .34 : .22);
       sphere(xx,0,-.2,data.causal&&i>data.focus?'#3e4a54':tone,.24);
       sphere(xx,-1.8,.9,'#c3a9ec',.24);
       label(data.tokens[i],xx,2.35,-1,i===data.focus?'#ffe0a4':'#deebf5');
