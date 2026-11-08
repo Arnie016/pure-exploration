@@ -1,0 +1,79 @@
+/* Radio Sky, an original single-page scientific field station. Scoped styles. */
+.radio-sky-world{--ink:#e7f2f4;--muted:#93b2c3;--line:#244250;--cyan:#77deea;--amber:#f6c882;min-height:100vh;background:radial-gradient(circle at 53% 11%,#193a48 0,#0b1a29 27%,#060e1b 68%,#050913 100%);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:0 max(20px,calc((100vw - 1500px)/2));}
+.radio-sky-world *{box-sizing:border-box}
+.radio-sky-world button,.radio-sky-world input{font:inherit}
+.radio-sky-world a{color:inherit}
+.radio-sky-world :focus-visible{outline:2px solid var(--amber);outline-offset:4px}
+.radio-sky-topbar{min-height:78px;display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid var(--line);font-size:10px;font-weight:700;letter-spacing:.15em;color:var(--muted)}
+.radio-sky-back{display:flex;align-items:center;gap:9px;text-decoration:none;font-size:12px;letter-spacing:.01em;color:var(--ink)!important}
+.radio-sky-kicker{display:flex;align-items:center;gap:10px;color:#bbd6e1}
+.radio-sky-status{color:#80bda9}
+.radio-sky-heading{display:flex;justify-content:space-between;gap:24px;align-items:center;padding:45px 0 30px}
+.radio-sky-eyebrow,.radio-sky-view-heading,.radio-sky-scan-heading,.radio-sky-section-label{font-size:10px;font-weight:800;letter-spacing:.19em;color:#91c1cd}
+.radio-sky-heading h1{font-size:clamp(40px,5.4vw,75px);line-height:1.03;letter-spacing:-.057em;font-weight:600;margin:16px 0 19px;max-width:900px}
+.radio-sky-heading h1 em{color:var(--amber);font-weight:400;font-family:Georgia,serif}
+.radio-sky-heading p:not(.radio-sky-eyebrow){max-width:670px;font-size:15px;line-height:1.75;color:#a8bdc9;margin:0}
+.radio-sky-head-stamp{display:flex;align-items:center;gap:13px;border-left:1px solid #3a6471;padding-left:28px;flex-shrink:0}
+.radio-sky-head-stamp span{font-size:59px;line-height:1;font-weight:300;color:var(--amber)}
+.radio-sky-head-stamp small{font-size:10px;line-height:1.75;letter-spacing:.15em;color:var(--muted)}
+.radio-sky-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,345px);gap:24px;align-items:start}
+.radio-sky-main,.radio-sky-console{min-width:0}
+.radio-sky-view-heading,.radio-sky-scan-heading{display:flex;justify-content:space-between;gap:16px;padding:12px 4px;color:#8eaebd}
+.radio-sky-scene{position:relative;min-height:510px;width:100%;border:1px solid #315362;background:radial-gradient(ellipse at 50% 46%,#21475a 0%,#10283b 38%,#081525 73%,#050f1d 100%);overflow:hidden;border-radius:5px}
+.radio-sky-scene canvas{width:100%;height:100%;display:block;cursor:grab}
+.radio-sky-scene canvas:active{cursor:grabbing}
+.radio-sky-scene-loading{display:grid;place-items:center;color:#aecddb;min-height:510px}
+.radio-sky-scene-key{position:absolute;bottom:14px;left:16px;right:16px;display:flex;flex-wrap:wrap;gap:18px;color:#d1e3e9;font-size:11px;letter-spacing:.02em;pointer-events:none;text-shadow:0 1px 7px #01070e}
+.radio-sky-scene-key span,.radio-sky-scan-caption span{display:inline-flex;align-items:center;gap:7px}
+.radio-sky-scene-key i,.radio-sky-scan-caption i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--amber)}
+.radio-sky-scene-key i.steer-dot,.radio-sky-scan-caption i.steer-dot{background:var(--cyan)}
+.radio-sky-webgl-fallback{position:absolute;z-index:4;top:40%;left:10%;right:10%;background:#0a1c2a;border:1px solid var(--line);padding:25px;text-align:center;color:var(--ink)}
+.radio-sky-under-scene{display:flex;justify-content:space-between;align-items:center;gap:16px;color:#88aaba;font-size:11px;padding:16px 2px 20px}
+.radio-sky-under-scene label{display:flex;align-items:center;gap:9px;color:#c5dbe2;cursor:pointer}
+.radio-sky-under-scene input{accent-color:#79dce2;width:16px;height:16px}
+.radio-sky-scan{border:1px solid var(--line);background:linear-gradient(160deg,#102a3b,#091a29);padding:12px 20px 15px;border-radius:4px}
+.radio-sky-scan svg{display:block;width:100%;height:auto;overflow:visible}
+.radio-sky-grid-line{stroke:#2f5260;stroke-width:1;stroke-dasharray:4 6}
+.radio-sky-plot-label{fill:#9bb3c3;font-size:11px;font-family:ui-monospace,SFMono-Regular,monospace}
+.radio-sky-scan-line{stroke:#7de4e7;stroke-width:2.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.radio-sky-source-mark{stroke:#f5c37e;stroke-width:2;stroke-dasharray:6 5}
+.radio-sky-steer-mark{stroke:#f0f9fb;stroke-width:1.8;stroke-dasharray:3 4}
+.radio-sky-steer-point{fill:#eafcff;stroke:#5bc8d8;stroke-width:3}
+.radio-sky-scan-caption{display:flex;gap:24px;margin-top:5px;font-size:11px;color:#b4cbd4}
+.radio-sky-explanation{margin:25px 0 36px;border-left:2px solid #b68a58;padding:5px 22px}
+.radio-sky-explanation h2{margin:0 0 8px;font-size:19px;font-weight:550;letter-spacing:-.02em}
+.radio-sky-explanation p{max-width:760px;font-size:13px;line-height:1.85;color:#a4bdc9;margin:8px 0}
+.radio-sky-explanation strong{color:#e4ebed}
+.radio-sky-explanation .radio-sky-caveat{font-size:11px;color:#80a4b4}
+.radio-sky-console{border:1px solid #3a5868;border-radius:4px;background:linear-gradient(180deg,rgba(17,40,55,.95),rgba(8,21,34,.98));box-shadow:0 16px 60px #0003;padding:20px 22px}
+.radio-sky-console-title{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.14em;font-weight:750;color:#cce6eb;padding-bottom:18px;border-bottom:1px solid #284451}
+.radio-sky-console-title span{margin-left:auto;font-size:9px;color:#8bd5c3}
+.radio-sky-meter{padding:24px 0 14px;border-bottom:1px solid var(--line)}
+.radio-sky-meter>span,.radio-sky-readings span{display:block;font-size:9px;letter-spacing:.14em;color:#98b8c6;font-weight:750}
+.radio-sky-meter strong{display:block;font-size:65px;font-weight:400;letter-spacing:-.055em;line-height:1.08;margin:9px 0 12px}
+.radio-sky-meter strong small{font-size:21px;color:#89b6c5;font-weight:400;margin-left:5px}
+.radio-sky-meter-track{height:5px;background:#1e3944;border-radius:12px;overflow:hidden}
+.radio-sky-meter-track div{height:100%;background:linear-gradient(90deg,#4b8eac,#8ae2d5);transition:width .12s linear}
+.radio-sky-meter p,.radio-sky-phasors p{font-size:11px;line-height:1.65;color:#9bb6c2}
+.radio-sky-controls{padding:17px 0;border-bottom:1px solid var(--line)}
+.radio-sky-controls h2{margin:0 0 21px;font-size:19px;font-weight:550;letter-spacing:-.03em}
+.radio-sky-controls label{font-size:12px;color:#c5d9e0;display:flex;justify-content:space-between;gap:10px;margin:19px 0 7px}
+.radio-sky-controls output{color:#facb87;font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
+.radio-sky-controls input[type=range]{display:block;width:100%;margin:0;accent-color:#78d9dc;cursor:pointer}
+.radio-sky-align{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 24px;width:100%;background:#d2b88a;color:#102231;padding:13px 10px;border:0;border-radius:3px;cursor:pointer;font-weight:750;font-size:12px}
+.radio-sky-align:hover{background:#f0d4a4}
+.radio-sky-align svg:last-child{margin-left:auto}
+.radio-sky-readings{padding:19px 0 10px;display:grid;grid-template-columns:1fr 1fr;gap:19px 10px}
+.radio-sky-readings div:last-child{grid-column:1/-1}
+.radio-sky-readings strong{display:block;margin-top:8px;font-size:18px;font-weight:500;color:#e5eff0;font-variant-numeric:tabular-nums}
+.radio-sky-phasors{padding:17px 0;border-top:1px solid var(--line)}
+.radio-sky-phasors svg{display:block;width:100%;margin:18px 0 0}
+.radio-sky-challenge{border:1px solid #80643d;background:linear-gradient(130deg,#3b3025,#1d2c34);padding:17px 18px;margin:6px 0}
+.radio-sky-challenge strong{font-size:10px;letter-spacing:.17em;color:#f6cc88}
+.radio-sky-challenge p{font-size:12px;line-height:1.75;margin:9px 0 0;color:#ddd5c7}
+.radio-sky-footer{margin-top:24px;padding:25px 3px 38px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;color:#88a8b7;font-size:10px;letter-spacing:.09em}
+.radio-sky-footer a{text-underline-offset:4px}
+@media (max-width:1050px){.radio-sky-grid{grid-template-columns:minmax(0,1fr) 290px;gap:14px}.radio-sky-scene{min-height:430px}}
+@media (max-width:800px){.radio-sky-world{padding:0 18px}.radio-sky-kicker{display:none}.radio-sky-heading{padding:31px 0 25px}.radio-sky-head-stamp{display:none}.radio-sky-grid{grid-template-columns:1fr}.radio-sky-console{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.radio-sky-console-title,.radio-sky-meter,.radio-sky-controls{grid-column:1/-1}.radio-sky-readings{border-top:none}.radio-sky-scene{min-height:400px}.radio-sky-scene-loading{min-height:400px}}
+@media (max-width:520px){.radio-sky-topbar{min-height:64px}.radio-sky-status{font-size:9px;text-align:right}.radio-sky-heading h1{font-size:43px}.radio-sky-heading p:not(.radio-sky-eyebrow){font-size:13px}.radio-sky-scene{min-height:320px}.radio-sky-scene-loading{min-height:320px}.radio-sky-view-heading,.radio-sky-scan-heading{font-size:9px}.radio-sky-view-heading span:last-child,.radio-sky-scan-heading span:last-child{display:none}.radio-sky-under-scene{flex-direction:column;align-items:flex-start}.radio-sky-console{display:block}.radio-sky-scan{padding:10px}.radio-sky-world{padding:0 13px}}
+@media(prefers-reduced-motion:reduce){.radio-sky-meter-track div{transition:none}}
