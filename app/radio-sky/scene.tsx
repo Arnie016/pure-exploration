@@ -13,7 +13,6 @@ export default function RadioSkyScene({ baseline, sourceAz, steerAz, elevation, 
   const mount = useRef<HTMLDivElement>(null);
   const syncRef = useRef<(() => void) | null>(null);
   const latest = useRef({ baseline, sourceAz, steerAz, elevation, wavefronts });
-  latest.current = { baseline, sourceAz, steerAz, elevation, wavefronts };
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
@@ -182,7 +181,10 @@ export default function RadioSkyScene({ baseline, sourceAz, steerAz, elevation, 
     };
   }, []); // Initialize the GPU resources once; update values below.
 
-  useEffect(() => { syncRef.current?.(); }, [baseline, sourceAz, steerAz, elevation, wavefronts]);
+  useEffect(() => {
+    latest.current = { baseline, sourceAz, steerAz, elevation, wavefronts };
+    syncRef.current?.();
+  }, [baseline, sourceAz, steerAz, elevation, wavefronts]);
 
   return <div className="radio-sky-scene" ref={mount}>
     {unavailable && <div className="radio-sky-webgl-fallback" role="status">3D rendering is unavailable here. The numerical array and sky scan still work below.</div>}
