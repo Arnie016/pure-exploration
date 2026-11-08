@@ -12,6 +12,8 @@ type Props = { baseline: number; sourceAz: number; steerAz: number; elevation: n
 export default function RadioSkyScene({ baseline, sourceAz, steerAz, elevation, wavefronts }: Props) {
   const mount = useRef<HTMLDivElement>(null);
   const syncRef = useRef<(() => void) | null>(null);
+  const latest = useRef({ baseline, sourceAz, steerAz, elevation, wavefronts });
+  latest.current = { baseline, sourceAz, steerAz, elevation, wavefronts };
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
@@ -151,6 +153,7 @@ export default function RadioSkyScene({ baseline, sourceAz, steerAz, elevation, 
     document.addEventListener('visibilitychange', render);
 
     syncRef.current = () => {
+      const { baseline, sourceAz, steerAz, elevation, wavefronts } = latest.current;
       const p = antennaStations(baseline);
       for (let i = 0; i < p.length; i++) antennaGroups[i].position.set(p[i].x * 0.43, 0, p[i].z * 0.43);
       const s = skyDirection(sourceAz, elevation), direction = new T.Vector3(s.x, s.y, s.z);
