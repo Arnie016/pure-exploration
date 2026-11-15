@@ -33,10 +33,10 @@ export default function NeutrinoScene({points,baselineKm,running}:{points:Oscill
     staticGroup.add(new T.Points(dustGeometry,new T.PointsMaterial({color:0x8594c5,size:.025,transparent:true,opacity:.46})));
     const ringMaterial=new T.MeshBasicMaterial({color:0xaecfee,transparent:true,opacity:.22,side:T.DoubleSide});
     for(const x of [-4.9,4.9]){const ring=new T.Mesh(new T.TorusGeometry(2.93,.016,6,96),ringMaterial);ring.rotation.y=Math.PI/2;ring.position.x=x;staticGroup.add(ring);}
-    let shapes:THREE.Object3D[]=[],travellers:THREE.Mesh[]=[],curves:THREE.CatmullRomCurve3[]=[];
-    const clearPlot=()=>{for(const item of shapes){plot.remove(item);item.traverse(node=>{if(node instanceof T.Mesh||node instanceof T.Line){node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];materials.forEach(m=>m.dispose());}});}shapes=[];travellers=[];curves=[];};
+    let shapes:THREE.Object3D[]=[],travellers:THREE.Mesh[]=[],curves:THREE.CatmullRomCurve3[]=[],beacons:THREE.Mesh[]=[],detector:THREE.Mesh|null=null,lastPoints:OscillationPoint[]|null=null;
+    const clearPlot=()=>{for(const item of shapes){plot.remove(item);item.traverse(node=>{if(node instanceof T.Mesh||node instanceof T.Line){node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];materials.forEach(m=>m.dispose());}});}shapes=[];travellers=[];curves=[];beacons=[];detector=null;};
     function rebuild(){
-      clearPlot();const data=latest.current.points,b=latest.current.baselineKm;
+      clearPlot();const data=latest.current.points;
       const insert=(object:THREE.Object3D)=>{plot.add(object);shapes.push(object);};
       for(let f=0;f<3;f++){
         const color=COLORS[f],y0=(1-f)*1.63;
@@ -46,15 +46,23 @@ export default function NeutrinoScene({points,baselineKm,running}:{points:Oscill
         insert(new T.Mesh(new T.TubeGeometry(curve,Math.max(120,data.length),.028,7,false),new T.MeshBasicMaterial({color,transparent:true,opacity:.94})));
         const guideGeo=new T.BufferGeometry().setFromPoints([new T.Vector3(-4.8,y0-.53,-.12),new T.Vector3(4.8,y0-.53,-.12)]);
         const guide=new T.Line(guideGeo,new T.LineDashedMaterial({color,transparent:true,opacity:.24,dashSize:.17,gapSize:.15}));guide.computeLineDistances();insert(guide);
-        const p=data[Math.max(0,Math.min(data.length-1,Math.round(b/1600*(data.length-1))))].p[f];
-        const cursorX=-4.8+9.6*b/1600,cursorY=y0+(p-.5)*1.06;
-        const beacon=new T.Mesh(new T.SphereGeometry(.14+p*.13,14,12),new T.MeshBasicMaterial({color}));beacon.position.set(cursorX,cursorY,.15);insert(beacon);
+        const beacon=new T.Mesh(new T.SphereGeometry(.16,14,12),new T.MeshBasicMaterial({color}));insert(beacon);beacons.push(beacon);
         const traveler=new T.Mesh(new T.SphereGeometry(.075,10,8),new T.MeshBasicMaterial({color}));insert(traveler);travellers.push(traveler);
       }
-      const det=new T.Mesh(new T.BoxGeometry(.026,6.4,.035),new T.MeshBasicMaterial({color:0xdcecf5,transparent:true,opacity:.65}));det.position.set(-4.8+9.6*b/1600,0,.18);insert(det);
+      const det=new T.Mesh(new T.BoxGeometry(.026,6.4,.035),new T.MeshBasicMaterial({color:0xdcecf5,transparent:true,opacity:.65}));insert(det);detector=det;lastPoints=data;moveDetector();
     }
-    let frame=0,visible=true;const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function moveDetector(){
+      const {points:data,baselineKm:b}=latest.current,cursorX=-4.8+9.6*b/1600;
+      for(let f=0;f<3;f++){
+        const p=data[Math.max(0,Math.min(data.length-1,Math.round(b/1600*(data.length-1))))].p[f];
+        beacons[f].position.set(cursorX,(1-f)*1.63+(p-.5)*1.06,.15);
+        beacons[f].scale.setScalar(.8+p*.8);
+      }
+      detector?.position.set(cursorX,0,.18);
+    }
+    let frame=0,lastPaint=-Infinity,visible=true;const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const paint=(ms:number)=>{frame=0;if(document.hidden||!visible)return;
+      if(latest.current.running&&!reduced&&ms-lastPaint<33){invalidate();return;}lastPaint=ms;
       if(latest.current.running&&!reduced){const phase=(ms*.00012)%1;travellers.forEach((mesh,i)=>mesh.position.copy(curves[i].getPointAt(phase)));}
       else travellers.forEach((mesh,i)=>mesh.position.copy(curves[i].getPointAt(.02)));
       renderer.render(scene,camera);if(latest.current.running&&!reduced)invalidate();};
@@ -63,7 +71,7 @@ export default function NeutrinoScene({points,baselineKm,running}:{points:Oscill
     const ro=new ResizeObserver(resize),io=new IntersectionObserver(entries=>{visible=entries[0]?.isIntersecting??true;invalidate();},{threshold:.01});
     ro.observe(mount);io.observe(mount);controls.addEventListener('change',invalidate);
     const visibility=()=>invalidate();document.addEventListener('visibilitychange',visibility);
-    runtime.current={update:()=>{rebuild();invalidate();}};runtime.current.update();resize();
+    runtime.current={update:()=>{if(latest.current.points!==lastPoints)rebuild();else moveDetector();invalidate();}};runtime.current.update();resize();
     dispose=()=>{runtime.current=null;cancelAnimationFrame(frame);ro.disconnect();io.disconnect();document.removeEventListener('visibilitychange',visibility);controls.removeEventListener('change',invalidate);controls.dispose();clearPlot();scene.remove(staticGroup);staticGroup.traverse(node=>{if(node instanceof T.Mesh||node instanceof T.Line||node instanceof T.Points){node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];materials.forEach(m=>m.dispose());}});renderer.dispose();renderer.domElement.remove();};
    }catch{if(!cancelled)setError(true);}
   }
