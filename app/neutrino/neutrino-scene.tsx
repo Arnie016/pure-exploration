@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import type {OscillationPoint} from './physics';
 import {COLORS} from './physics';
+import type * as THREE from 'three';
 
 /** One WebGL renderer per mounted world, recreated only on navigation. Traces update in place. */
 export default function NeutrinoScene({points,baselineKm,running}:{points:OscillationPoint[];baselineKm:number;running:boolean}){
@@ -32,11 +33,11 @@ export default function NeutrinoScene({points,baselineKm,running}:{points:Oscill
     staticGroup.add(new T.Points(dustGeometry,new T.PointsMaterial({color:0x8594c5,size:.025,transparent:true,opacity:.46})));
     const ringMaterial=new T.MeshBasicMaterial({color:0xaecfee,transparent:true,opacity:.22,side:T.DoubleSide});
     for(const x of [-4.9,4.9]){const ring=new T.Mesh(new T.TorusGeometry(2.93,.016,6,96),ringMaterial);ring.rotation.y=Math.PI/2;ring.position.x=x;staticGroup.add(ring);}
-    let shapes:T.Object3D[]=[],travellers:T.Mesh[]=[],curves:T.CatmullRomCurve3[]=[],detector:T.Mesh|null=null;
-    const clearPlot=()=>{for(const item of shapes){plot.remove(item);item.traverse(node=>{if(node instanceof T.Mesh||node instanceof T.Line){node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];materials.forEach(m=>m.dispose());}});}shapes=[];travellers=[];curves=[];detector=null;};
+    let shapes:THREE.Object3D[]=[],travellers:THREE.Mesh[]=[],curves:THREE.CatmullRomCurve3[]=[];
+    const clearPlot=()=>{for(const item of shapes){plot.remove(item);item.traverse(node=>{if(node instanceof T.Mesh||node instanceof T.Line){node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];materials.forEach(m=>m.dispose());}});}shapes=[];travellers=[];curves=[];};
     function rebuild(){
       clearPlot();const data=latest.current.points,b=latest.current.baselineKm;
-      const insert=(object:T.Object3D)=>{plot.add(object);shapes.push(object);};
+      const insert=(object:THREE.Object3D)=>{plot.add(object);shapes.push(object);};
       for(let f=0;f<3;f++){
         const color=COLORS[f],y0=(1-f)*1.63;
         const coords=data.map((p,j)=>new T.Vector3(-4.8+9.6*p.km/1600,y0+(p.p[f]-.5)*1.06,.1+Math.sin(j*.19+f*2.1)*.17*(.4+p.p[f])));
@@ -50,7 +51,7 @@ export default function NeutrinoScene({points,baselineKm,running}:{points:Oscill
         const beacon=new T.Mesh(new T.SphereGeometry(.14+p*.13,14,12),new T.MeshBasicMaterial({color}));beacon.position.set(cursorX,cursorY,.15);insert(beacon);
         const traveler=new T.Mesh(new T.SphereGeometry(.075,10,8),new T.MeshBasicMaterial({color}));insert(traveler);travellers.push(traveler);
       }
-      const det=new T.Mesh(new T.BoxGeometry(.026,6.4,.035),new T.MeshBasicMaterial({color:0xdcecf5,transparent:true,opacity:.65}));det.position.set(-4.8+9.6*b/1600,0,.18);insert(det);detector=det;
+      const det=new T.Mesh(new T.BoxGeometry(.026,6.4,.035),new T.MeshBasicMaterial({color:0xdcecf5,transparent:true,opacity:.65}));det.position.set(-4.8+9.6*b/1600,0,.18);insert(det);
     }
     let frame=0,visible=true;const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const paint=(ms:number)=>{frame=0;if(document.hidden||!visible)return;
