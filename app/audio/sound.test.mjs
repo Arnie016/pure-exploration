@@ -26,8 +26,8 @@ class Node{gain=new Param();pan=new Param();frequency=new Param();detune=new Par
 class Track{stopped=false;clone(){return new Track();}stop(){this.stopped=true;}}
 class FakeContext{static count=0;static started=0;static latest;captureTrack=new Track();currentTime=0;state='suspended';destination=new Node();constructor(){FakeContext.count++;FakeContext.latest=this;}createMediaStreamDestination(){const node=new Node();node.stream={getAudioTracks:()=>[this.captureTrack],getTracks:()=>[this.captureTrack]};return node;}createGain(){return new Node();}createDynamicsCompressor(){return new Node();}createDelay(){return new Node();}createBiquadFilter(){return new Node();}createStereoPanner(){return new Node();}createOscillator(){return new Node();}async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.state='closed';}}
 const source=(await readFile(new URL('./director.ts',import.meta.url),'utf8')).replace("'./score'",JSON.stringify(new URL('./score.ts',import.meta.url).href));
-const module=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;
-const{SoundDirector,getSoundCaptureTrack}=await import('data:text/javascript;base64,'+Buffer.from(module).toString('base64'));
+const compiledModule=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;
+const{SoundDirector,getSoundCaptureTrack}=await import('data:text/javascript;base64,'+Buffer.from(compiledModule).toString('base64'));
 test('audio requires activation, respects mute, throttles duplicate cues, and sleeps offscreen',async()=>{
  const oldWindow=globalThis.window;globalThis.window={AudioContext:FakeContext};const audio=new SoundDirector();
  try{
