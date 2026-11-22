@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useRef,useState,type MutableRefObject} from 'react';
 import Link from 'next/link';
 import {createPair,DEFAULT_SETTINGS,energyDrift,separation,step,totalEnergy,type Settings} from './physics';
 import './orbital-chaos.css';
@@ -15,7 +15,7 @@ type Stats={time:number;divergence:number;energy:number;drift:number};
 function measure(pair:Pair,softening:number):Stats{
  return {time:pair.original.time,divergence:separation(pair.original,pair.shadow),energy:totalEnergy(pair.original.bodies,softening),drift:energyDrift(pair.original,softening)};
 }
-function OrbitalScene({pair,settings,playing,speed,onStats}:{pair:React.MutableRefObject<Pair>;settings:React.MutableRefObject<Settings>;playing:React.MutableRefObject<boolean>;speed:React.MutableRefObject<number>;onStats:(stats:Stats)=>void}){
+function OrbitalScene({pair,settings,playing,speed,onStats}:{pair:MutableRefObject<Pair>;settings:MutableRefObject<Settings>;playing:MutableRefObject<boolean>;speed:MutableRefObject<number>;onStats:(stats:Stats)=>void}){
  const mount=useRef<HTMLDivElement>(null);
  const [error,setError]=useState(false);
  useEffect(()=>{
@@ -147,9 +147,9 @@ function OrbitalScene({pair,settings,playing,speed,onStats}:{pair:React.MutableR
   return()=>{disposed=true;destroy();};
  },[pair,settings,playing,speed,onStats]);
  return <div className="oc-stage" ref={mount} tabIndex={0} role="group" aria-label="Three-body orbit viewer. Drag to orbit, scroll to zoom, arrow keys to rotate.">
-  <div className="oc-stage-top">GRAVITY ENGINE · G = 1 <span>WHITE = PERTURBED THIRD BODY</span></div>
-  {error&&<p className="oc-error" role="status">WebGL is unavailable. Use the Step button to explore the numerical results without 3D.</p>}
-  <div className="oc-stage-bottom">DRAG TO ORBIT · SCROLL TO ZOOM · ARROWS TO ROTATE</div>
+  <div className="oc-stage-note">GRAVITY ENGINE · G = 1 <span>WHITE = PERTURBED THIRD BODY</span></div>
+  {error&&<p className="oc-fallback" role="status">WebGL is unavailable. Use the Step button to explore the numerical results without 3D.</p>}
+  <div className="oc-stage-instructions">DRAG TO ORBIT · SCROLL TO ZOOM · ARROWS TO ROTATE</div>
  </div>;
 }
 export default function OrbitalChaosLab(){
@@ -171,19 +171,19 @@ export default function OrbitalChaosLab(){
  const singleStep=()=>{setPlaying(false);isPlaying.current=false;for(let k=0;k<20;k++){step(sim.current.original,.006,currentSettings.current.softening);step(sim.current.shadow,.006,currentSettings.current.softening);}setStats(measure(sim.current,currentSettings.current.softening));notify();};
  return <main className="orbital-chaos">
   <header className="oc-header"><Link href="/?walk=1">← BACK TO THE GARDEN</Link><span>PURE EXPLORATION / FIELD EXPERIMENT 016</span></header>
-  <section className="oc-intro"><div><p className="oc-overline">CELESTIAL MECHANICS / INTERACTIVE OBSERVATORY</p><h1>Three bodies.<br/><em>Infinite possibilities.</em></h1><p className="oc-deck">A tiny change at the beginning can redraw an entire gravitational future. Run two almost identical universes side by side.</p></div><div className="oc-legend">{['Amber','Cyan','Violet','Ghost'].map((name,i)=><span key={name}><i style={{background:i===3?'transparent':COLORS[i],border:i===3?'1px solid white':undefined}}/>{name}</span>)}</div></section>
-  <div className="oc-workspace"><section className="oc-viewer">
+  <section className="oc-lead"><div><p className="oc-panel-label">CELESTIAL MECHANICS / INTERACTIVE OBSERVATORY</p><h1>Three bodies.<br/><em>Infinite possibilities.</em></h1><p className="oc-deck">A tiny change at the beginning can redraw an entire gravitational future. Run two almost identical universes side by side.</p></div><div className="oc-legend">{['Amber','Cyan','Violet','Ghost'].map((name,i)=><span key={name}><i style={{background:i===3?'transparent':COLORS[i],border:i===3?'1px solid white':undefined}}/>{name}</span>)}</div></section>
+  <div className="oc-workspace"><section className="oc-visual">
     <OrbitalScene pair={sim} settings={currentSettings} playing={isPlaying} speed={rate} onStats={setStats}/>
-    <div className="oc-transport"><button className="oc-run" onClick={()=>setPlaying(p=>!p)}>{playing?'Ⅱ Pause':'▶ Run universe'}</button><button onClick={singleStep}>Step +0.12</button><button onClick={reset}>↺ Reset</button><label>TIME RATE <output>{speed.toFixed(1)}×</output><input aria-label="Time rate" type="range" min=".3" max="3" step=".1" value={speed} onChange={e=>setSpeed(Number(e.target.value))}/></label></div>
-   </section><aside className="oc-console"><p className="oc-overline">01 / INITIAL CONDITIONS</p><h2>Change the future.</h2>
-    <div className="oc-presets" role="group" aria-label="Starting arrangement">{(['eight','triangle','visitor'] as const).map((p,i)=><button key={p} aria-pressed={settings.preset===p} onClick={()=>configure({preset:p})}>{['Figure-eight','Triangle','Close encounter'][i]}</button>)}</div>
+    <div className="oc-transport"><button className="oc-primary" onClick={()=>setPlaying(p=>!p)}>{playing?'Ⅱ Pause':'▶ Run universe'}</button><button onClick={singleStep}>Step +0.12</button><button onClick={reset}>↺ Reset</button><label>TIME RATE <output>{speed.toFixed(1)}×</output><input aria-label="Time rate" type="range" min=".3" max="3" step=".1" value={speed} onChange={e=>setSpeed(Number(e.target.value))}/></label></div>
+   </section><aside className="oc-console"><p className="oc-panel-label">01 / INITIAL CONDITIONS</p><h2>Change the future.</h2>
+    <div className="oc-preset" role="group" aria-label="Starting arrangement">{(['eight','triangle','visitor'] as const).map((p,i)=><button key={p} aria-pressed={settings.preset===p} onClick={()=>configure({preset:p})}>{['Figure-eight','Triangle','Close encounter'][i]}</button>)}</div>
     <p className="oc-description">{presetCopy[settings.preset]}</p>
     <label className="oc-field">Mass of violet body <output>{settings.thirdMass.toFixed(2)}</output><input type="range" min=".2" max="2.5" step=".05" value={settings.thirdMass} onChange={e=>configure({thirdMass:Number(e.target.value)})}/></label>
     <label className="oc-field">Ghost velocity change <output>{settings.perturbation.toFixed(3)}</output><input type="range" min="0" max=".08" step=".001" value={settings.perturbation} onChange={e=>configure({perturbation:Number(e.target.value)})}/></label>
     <label className="oc-field">Gravity softening ε <output>{settings.softening.toFixed(3)}</output><input type="range" min=".005" max=".08" step=".005" value={settings.softening} onChange={e=>configure({softening:Number(e.target.value)})}/></label>
-    <p className="oc-muted">Changing a starting condition restarts both universes. The white wireframe follows the perturbed third body.</p><hr/>
-    <p className="oc-overline">02 / LIVE MEASUREMENTS</p><div className="oc-metrics"><div><span>Simulation time</span><strong>{stats.time.toFixed(2)}</strong><small>dimensionless</small></div><div><span>Ghost separation</span><strong>{stats.divergence.toFixed(4)}</strong><small>coordinate units</small></div><div><span>Total energy</span><strong>{stats.energy.toFixed(3)}</strong><small>G = 1 units</small></div><div><span>Energy drift</span><strong>{(Math.abs(stats.drift)*100).toFixed(4)}%</strong><small>numerical error check</small></div></div>
+    <p className="oc-subtle">Changing a starting condition restarts both universes. The white wireframe follows the perturbed third body.</p><hr/>
+    <p className="oc-panel-label">02 / LIVE MEASUREMENTS</p><div className="oc-metrics"><div><span>Simulation time</span><strong>{stats.time.toFixed(2)}</strong><small>dimensionless</small></div><div><span>Ghost separation</span><strong>{stats.divergence.toFixed(4)}</strong><small>coordinate units</small></div><div><span>Total energy</span><strong>{stats.energy.toFixed(3)}</strong><small>G = 1 units</small></div><div><span>Energy drift</span><strong>{(Math.abs(stats.drift)*100).toFixed(4)}%</strong><small>numerical error check</small></div></div>
    </aside></div>
-  <footer className="oc-explain"><section><p className="oc-overline">THE EXPERIMENT</p><h2>Chaos is not randomness.</h2><p>Every body obeys the same deterministic gravitational rule. A minuscule difference in one initial velocity can grow into very different trajectories. The white outline lets you see the divergence directly.</p></section><section><p className="oc-overline">MODEL BOUNDARIES</p><p>Three point masses follow softened Newtonian gravity with G = 1 using fixed-step velocity Verlet integration. Softening replaces the gravitational 1/r potential with 1/√(r² + ε²), preventing singular forces at close approaches. There are no collisions or relativistic corrections. The numbers are dimensionless educational results, not observed astronomical measurements.</p><p><strong>Try:</strong> Select Triangle, use mass 1.00 and zero ghost perturbation. Then change the ghost velocity slightly and watch the symmetry break.</p></section></footer>
+  <footer className="oc-bottom"><section><p className="oc-panel-label">THE EXPERIMENT</p><h2>Chaos is not randomness.</h2><p>Every body obeys the same deterministic gravitational rule. A minuscule difference in one initial velocity can grow into very different trajectories. The white outline lets you see the divergence directly.</p></section><section><p className="oc-panel-label">MODEL BOUNDARIES</p><p>Three point masses follow softened Newtonian gravity with G = 1 using fixed-step velocity Verlet integration. Softening replaces the gravitational 1/r potential with 1/√(r² + ε²), preventing singular forces at close approaches. There are no collisions or relativistic corrections. The numbers are dimensionless educational results, not observed astronomical measurements.</p><p><strong>Try:</strong> Select Triangle, use mass 1.00 and zero ghost perturbation. Then change the ghost velocity slightly and watch the symmetry break.</p></section></footer>
  </main>;
 }
